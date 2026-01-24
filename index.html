@@ -1523,3 +1523,25 @@
 </script>
 </body>
 </html>
+// 🔓 GitHub Pages + Chrome audio & start fix
+let __forcedStart = false;
+
+canvas.addEventListener("pointerdown", () => {
+  if (__forcedStart) return;
+  __forcedStart = true;
+
+  try {
+    if (audioCtx && audioCtx.state === "suspended") {
+      audioCtx.resume();
+    }
+  } catch(e){}
+
+  // oyun hiç başlamadıysa zorla başlat
+  if (!started && !over && !won) {
+    started = true;
+    try { startAmbientMusic(); } catch(e){}
+    lastT = performance.now();
+    requestAnimationFrame(loop);
+  }
+}, { once: true });
+
