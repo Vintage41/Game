@@ -6,20 +6,21 @@
   <title>Kalp Yolu</title>
   <style>
     :root { color-scheme: dark; }
-    html, body { margin:0; padding:0; height:100%; background:#0b0f18; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-    #app { height:100%; display:flex; align-items:center; justify-content:center; }
-    canvas { width: min(100vw, 520px); height: min(100vh, 900px); background: radial-gradient(1200px 900px at 50% 30%, #17233a 0%, #0b0f18 55%, #070a12 100%); border-radius: 18px; box-shadow: 0 18px 60px rgba(0,0,0,.45); touch-action:none; }
-    .ui {
-      position: fixed; inset: 0;
-      display:flex; align-items:center; justify-content:center;
-      pointer-events:none;
+    html, body { margin:0; height:100%; background:#070a12; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    #wrap { height:100%; display:flex; align-items:center; justify-content:center; }
+    canvas {
+      width: min(100vw, 520px);
+      height: min(100vh, 900px);
+      border-radius: 18px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+      background: radial-gradient(1200px 900px at 50% 20%, #1a2a47 0%, #0b1020 55%, #070a12 100%);
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+      display:block;
     }
-    .panel {
-      width:min(520px, 100vw); max-height: 100vh;
-      padding: 18px;
-      box-sizing:border-box;
-      pointer-events:auto;
-    }
+
+    .ui { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+    .panel { width:min(520px, 100vw); padding:18px; box-sizing:border-box; pointer-events:auto; }
     .card {
       background: rgba(255,255,255,.06);
       border: 1px solid rgba(255,255,255,.10);
@@ -27,10 +28,11 @@
       padding: 16px;
       backdrop-filter: blur(10px);
     }
-    h1, h2 { margin: 0 0 10px; letter-spacing:.2px; }
-    h1 { font-size: 24px; }
-    h2 { font-size: 18px; opacity:.95; }
-    p { margin: 8px 0; opacity:.85; line-height:1.35; }
+    h1,h2 { margin:0 0 10px; letter-spacing:.2px; }
+    h1 { font-size:24px; }
+    h2 { font-size:18px; opacity:.95; }
+    p { margin:8px 0; opacity:.85; line-height:1.35; }
+    .tiny { font-size:12px; opacity:.75; }
     .row { display:flex; gap:10px; flex-wrap:wrap; }
     .btn {
       flex: 1 1 auto;
@@ -38,81 +40,74 @@
       border-radius: 14px;
       border: 1px solid rgba(255,255,255,.14);
       background: rgba(255,255,255,.08);
-      color: #fff;
-      font-weight: 700;
-      letter-spacing: .2px;
+      color:#fff;
+      font-weight:800;
       cursor:pointer;
       user-select:none;
     }
     .btn:active { transform: translateY(1px); }
     .btn.primary { background: rgba(255,255,255,.14); }
-    .btn.danger { background: rgba(255,80,120,.18); border-color: rgba(255,80,120,.35); }
     .btn.good { background: rgba(120,255,180,.14); border-color: rgba(120,255,180,.30); }
+    .btn.danger { background: rgba(255,80,120,.18); border-color: rgba(255,80,120,.35); }
+    .badge {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px; border-radius:999px;
+      background: rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.10);
+      font-weight:800;
+    }
+    .statline { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; opacity:.9; }
 
     .switch {
       display:flex; align-items:center; justify-content:space-between;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.05);
-      margin: 10px 0;
+      margin:10px 0;
     }
     .toggle {
-      width: 52px; height: 30px; border-radius: 999px;
+      width:52px; height:30px; border-radius:999px;
       background: rgba(255,255,255,.14);
-      border: 1px solid rgba(255,255,255,.18);
-      position: relative;
+      border:1px solid rgba(255,255,255,.18);
+      position:relative;
       cursor:pointer;
     }
     .knob {
-      width: 24px; height: 24px; border-radius: 50%;
+      width:24px; height:24px; border-radius:50%;
       background: rgba(255,255,255,.92);
-      position:absolute; top: 2px; left: 2px;
+      position:absolute; top:2px; left:2px;
       transition: left .18s ease;
     }
     .toggle.on { background: rgba(120,255,180,.18); border-color: rgba(120,255,180,.30); }
-    .toggle.on .knob { left: 26px; }
+    .toggle.on .knob { left:26px; }
 
-    .tiny { font-size: 12px; opacity:.75; }
-    .statline { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; opacity:.9; }
-    .badge {
-      display:inline-flex; align-items:center; gap:6px;
-      padding: 6px 10px; border-radius: 999px;
-      background: rgba(255,255,255,.07);
-      border: 1px solid rgba(255,255,255,.10);
-      font-weight: 700;
-    }
-    .grid {
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-      margin-top: 10px;
-    }
+    .grid { display:grid; grid-template-columns: 1fr; gap:10px; margin-top:10px; }
     .item {
       display:flex; justify-content:space-between; align-items:center; gap:12px;
-      padding: 12px;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,.10);
+      padding:12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.05);
     }
     .item b { display:block; }
-    .item small { display:block; opacity:.75; margin-top: 2px; line-height:1.25; }
+    .item small { display:block; opacity:.75; margin-top:2px; line-height:1.25; }
     .pill {
-      padding: 6px 10px; border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.14);
+      padding:6px 10px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
       background: rgba(255,255,255,.06);
-      font-weight: 800;
+      font-weight:900;
       white-space:nowrap;
     }
     .hidden { display:none !important; }
   </style>
 </head>
 <body>
-<div id="app">
-  <canvas id="c" width="520" height="900"></canvas>
+<div id="wrap">
+  <canvas id="c"></canvas>
 </div>
 
-<!-- MENU UI -->
+<!-- MENU -->
 <div class="ui" id="uiMenu">
   <div class="panel">
     <div class="card">
@@ -121,7 +116,7 @@
         <span class="badge">💗 Para: <span id="mCoins">0</span></span>
         <span class="badge">🏆 Rekor: <span id="mHigh">0</span></span>
       </div>
-      <p class="tiny">Tek parmak: sağ/sol kaydır. Sonsuz koşu. Pembe kalpler para, kırık kalpler can götürür.</p>
+      <p class="tiny">3 şerit • Sonsuz koşu • Kaydır: sağ/sol. Pembe kalp = para. Kırık kalp = can götürür.</p>
       <div class="row" style="margin-top:10px">
         <button class="btn primary" id="btnPlay">Oyna</button>
         <button class="btn" id="btnShop">Market</button>
@@ -134,7 +129,7 @@
   </div>
 </div>
 
-<!-- SETTINGS UI -->
+<!-- SETTINGS -->
 <div class="ui hidden" id="uiSettings">
   <div class="panel">
     <div class="card">
@@ -143,7 +138,7 @@
       <div class="switch">
         <div>
           <b>🎵 Müzik</b>
-          <div class="tiny">Menü ve oyunda arka plan müziği</div>
+          <div class="tiny">Menü + oyun arka plan</div>
         </div>
         <div class="toggle" id="togMusic"><div class="knob"></div></div>
       </div>
@@ -151,31 +146,32 @@
       <div class="switch">
         <div>
           <b>🔊 Ses Efekti</b>
-          <div class=" shown ama hafif</div>
+          <div class="tiny">Kalp toplama / çarpma / buton</div>
         </div>
         <div class="toggle" id="togSfx"><div class="knob"></div></div>
       </div>
 
       <div class="row" style="margin-top:10px">
         <button class="btn" id="btnBackFromSettings">Geri</button>
-        <button class="btn good" id="btnApplyAudio">Sesi Başlat</button>
+        <button class="btn good" id="btnAudioUnlock">Sesi Başlat</button>
       </div>
 
       <p class="tiny" style="margin-top:10px">
-        Not: Bazı telefonlarda ses, ilk dokunuştan sonra başlar. “Sesi Başlat” bunu garanti eder.
+        iOS Safari ses için ilk dokunuş gerekir. “Sesi Başlat” bunu garanti eder.
       </p>
     </div>
   </div>
 </div>
 
-<!-- SHOP UI -->
+<!-- SHOP -->
 <div class="ui hidden" id="uiShop">
   <div class="panel">
     <div class="card">
       <h2>🛒 Market</h2>
       <div class="statline">
         <span class="badge">💗 Para: <span id="sCoins">0</span></span>
-        <span class="badge">🧢 Seçili: <span id="sSelected">Klasik</span></span>
+        <span class="badge">🎨 Skin: <span id="sSkin">Klasik</span></span>
+        <span class="badge">🧩 Güç: <span id="sPower">Yok</span></span>
       </div>
 
       <div class="grid" id="shopGrid"></div>
@@ -185,13 +181,13 @@
       </div>
 
       <p class="tiny" style="margin-top:10px">
-        Skini satın alınca “Seç” ile aktif edebilirsin. Oyun içi görsel değişir.
+        Skin görünümü değiştirir. Güçler oyun içinde otomatik çalışır (magnet / kalkan / para bonusu / yavaşlatma).
       </p>
     </div>
   </div>
 </div>
 
-<!-- GAME OVER UI -->
+<!-- GAME OVER -->
 <div class="ui hidden" id="uiGameOver">
   <div class="panel">
     <div class="card">
@@ -201,7 +197,6 @@
         <span class="badge">💗 Kazanç: +<span id="goEarn">0</span></span>
         <span class="badge">🏆 Rekor: <span id="goHigh">0</span></span>
       </div>
-      <p class="tiny">Aynı şekilde devam: sağ/sol kaydır. Zamanla hızlanır.</p>
       <div class="row" style="margin-top:10px">
         <button class="btn primary" id="btnRetry">Tekrar</button>
         <button class="btn" id="btnMenu">Menü</button>
@@ -212,660 +207,57 @@
 
 <script>
 (() => {
-  // ========= Persistence =========
-  const LS_KEY = "kalpYolu_v1";
-  const defaultSave = {
-    coins: 0,
-    highScore: 0,
-    settings: revealed(),
-    owned: { classic: true },
-    selectedSkin: "classic"
-  };
-
-  function revealed() { return { music: true, sfx: true }; }
-
-  function load() {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (!raw) return structuredClone(defaultSave);
-      const parsed = JSON.parse(raw);
-      // Migrate / fill defaults
-      const s = structuredClone(defaultSave);
-      if (typeof parsed.coins === "number") s.coins = parsed.coins;
-      if (typeof parsed.highScore === "number") s.highScore = parsed.highScore;
-      if (parsed.settings && typeof parsed.settings === "object") {
-        s.settings.music = !!parsed.settings.music;
-        s.settings.sfx = !!parsed.settings.sfx;
-      }
-      if (parsed.owned && typeof parsed.owned === "object") s.owned = { ...s.owned, ...parsed.owned };
-      if (typeof parsed.selectedSkin === "string") s.selectedSkin = parsed.selectedSkin;
-      return s;
-    } catch {
-      return structuredClone(defaultSave);
-    }
-  }
-  function save() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
-
-  let state = load();
-
-  // ========= UI refs =========
-  const uiMenu = document.getElementById("uiMenu");
-  const uiSettings = document.getElementById("uiSettings");
-  const uiShop = document.getElementById("uiShop");
-  const uiGameOver = document.getElementById("uiGameOver");
-
-  const mCoins = document.getElementById("mCoins");
-  const mHigh = document.getElementById("mHigh");
-  const sCoins = document.getElementById("sCoins");
-  const sSelected = document.getElementById("sSelected");
-  const shopGrid = document.getElementById("shopGrid");
-
-  const goScore = document.getElementById("goScore");
-  const goEarn = document.getElementById("goEarn");
-  const goHigh = document.getElementById("goHigh");
-
-  // ========= Canvas =========
-  const canvas = document.getElementById("c");
-  const ctx = canvas.getContext("2d");
-
-  // Fix CSS scaling: use internal resolution as given (520x900)
-  const W = canvas.width, H = canvas.height;
-
-  // ========= Audio (procedural, no copyrighted assets) =========
-  let audioCtx = null;
-  let musicNode = null;
-  let musicGain = null;
-  let masterGain = null;
-
-  function ensureAudio() {
-    if (audioCtx) return;
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    masterGain = audioCtx.createGain();
-    masterGain.gain.value = 0.9;
-    masterGain.connect(audioCtx.destination);
-
-    musicGain = audioCtx.createGain();
-    musicGain.gain.value = state.settings.music ? 0.18 : 0.0;
-    musicGain.connect(masterGain);
-  }
-
-  function setMusicEnabled(on) {
-    state.settings.music = on;
-    if (musicGain) musicGain.gain.value = on ? 0.18 : 0.0;
-    save();
-  }
-  function setSfxEnabled(on) {
-    state.settings.sfx = on;
-    save();
-  }
-
-  function playTone(freq, dur, type="sine", gain=0.15) {
-    if (!state.settings.sfx) return;
-    ensureAudio();
-    if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = type;
-    o.frequency.value = freq;
-    g.gain.value = gain;
-    o.connect(g);
-    g.connect(masterGain);
-    o.start();
-    o.stop(audioCtx.currentTime + dur);
-    // quick envelope
-    g.gain.setValueAtTime(gain, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
-  }
-
-  function sfxHeart() { playTone(880, 0.10, "triangle", 0.14); }
-  function sfxBad()  { playTone(160, 0.14, "square", 0.10); }
-  function sfxSelect(){ playTone(520, 0.06, "sine", 0.10); }
-  function sfxBuy()  { playTone(740, 0.08, "triangle", 0.12); setTimeout(()=>playTone(980,0.08,"triangle",0.10), 80); }
-
-  // Simple looping music: arpeggio with oscillator + lowpass
-  function startMusic() {
-    ensureAudio();
-    if (musicNode) return;
-    if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
-
-    const o = audioCtx.createOscillator();
-    o.type = "sine";
-    const f = audioCtx.createBiquadFilter();
-    f.type = "lowpass";
-    f.frequency.value = 900;
-
-    const g = audioCtx.createGain();
-    g.gain.value = 0.0;
-
-    o.connect(f);
-    f.connect(g);
-    g.connect(musicGain);
-
-    const notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63]; // C major-ish
-    let i = 0;
-    const step = () => {
-      if (!audioCtx || !musicNode) return;
-      const t = audioCtx.currentTime;
-      const n = notes[i % notes.length];
-      o.frequency.setValueAtTime(n, t);
-      // pluck envelope
-      g.gain.cancelScheduledValues(t);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.20, t + 0.03);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-      i++;
-      musicNode._timer = setTimeout(step, 260);
-    };
-
-    o.start();
-    musicNode = { osc: o, gain: g, filter: f, _timer: null };
-    step();
-  }
-
-  function stopMusic() {
-    if (!musicNode) return;
-    clearTimeout(musicNode._timer);
-    try { musicNode.osc.stop(); } catch {}
-    musicNode = null;
-  }
-
-  function refreshAudioFromSettings() {
-    if (state.settings.music) startMusic(); else stopMusic();
-    if (musicGain) musicGain.gain.value = state.settings.music ? 0.18 : 0.0;
-  }
-
-  // ========= Game State =========
-  const lanesX = [W*0.28, W*0.50, W*0.72];
-  const player = {
-    lane: 1,
-    x: lanesX[1],
-    y: H*0.78,
-    w: 46,
-    h: 62,
-    invuln: 0
-  };
-
-  let game = {
-    running: false,
-    speed: 520,           // px/s
-    t: 0,
-    score: 0,
-    earned: 0,
-    hearts: [],
-    bads: [],
-    spark: [],
-    spawnHeart: 0,
-    spawnBad: 0,
-    lives: 3,
-    selectedSkin: state.selectedSkin
-  };
-
-  // Skins: only visual + tiny effect optional (kept fair)
-  const skins = {
-    classic: { name:"Klasik", color:"#ffffff", aura:"#ff5fa0" },
-    neon:    { name:"Neon",   color:"#b6f3ff", aura:"#66ffd6" },
-    sunset:  { name:"Sunset", color:"#ffe2b3", aura:"#ff7aa8" },
-    noir:    { name:"Noir",   color:"#d8d8d8", aura:"#8b8bff" }
-  };
-
-  const shopItems = [
-    { id:"neon",   title:"Neon Skin",   desc:"Daha parlak aura, daha net görünür.", price: 120 },
-    { id:"sunset", title:"Sunset Skin", desc:"Sıcak tonlar. Göz yormaz.",           price: 200 },
-    { id:"noir",   title:"Noir Skin",   desc:"Minimal vibe. Kontrast yüksek.",      price: 260 }
-  ];
-
-  // ========= Spawn helpers =========
-  function randLane() { return (Math.random()*3)|0; }
-  function spawnHeart() {
-    const lane = randLane();
-    game.hearts.push({
-      lane,
-      x: lanesX[lane],
-      y: -40,
-      r: 16,
-      type: "pink",
-      value: 1
-    });
-  }
-  function spawnBad() {
-    const lane = randLane();
-    game.bads.push({
-      lane,
-      x: lanesX[lane],
-      y: -60,
-      w: 42,
-      h: 52,
-      type: "broken"
-    });
-  }
-
-  function resetRun() {
-    game.running = true;
-    game.speed = 520;
-    game.t = 0;
-    game.score = 0;
-    game.earned = 0;
-    game.hearts = [];
-    game.bads = [];
-    game.spark = [];
-    game.spawnHeart = 0.0;
-    game.spawnBad = 0.0;
-    game.lives = 3;
-    player.lane = 1;
-    player.x = lanesX[1];
-    player.invuln = 0;
-    game.selectedSkin = state.selectedSkin;
-    refreshHUD();
-  }
-
-  // ========= Controls =========
-  function moveLane(dir) {
-    if (!game.running) return;
-    player.lane = Math.max(0, Math.min(2, player.lane + dir));
-    sfxSelect();
-  }
-
-  let touchStartX = 0, touchStartY = 0, touching = false;
-
-  canvas.addEventListener("pointerdown", (e) => {
-    touching = true;
-    touchStartX = e.clientX;
-    touchStartY = e.clientY;
-    // audio unlock on first touch
-    if (state.settings.music) startMusic();
-    ensureAudio();
-    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
-  });
-  canvas.addEventListener("pointermove", (e) => {
-    if (!touching) return;
-    const dx = e.clientX - touchStartX;
-    const dy = e.clientY - touchStartY;
-
-    // horizontal swipe
-    if (Math.abs(dx) > 34 && Math.abs(dx) > Math.abs(dy)) {
-      moveLane(dx > 0 ? +1 : -1);
-      touching = false;
-    }
-  });
-  canvas.addEventListener("pointerup", () => { touching = false; });
-
-  // Keyboard fallback
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowLeft") moveLane(-1);
-    if (e.key === "ArrowRight") moveLane(+1);
-  });
-
-  // ========= Collision =========
-  function circleRectCollide(cx, cy, r, rx, ry, rw, rh) {
-    const nx = Math.max(rx, Math.min(cx, rx+rw));
-    const ny = Math.max(ry, Math.min(cy, ry+rh));
-    const dx = cx - nx, dy = cy - ny;
-    return dx*dx + dy*dy <= r*r;
-  }
-
-  // ========= Drawing =========
-  function drawRoad() {
-    // Lane separators
-    ctx.save();
-    ctx.globalAlpha = 0.35;
-    ctx.strokeStyle = "rgba(255,255,255,0.18)";
-    ctx.lineWidth = 6;
-    ctx.setLineDash([14, 16]);
-    const y0 = -H, y1 = H;
-    for (let i=0;i<2;i++){
-      const x = (lanesX[i]+lanesX[i+1])/2;
-      ctx.beginPath();
-      ctx.moveTo(x, y0);
-      ctx.lineTo(x, y1);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // Perspective glow
-    const grd = ctx.createLinearGradient(0, 0, 0, H);
-    grd.addColorStop(0, "rgba(255,255,255,0.02)");
-    grd.addColorStop(1, "rgba(255,255,255,0.00)");
-    ctx.fillStyle = grd;
-    ctx.fillRect(0,0,W,H);
-  }
-
-  function drawHUD() {
-    // Top HUD
-    ctx.save();
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
-    ctx.font = "700 18px system-ui";
-    ctx.textAlign = "left";
-    ctx.fillText(`Skor: ${game.score|0}`, 18, 34);
-    ctx.fillText(`💗 ${state.coins}`, 18, 60);
-
-    ctx.textAlign = "right";
-    ctx.fillText(`Can: ${game.lives}`, W-18, 34);
-    ctx.fillText(`Rekor: ${state.highScore|0}`, W-18, 60);
-    ctx.restore();
-  }
-
-  function drawPlayer() {
-    const skin = skins[game.selectedSkin] || skins.classic;
-
-    // Smooth x to lane
-    const targetX = lanesX[player.lane];
-    player.x += (targetX - player.x) * 0.22;
-
-    const px = player.x, py = player.y;
-
-    ctx.save();
-    // aura
-    ctx.globalAlpha = 0.25 + 0.25*Math.max(0, Math.sin(game.t*6));
-    ctx.fillStyle = skin.aura;
-    ctx.beginPath();
-    ctx.ellipse(px, py+10, 44, 24, 0, 0, Math.PI*2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-
-    // body
-    const inv = player.invuln > 0 ? 0.55 : 1;
-    ctx.globalAlpha = inv;
-    ctx.fillStyle = skin.color;
-    roundRect(px - player.w/2, py - player.h/2, player.w, player.h, 14);
-    ctx.fill();
-
-    // heart badge on body
-    ctx.globalAlpha = inv;
-    ctx.fillStyle = skin.aura;
-    ctx.beginPath();
-    heartShape(px, py-4, 10);
-    ctx.fill();
-
-    ctx.restore();
-  }
-
-  function roundRect(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.arcTo(x+w, y, x+w, y+h, r);
-    ctx.arcTo(x+w, y+h, x, y+h, r);
-    ctx.arcTo(x, y+h, x, y, r);
-    ctx.arcTo(x, y, x+w, y, r);
-    ctx.closePath();
-  }
-
-  function heartShape(x, y, s) {
-    // simple heart
-    ctx.moveTo(x, y + s*0.55);
-    ctx.bezierCurveTo(x - s, y - s*0.05, x - s*0.9, y - s*0.95, x, y - s*0.35);
-    ctx.bezierCurveTo(x + s*0.9, y - s*0.95, x + s, y - s*0.05, x, y + s*0.55);
-  }
-
-  function drawHeart(h) {
-    ctx.save();
-    ctx.fillStyle = "rgba(255,105,180,0.95)";
-    ctx.beginPath();
-    heartShape(h.x, h.y, h.r);
-    ctx.fill();
-
-    ctx.globalAlpha = 0.25;
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(h.x - h.r*0.35, h.y - h.r*0.25, h.r*0.25, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawBad(b) {
-    ctx.save();
-    ctx.fillStyle = "rgba(255,80,120,0.92)";
-    // broken heart as two halves
-    const x = b.x, y = b.y;
-    ctx.beginPath();
-    heartShape(x - 10, y, 14);
-    ctx.fill();
-    ctx.beginPath();
-    heartShape(x + 10, y, 14);
-    ctx.fill();
-
-    ctx.strokeStyle = "rgba(20,10,16,0.55)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(x, y-20);
-    ctx.lineTo(x-6, y-6);
-    ctx.lineTo(x+6, y+6);
-    ctx.lineTo(x-2, y+20);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function addSpark(x,y, col) {
-    for (let i=0;i<10;i++){
-      game.spark.push({
-        x, y,
-        vx: (Math.random()*2-1)*180,
-        vy: (Math.random()*2-1)*180,
-        life: 0.45 + Math.random()*0.25,
-        t: 0,
-        col
-      });
-    }
-  }
-
-  function drawSpark(s) {
-    const a = Math.max(0, 1 - s.t / s.life);
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.fillStyle = s.col;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, 3.2, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  // ========= Update Loop =========
-  let last = performance.now();
-
-  function step(now) {
-    const dt = Math.min(0.033, (now - last)/1000);
-    last = now;
-
-    ctx.clearRect(0,0,W,H);
-
-    drawRoad();
-
-    if (game.running) {
-      game.t += dt;
-
-      // speed ramps
-      game.speed += dt * 12; // gentle acceleration
-
-      // score ramps with time
-      game.score += dt * (30 + game.speed*0.02);
-
-      // spawn timers
-      game.spawnHeart -= dt;
-      game.spawnBad -= dt;
-
-      const heartRate = Math.max(0.28, 0.95 - game.t*0.01); // faster over time
-      const badRate   = Math.max(0.50, 1.25 - game.t*0.01);
-
-      if (game.spawnHeart <= 0) {
-        spawnHeart();
-        game.spawnHeart = heartRate * (0.75 + Math.random()*0.75);
-      }
-      if (game.spawnBad <= 0) {
-        spawnBad();
-        game.spawnBad = badRate * (0.80 + Math.random()*0.80);
-      }
-
-      // move objects
-      for (const h of game.hearts) h.y += game.speed * dt;
-      for (const b of game.bads)   b.y += (game.speed * 1.02) * dt;
-
-      // collision with player
-      const prx = player.x - player.w/2;
-      const pry = player.y - player.h/2;
-      const prw = player.w;
-      const prh = player.h;
-
-      // hearts collect
-      for (let i=game.hearts.length-1;i>=0;i--){
-        const h = game.hearts[i];
-        drawHeart(h);
-        if (circleRectCollide(h.x, h.y, h.r, prx, pry, prw, prh)) {
-          game.hearts.splice(i,1);
-          state.coins += h.value;
-          game.earned += h.value;
-          sfxHeart();
-          addSpark(h.x, h.y, "rgba(255,105,180,0.95)");
-          save();
-          refreshMenuStats();
-        } else if (h.y > H+60) {
-          game.hearts.splice(i,1);
-        }
-      }
-
-      // bad collide
-      for (let i=game.bads.length-1;i>=0;i--){
-        const b = game.bads[i];
-        drawBad(b);
-        if (player.invuln <= 0 && circleRectCollide(b.x, b.y, 18, prx, pry, prw, prh)) {
-          game.bads.splice(i,1);
-          game.lives -= 1;
-          player.invuln = 0.9; // short invuln
-          sfxBad();
-          addSpark(b.x, b.y, "rgba(255,80,120,0.95)");
-          if (game.lives <= 0) {
-            endGame();
-          }
-        } else if (b.y > H+80) {
-          game.bads.splice(i,1);
-        }
-      }
-
-      // sparks
-      for (let i=game.spark.length-1;i>=0;i--){
-        const s = game.spark[i];
-        s.t += dt;
-        s.x += s.vx * dt;
-        s.y += s.vy * dt;
-        s.vx *= 0.92;
-        s.vy *= 0.92;
-        drawSpark(s);
-        if (s.t >= s.life) game.spark.splice(i,1);
-      }
-
-      if (player.invuln > 0) player.invuln -= dt;
-
-      drawPlayer();
-      drawHUD();
-    } else {
-      // attract screen: just player idle
-      game.t += dt;
-      drawPlayer();
-      drawHUD();
-    }
-
-    requestAnimationFrame(step);
-  }
-
-  function endGame() {
-    game.running = false;
-
-    const finalScore = game.score|0;
-    if (finalScore > state.highScore) state.highScore = finalScore;
-    save();
-
-    goScore.textContent = finalScore;
-    goEarn.textContent = game.earned|0;
-    goHigh.textContent = state.highScore|0;
-
-    show(uiGameOver);
-    hide(uiMenu); hide(uiSettings); hide(uiShop);
-
-    refreshMenuStats();
-  }
-
-  // ========= UI + Navigation =========
-  function show(el){ el.classList.remove("hidden"); }
-  function hide(el){ el.classList.add("hidden"); }
-
-  function refreshMenuStats() {
-    mCoins.textContent = state.coins|0;
-    mHigh.textContent = state.highScore|0;
-    sCoins.textContent = state.coins|0;
-    sSelected.textContent = (skins[state.selectedSkin]?.name || "Klasik");
-  }
-
-  function refreshHUD() {
-    // no DOM HUD; canvas handles
-  }
-
-  function syncToggles() {
-    const tM = document.getElementById("togMusic");
-    const tS = document.getElementById("togSfx");
-    tM.classList.toggle("on", !!state.settings.music);
-    tS.classList.toggle("on", !!state.settings.sfx);
-  }
-
-  // Menu buttons
-  document.getElementById("btnPlay").onclick = () -> safeStartGame(); // invalid in JS; fix below
-})();
-</script>
-
-<script>
-(() => {
-  // This second script fixes a small compatibility issue:
-  // Some environments don’t like big IIFEs with early references. We'll attach handlers here.
-
-  // Grab things created in first script scope? We didn't export them.
-  // So we’ll do a clean approach: Reload page? No.
-  // Instead: we keep everything in ONE script in real projects.
-  // But user asked single file; still OK.
-})();
-</script>
-
-<script>
-/* ========= SINGLE SCRIPT (handlers + shop + settings) =========
-   Because we can’t access variables from the first IIFE above, we’ll refactor now:
-   Easiest is: remove the extra scripts and keep ONE script.
-   To keep your copy-paste smooth, here is the corrected full script in one go.
-*/
-</script>
-
-<script>
-(() => {
-  const LS_KEY = "kalpYolu_v1";
-  const defaultSave = {
+  // =========================
+  //   SAVE / STATE
+  // =========================
+  const LS_KEY = "kalpYolu_v2";
+  const deepClone = (o) => JSON.parse(JSON.stringify(o));
+
+  const defaults = {
     coins: 0,
     highScore: 0,
     settings: { music: true, sfx: true },
-    owned: { classic: true },
-    selectedSkin: "classic"
+    ownedSkins: { classic: true },
+    selectedSkin: "classic",
+    ownedPowers: { none: true },
+    selectedPower: "none",
+    powerLevel: { magnet: 0, shield: 0, bonus: 0, slow: 0 } // 0 = locked
   };
 
+  let state = load();
   function load() {
     try {
       const raw = localStorage.getItem(LS_KEY);
-      if (!raw) return structuredClone(defaultSave);
-      const parsed = JSON.parse(raw);
-      const s = structuredClone(defaultSave);
-      if (typeof parsed.coins === "number") s.coins = parsed.coins;
-      if (typeof parsed.highScore === "number") s.highScore = parsed.highScore;
-      if (parsed.settings && typeof parsed.settings === "object") {
-        s.settings.music = !!parsed.settings.music;
-        s.settings.sfx = !!parsed.settings.sfx;
+      if (!raw) return deepClone(defaults);
+      const s = deepClone(defaults);
+      const p = JSON.parse(raw);
+
+      if (typeof p.coins === "number") s.coins = p.coins;
+      if (typeof p.highScore === "number") s.highScore = p.highScore;
+      if (p.settings) {
+        s.settings.music = !!p.settings.music;
+        s.settings.sfx = !!p.settings.sfx;
       }
-      if (parsed.owned && typeof parsed.owned === "object") s.owned = { ...s.owned, ...parsed.owned };
-      if (typeof parsed.selectedSkin === "string") s.selectedSkin = parsed.selectedSkin;
-      if (!s.owned.classic) s.owned.classic = true;
+      if (p.ownedSkins) s.ownedSkins = { ...s.ownedSkins, ...p.ownedSkins };
+      if (typeof p.selectedSkin === "string") s.selectedSkin = p.selectedSkin;
+      if (p.ownedPowers) s.ownedPowers = { ...s.ownedPowers, ...p.ownedPowers };
+      if (typeof p.selectedPower === "string") s.selectedPower = p.selectedPower;
+      if (p.powerLevel) s.powerLevel = { ...s.powerLevel, ...p.powerLevel };
+
+      s.ownedSkins.classic = true;
+      s.ownedPowers.none = true;
       if (!s.selectedSkin) s.selectedSkin = "classic";
+      if (!s.selectedPower) s.selectedPower = "none";
       return s;
     } catch {
-      return structuredClone(defaultSave);
+      return deepClone(defaults);
     }
   }
   function save() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 
-  let state = load();
-
-  // UI refs
+  // =========================
+  //   UI REFS
+  // =========================
   const uiMenu = document.getElementById("uiMenu");
   const uiSettings = document.getElementById("uiSettings");
   const uiShop = document.getElementById("uiShop");
@@ -874,7 +266,8 @@
   const mCoins = document.getElementById("mCoins");
   const mHigh = document.getElementById("mHigh");
   const sCoins = document.getElementById("sCoins");
-  const sSelected = document.getElementById("sSelected");
+  const sSkin = document.getElementById("sSkin");
+  const sPower = document.getElementById("sPower");
   const shopGrid = document.getElementById("shopGrid");
 
   const goScore = document.getElementById("goScore");
@@ -886,33 +279,36 @@
 
   function show(el){ el.classList.remove("hidden"); }
   function hide(el){ el.classList.add("hidden"); }
+  function showOnly(which) {
+    [uiMenu, uiSettings, uiShop, uiGameOver].forEach(hide);
+    show(which);
+  }
 
-  // Canvas
+  // =========================
+  //   CANVAS + DPI (Mobile smooth)
+  // =========================
   const canvas = document.getElementById("c");
-  const ctx = canvas.getContext("2d");
-  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext("2d", { alpha: true, desynchronized: true });
 
-  const lanesX = [W*0.28, W*0.50, W*0.72];
+  // Logical world size (stable physics); actual pixels use DPR
+  const WORLD_W = 360;
+  const WORLD_H = 640;
+  let DPR = 1;
 
-  // Skins
-  const skins = {
-    classic: { name:"Klasik", color:"#ffffff", aura:"#ff5fa0" },
-    neon:    { name:"Neon",   color:"#b6f3ff", aura:"#66ffd6" },
-    sunset:  { name:"Sunset", color:"#ffe2b3", aura:"#ff7aa8" },
-    noir:    { name:"Noir",   color:"#d8d8d8", aura:"#8b8bff" }
-  };
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    DPR = Math.min(2, Math.max(1, (window.devicePixelRatio || 1))); // iOS/Android stable
+    canvas.width = Math.floor(rect.width * DPR);
+    canvas.height = Math.floor(rect.height * DPR);
+    ctx.setTransform(canvas.width / WORLD_W, 0, 0, canvas.height / WORLD_H, 0, 0);
+  }
+  window.addEventListener("resize", resizeCanvas, { passive:true });
+  resizeCanvas();
 
-  const shopItems = [
-    { id:"neon",   title:"Neon Skin",   desc:"Daha parlak aura, daha net görünür.", price: 120 },
-    { id:"sunset", title:"Sunset Skin", desc:"Sıcak tonlar. Göz yormaz.",           price: 200 },
-    { id:"noir",   title:"Noir Skin",   desc:"Minimal vibe. Kontrast yüksek.",      price: 260 }
-  ];
-
-  // Audio (procedural)
-  let audioCtx = null;
-  let musicNode = null;
-  let musicGain = null;
-  let masterGain = null;
+  // =========================
+  //   AUDIO (procedural)
+  // =========================
+  let audioCtx = null, masterGain = null, musicGain = null, musicNode = null;
 
   function ensureAudio() {
     if (audioCtx) return;
@@ -922,77 +318,74 @@
     masterGain.connect(audioCtx.destination);
 
     musicGain = audioCtx.createGain();
-    musicGain.gain.value = state.settings.music ? 0.18 : 0.0;
+    musicGain.gain.value = state.settings.music ? 0.18 : 0;
     musicGain.connect(masterGain);
   }
 
-  function playTone(freq, dur, type="sine", gain=0.15) {
-    if (!state.settings.sfx) return;
+  function resumeAudio() {
     ensureAudio();
-    if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+  }
+
+  function playTone(freq, dur, type="sine", gain=0.14) {
+    if (!state.settings.sfx) return;
+    resumeAudio();
     const o = audioCtx.createOscillator();
     const g = audioCtx.createGain();
     o.type = type;
     o.frequency.value = freq;
-    g.gain.value = gain;
     o.connect(g);
     g.connect(masterGain);
+
     const t = audioCtx.currentTime;
     g.gain.setValueAtTime(gain, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.start();
+    o.start(t);
     o.stop(t + dur);
   }
 
   const sfx = {
-    heart(){ playTone(880, 0.10, "triangle", 0.14); },
+    heart(){ playTone(880, 0.09, "triangle", 0.14); },
     bad(){ playTone(160, 0.14, "square", 0.10); },
-    select(){ playTone(520, 0.06, "sine", 0.10); },
-    buy(){
-      playTone(740, 0.08, "triangle", 0.12);
-      setTimeout(()=>playTone(980,0.08,"triangle",0.10), 80);
-    }
+    ui(){ playTone(520, 0.06, "sine", 0.10); },
+    buy(){ playTone(740, 0.07, "triangle", 0.12); setTimeout(()=>playTone(980,0.07,"triangle",0.10), 70); }
   };
 
   function startMusic() {
     ensureAudio();
     if (musicNode) return;
-    if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+    resumeAudio();
 
     const o = audioCtx.createOscillator();
-    o.type = "sine";
     const f = audioCtx.createBiquadFilter();
+    const g = audioCtx.createGain();
+    o.type = "sine";
     f.type = "lowpass";
     f.frequency.value = 900;
-
-    const g = audioCtx.createGain();
     g.gain.value = 0.0001;
 
     o.connect(f);
     f.connect(g);
     g.connect(musicGain);
 
-    const notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63];
+    const notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63]; // C maj loop
     let i = 0;
 
-    const step = () => {
-      if (!audioCtx || !musicNode) return;
+    const tick = () => {
+      if (!musicNode) return;
       const t = audioCtx.currentTime;
-      const n = notes[i % notes.length];
-      o.frequency.setValueAtTime(n, t);
-
+      o.frequency.setValueAtTime(notes[i % notes.length], t);
       g.gain.cancelScheduledValues(t);
       g.gain.setValueAtTime(0.0001, t);
       g.gain.exponentialRampToValueAtTime(0.20, t + 0.03);
       g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-
       i++;
-      musicNode._timer = setTimeout(step, 260);
+      musicNode._timer = setTimeout(tick, 260);
     };
 
     o.start();
     musicNode = { osc:o, _timer:null };
-    step();
+    tick();
   }
 
   function stopMusic() {
@@ -1002,122 +395,385 @@
     musicNode = null;
   }
 
-  function refreshAudioFromSettings() {
+  function refreshAudioSettings() {
     ensureAudio();
-    if (musicGain) musicGain.gain.value = state.settings.music ? 0.18 : 0.0;
+    if (musicGain) musicGain.gain.value = state.settings.music ? 0.18 : 0;
     if (state.settings.music) startMusic(); else stopMusic();
   }
 
-  // Game
-  const player = { lane: 1, x: lanesX[1], y: H*0.78, w: 46, h: 62, invuln: 0 };
+  // =========================
+  //   VISUAL ASSETS (fast Path2D)
+  // =========================
+  const HEART_PATH = new Path2D();
+  (function buildHeart() {
+    // unit heart centered at 0,0
+    HEART_PATH.moveTo(0, 12);
+    HEART_PATH.bezierCurveTo(-16, -2, -14, -18, 0, -8);
+    HEART_PATH.bezierCurveTo(14, -18, 16, -2, 0, 12);
+    HEART_PATH.closePath();
+  })();
 
-  let game = {
+  // =========================
+  //   SKINS + POWERS + SHOP DATA
+  // =========================
+  const SKINS = {
+    classic: { name:"Klasik", color:"#ffffff", aura:"#ff5fa0" },
+    neon:    { name:"Neon",   color:"#b6f3ff", aura:"#66ffd6" },
+    sunset:  { name:"Sunset", color:"#ffe2b3", aura:"#ff7aa8" },
+    noir:    { name:"Noir",   color:"#d8d8d8", aura:"#8b8bff" },
+    mint:    { name:"Mint",   color:"#d8fff3", aura:"#3dffb6" },
+    ruby:    { name:"Ruby",   color:"#ffe1ea", aura:"#ff2a6d" },
+    space:   { name:"Space",  color:"#d9d6ff", aura:"#7a6cff" }
+  };
+
+  const POWERS = {
+    none:   { name:"Yok", desc:"Güç kapalı.", basePrice: 0, max: 0 },
+    magnet: { name:"Mıknatıs", desc:"Yakındaki pembe kalpleri çeker.", basePrice: 140, max: 5 },
+    shield: { name:"Kalkan", desc:"Çarpmayı 1 kere affeder.", basePrice: 170, max: 5 },
+    bonus:  { name:"Para Bonus", desc:"Kalp parası x1.2 → x2.0.", basePrice: 200, max: 5 },
+    slow:   { name:"Yavaş Zaman", desc:"Kısa süre hız düşer.", basePrice: 190, max: 5 }
+  };
+
+  // Shop items (skins + power upgrades)
+  const SHOP_SECTIONS = [
+    { title: "🎨 Skinler", type:"skins", items: [
+      { id:"classic", price: 0, desc:"Default. Her zaman açık." },
+      { id:"neon",   price: 120, desc:"Parlak aura, net görünür." },
+      { id:"sunset", price: 200, desc:"Sıcak tonlar, göz yormaz." },
+      { id:"noir",   price: 260, desc:"Minimal, yüksek kontrast." },
+      { id:"mint",   price: 300, desc:"Ferahlık modu." },
+      { id:"ruby",   price: 420, desc:"Koyu pembe vibe." },
+      { id:"space",  price: 520, desc:"Uzay teması." },
+    ]},
+    { title: "🧩 Güçler", type:"powers", items: [
+      { id:"none" },
+      { id:"magnet" },
+      { id:"shield" },
+      { id:"bonus" },
+      { id:"slow" },
+    ]}
+  ];
+
+  // =========================
+  //   GAME CORE (Pseudo-3D)
+  // =========================
+  // Camera/perspective:
+  // We render a road trapezoid and map lane positions by depth.
+  const ROAD = {
+    yTop: 110,
+    yBottom: WORLD_H - 20,
+    wTop: 120,
+    wBottom: 310,
+    laneCount: 3
+  };
+
+  function laneXAtDepth(lane, y) {
+    const t = clamp((y - ROAD.yTop) / (ROAD.yBottom - ROAD.yTop), 0, 1);
+    const w = lerp(ROAD.wTop, ROAD.wBottom, t);
+    const left = (WORLD_W - w)/2;
+    const laneW = w / ROAD.laneCount;
+    return left + laneW*(lane + 0.5);
+  }
+
+  function scaleAtY(y) {
+    // small at top, bigger at bottom
+    const t = clamp((y - ROAD.yTop) / (ROAD.yBottom - ROAD.yTop), 0, 1);
+    return lerp(0.55, 1.12, t);
+  }
+
+  function drawRoad() {
+    // road trapezoid
+    ctx.save();
+    ctx.beginPath();
+    const x1 = (WORLD_W - ROAD.wTop)/2, x2 = (WORLD_W + ROAD.wTop)/2;
+    const x3 = (WORLD_W + ROAD.wBottom)/2, x4 = (WORLD_W - ROAD.wBottom)/2;
+    ctx.moveTo(x1, ROAD.yTop);
+    ctx.lineTo(x2, ROAD.yTop);
+    ctx.lineTo(x3, ROAD.yBottom);
+    ctx.lineTo(x4, ROAD.yBottom);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(255,255,255,0.04)";
+    ctx.fill();
+
+    // lane lines (dashed) - cheap
+    ctx.strokeStyle = "rgba(255,255,255,0.14)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 10]);
+    for (let i=1;i<ROAD.laneCount;i++){
+      const ax = (WORLD_W - ROAD.wTop)/2 + (ROAD.wTop/ROAD.laneCount)*i;
+      const bx = (WORLD_W - ROAD.wBottom)/2 + (ROAD.wBottom/ROAD.laneCount)*i;
+      ctx.beginPath();
+      ctx.moveTo(ax, ROAD.yTop);
+      ctx.lineTo(bx, ROAD.yBottom);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // subtle vignette
+    const grad = ctx.createLinearGradient(0, 0, 0, WORLD_H);
+    grad.addColorStop(0, "rgba(255,255,255,0.02)");
+    grad.addColorStop(1, "rgba(0,0,0,0.18)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,WORLD_W,WORLD_H);
+    ctx.restore();
+  }
+
+  const player = {
+    lane: 1,
+    y: WORLD_H - 130,
+    x: laneXAtDepth(1, WORLD_H - 130),
+    w: 34,
+    h: 48,
+    invuln: 0,
+    shieldCharges: 0
+  };
+
+  let run = {
     running: false,
-    speed: 520,
     t: 0,
     score: 0,
     earned: 0,
-    hearts: [],
-    bads: [],
-    spark: [],
-    spawnHeart: 0,
-    spawnBad: 0,
-    lives: 3
+    lives: 3,
+    speed: 260,          // world units/sec
+    speedMul: 1,
+    magnetT: 0,
+    slowT: 0,
+    objects: [],         // unified list: hearts/bads
+    spawnH: 0,
+    spawnB: 0,
   };
 
-  function randLane() { return (Math.random()*3)|0; }
-
-  function spawnHeart() {
-    const lane = randLane();
-    game.hearts.push({ lane, x: lanesX[lane], y: -40, r: 16, value: 1 });
-  }
-  function spawnBad() {
-    const lane = randLane();
-    game.bads.push({ lane, x: lanesX[lane], y: -60 });
-  }
-
   function resetRun() {
-    game.running = true;
-    game.speed = 520;
-    game.t = 0;
-    game.score = 0;
-    game.earned = 0;
-    game.hearts = [];
-    game.bads = [];
-    game.spark = [];
-    game.spawnHeart = 0;
-    game.spawnBad = 0;
-    game.lives = 3;
+    run.running = true;
+    run.t = 0;
+    run.score = 0;
+    run.earned = 0;
+    run.lives = 3;
+    run.speed = 260;
+    run.speedMul = 1;
+    run.objects.length = 0;
+    run.spawnH = 0;
+    run.spawnB = 0;
+    run.magnetT = 0;
+    run.slowT = 0;
 
     player.lane = 1;
-    player.x = lanesX[1];
+    player.y = WORLD_H - 130;
+    player.x = laneXAtDepth(1, player.y);
     player.invuln = 0;
 
-    hide(uiGameOver);
-    hide(uiSettings);
-    hide(uiShop);
-    hide(uiMenu);
+    // Power effects (passive baseline + occasional triggers)
+    player.shieldCharges = (state.selectedPower === "shield" && state.powerLevel.shield > 0) ? 1 : 0;
 
-    // Start music if enabled
+    showOnly({}); // noop; we’ll manual hide
+    [uiMenu, uiSettings, uiShop, uiGameOver].forEach(hide);
+
+    // music if enabled
     if (state.settings.music) startMusic();
   }
 
   function endGame() {
-    game.running = false;
-
-    const finalScore = game.score|0;
-    if (finalScore > state.highScore) state.highScore = finalScore;
+    run.running = false;
+    const final = run.score|0;
+    if (final > state.highScore) state.highScore = final;
     save();
 
-    goScore.textContent = finalScore;
-    goEarn.textContent = game.earned|0;
+    goScore.textContent = final;
+    goEarn.textContent = run.earned|0;
     goHigh.textContent = state.highScore|0;
 
-    show(uiGameOver);
-    refreshMenuStats();
+    showOnly(uiGameOver);
+    refreshStats();
   }
 
+  function spawnHeart() {
+    const lane = (Math.random()*3)|0;
+    const y = ROAD.yTop - 40;
+    run.objects.push({ kind:"heart", lane, y, x: laneXAtDepth(lane, y), alive:true });
+  }
+
+  function spawnBad() {
+    const lane = (Math.random()*3)|0;
+    const y = ROAD.yTop - 60;
+    run.objects.push({ kind:"bad", lane, y, x: laneXAtDepth(lane, y), alive:true });
+  }
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function lerp(a,b,t){ return a + (b-a)*t; }
+
+  // =========================
+  //   POWERS (auto behavior)
+  // =========================
+  function bonusMultiplier() {
+    // bonus power: x1.2 → x2.0
+    if (state.selectedPower !== "bonus") return 1;
+    const lv = state.powerLevel.bonus|0;
+    if (lv <= 0) return 1;
+    return 1 + 0.2*lv; // lv1=1.2, lv5=2.0
+  }
+
+  function maybeTriggerMagnet() {
+    if (state.selectedPower !== "magnet") return;
+    const lv = state.powerLevel.magnet|0;
+    if (lv <= 0) return;
+    // small chance when collecting a heart
+    const chance = 0.10 + lv*0.04; // 0.14..0.30
+    if (Math.random() < chance) run.magnetT = Math.max(run.magnetT, 1.2 + lv*0.25); // 1.45..2.45s
+  }
+
+  function maybeTriggerSlow() {
+    if (state.selectedPower !== "slow") return;
+    const lv = state.powerLevel.slow|0;
+    if (lv <= 0) return;
+    // small chance when near-miss / taking damage; we do it on damage below
+  }
+
+  function applySlowOnDamage() {
+    if (state.selectedPower !== "slow") return;
+    const lv = state.powerLevel.slow|0;
+    if (lv <= 0) return;
+    run.slowT = Math.max(run.slowT, 0.9 + lv*0.25); // 1.15..2.15s
+  }
+
+  // =========================
+  //   INPUT (mobile-first)
+  // =========================
   function moveLane(dir) {
-    if (!game.running) return;
-    player.lane = Math.max(0, Math.min(2, player.lane + dir));
-    sfx.select();
+    if (!run.running) return;
+    player.lane = clamp(player.lane + dir, 0, 2);
+    sfx.ui();
   }
 
-  // Controls
-  let touchStartX=0, touchStartY=0, touching=false;
+  let touchX=0, touchY=0, touching=false;
   canvas.addEventListener("pointerdown", (e) => {
     touching = true;
-    touchStartX = e.clientX;
-    touchStartY = e.clientY;
-    ensureAudio();
-    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+    touchX = e.clientX;
+    touchY = e.clientY;
+    resumeAudio();
     if (state.settings.music) startMusic();
-  });
+  }, { passive:true });
+
   canvas.addEventListener("pointermove", (e) => {
     if (!touching) return;
-    const dx = e.clientX - touchStartX;
-    const dy = e.clientY - touchStartY;
-    if (Math.abs(dx) > 34 && Math.abs(dx) > Math.abs(dy)) {
-      moveLane(dx > 0 ? +1 : -1);
+    const dx = e.clientX - touchX;
+    const dy = e.clientY - touchY;
+    if (Math.abs(dx) > 32 && Math.abs(dx) > Math.abs(dy)) {
+      moveLane(dx>0 ? +1 : -1);
       touching = false;
     }
-  });
-  canvas.addEventListener("pointerup", ()=> touching=false);
+  }, { passive:true });
+
+  canvas.addEventListener("pointerup", () => { touching=false; }, { passive:true });
+
   window.addEventListener("keydown", (e) => {
     if (e.key === "ArrowLeft") moveLane(-1);
     if (e.key === "ArrowRight") moveLane(+1);
   });
 
-  // Collision
-  function circleRectCollide(cx, cy, r, rx, ry, rw, rh) {
-    const nx = Math.max(rx, Math.min(cx, rx+rw));
-    const ny = Math.max(ry, Math.min(cy, ry+rh));
-    const dx = cx - nx, dy = cy - ny;
-    return dx*dx + dy*dy <= r*r;
+  // =========================
+  //   DRAW (fast)
+  // =========================
+  function drawHUD() {
+    ctx.save();
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.font = "800 14px system-ui";
+    ctx.textAlign = "left";
+    ctx.fillText(`Skor: ${run.score|0}`, 12, 22);
+    ctx.fillText(`💗 ${state.coins|0}`, 12, 40);
+
+    ctx.textAlign = "right";
+    const shieldTxt = player.shieldCharges > 0 ? ` 🛡️${player.shieldCharges}` : "";
+    ctx.fillText(`Can: ${run.lives}${shieldTxt}`, WORLD_W-12, 22);
+    ctx.fillText(`Rekor: ${state.highScore|0}`, WORLD_W-12, 40);
+
+    // power timers
+    ctx.textAlign = "left";
+    let y = 60;
+    if (run.magnetT > 0) { ctx.fillText(`🧲 ${run.magnetT.toFixed(1)}s`, 12, y); y += 18; }
+    if (run.slowT > 0)   { ctx.fillText(`🐢 ${run.slowT.toFixed(1)}s`, 12, y); y += 18; }
+    ctx.restore();
   }
 
-  // Drawing helpers
-  function roundRect(x, y, w, h, r) {
+  function drawPlayer() {
+    const skin = SKINS[state.selectedSkin] || SKINS.classic;
+    const targetX = laneXAtDepth(player.lane, player.y);
+    player.x += (targetX - player.x) * 0.28;
+
+    const s = scaleAtY(player.y);
+    const w = player.w * s;
+    const h = player.h * s;
+
+    ctx.save();
+    // aura (cheap)
+    ctx.globalAlpha = 0.20 + 0.15*Math.max(0, Math.sin(run.t*6));
+    ctx.fillStyle = skin.aura;
+    ctx.beginPath();
+    ctx.ellipse(player.x, player.y + 10*s, 30*s, 16*s, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.globalAlpha = player.invuln>0 ? 0.55 : 1;
+
+    // body
+    ctx.fillStyle = skin.color;
+    roundRect(player.x - w/2, player.y - h/2, w, h, 10*s);
+    ctx.fill();
+
+    // heart logo
+    ctx.fillStyle = skin.aura;
+    ctx.save();
+    ctx.translate(player.x, player.y - 2*s);
+    ctx.scale(0.55*s, 0.55*s);
+    ctx.fill(HEART_PATH);
+    ctx.restore();
+
+    // shield ring
+    if (player.shieldCharges > 0) {
+      ctx.globalAlpha = 0.30;
+      ctx.strokeStyle = "rgba(120,255,180,0.9)";
+      ctx.lineWidth = 2.5*s;
+      ctx.beginPath();
+      ctx.ellipse(player.x, player.y + 2*s, 26*s, 18*s, 0, 0, Math.PI*2);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function drawHeart(obj) {
+    const sc = scaleAtY(obj.y);
+    ctx.save();
+    ctx.translate(obj.x, obj.y);
+    ctx.scale(0.75*sc, 0.75*sc);
+    ctx.fillStyle = "rgba(255,105,180,0.95)";
+    ctx.fill(HEART_PATH);
+
+    ctx.globalAlpha = 0.20;
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(-6, -4, 5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawBad(obj) {
+    const sc = scaleAtY(obj.y);
+    ctx.save();
+    ctx.translate(obj.x, obj.y);
+    ctx.scale(0.70*sc, 0.70*sc);
+    ctx.fillStyle = "rgba(255,80,120,0.92)";
+    // two half hearts
+    ctx.save(); ctx.translate(-8, 0); ctx.fill(HEART_PATH); ctx.restore();
+    ctx.save(); ctx.translate( 8, 0); ctx.fill(HEART_PATH); ctx.restore();
+
+    ctx.strokeStyle = "rgba(10,5,12,0.55)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, -18); ctx.lineTo(-6, -6); ctx.lineTo(6, 6); ctx.lineTo(-2, 18);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function roundRect(x,y,w,h,r){
     ctx.beginPath();
     ctx.moveTo(x+r, y);
     ctx.arcTo(x+w, y, x+w, y+h, r);
@@ -1126,382 +782,391 @@
     ctx.arcTo(x, y, x+w, y, r);
     ctx.closePath();
   }
-  function heartShape(x, y, s) {
-    ctx.moveTo(x, y + s*0.55);
-    ctx.bezierCurveTo(x - s, y - s*0.05, x - s*0.9, y - s*0.95, x, y - s*0.35);
-    ctx.bezierCurveTo(x + s*0.9, y - s*0.95, x + s, y - s*0.05, x, y + s*0.55);
-  }
-  function addSpark(x,y, col) {
-    for (let i=0;i<10;i++){
-      game.spark.push({ x,y, vx:(Math.random()*2-1)*180, vy:(Math.random()*2-1)*180, life:0.45+Math.random()*0.25, t:0, col });
-    }
-  }
-  function drawSpark(s) {
-    const a = Math.max(0, 1 - s.t / s.life);
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.fillStyle = s.col;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, 3.2, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
+
+  // =========================
+  //   COLLISION + MAGNET
+  // =========================
+  function playerRect() {
+    const s = scaleAtY(player.y);
+    const w = player.w * s;
+    const h = player.h * s;
+    return { x: player.x - w/2, y: player.y - h/2, w, h };
   }
 
-  function drawRoad() {
-    ctx.save();
-    ctx.globalAlpha = 0.35;
-    ctx.strokeStyle = "rgba(255,255,255,0.18)";
-    ctx.lineWidth = 6;
-    ctx.setLineDash([14, 16]);
-    for (let i=0;i<2;i++){
-      const x = (lanesX[i]+lanesX[i+1])/2;
-      ctx.beginPath();
-      ctx.moveTo(x, -H);
-      ctx.lineTo(x, H);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    const grd = ctx.createLinearGradient(0, 0, 0, H);
-    grd.addColorStop(0, "rgba(255,255,255,0.02)");
-    grd.addColorStop(1, "rgba(255,255,255,0.00)");
-    ctx.fillStyle = grd;
-    ctx.fillRect(0,0,W,H);
+  function hit(obj, pr) {
+    // simple circle vs rect (fast enough)
+    const sc = scaleAtY(obj.y);
+    const r = (obj.kind === "heart" ? 14 : 16) * sc;
+    const cx = obj.x, cy = obj.y;
+    const nx = Math.max(pr.x, Math.min(cx, pr.x + pr.w));
+    const ny = Math.max(pr.y, Math.min(cy, pr.y + pr.h));
+    const dx = cx - nx, dy = cy - ny;
+    return dx*dx + dy*dy <= r*r;
   }
 
-  function drawHUD() {
-    ctx.save();
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
-    ctx.font = "700 18px system-ui";
-    ctx.textAlign = "left";
-    ctx.fillText(`Skor: ${game.score|0}`, 18, 34);
-    ctx.fillText(`💗 ${state.coins|0}`, 18, 60);
-    ctx.textAlign = "right";
-    ctx.fillText(`Can: ${game.lives}`, W-18, 34);
-    ctx.fillText(`Rekor: ${state.highScore|0}`, W-18, 60);
-    ctx.restore();
-  }
-
-  function drawPlayer() {
-    const skin = skins[state.selectedSkin] || skins.classic;
-    const targetX = lanesX[player.lane];
-    player.x += (targetX - player.x) * 0.22;
-
-    const px = player.x, py = player.y;
-
-    ctx.save();
-    ctx.globalAlpha = 0.25 + 0.25*Math.max(0, Math.sin(game.t*6));
-    ctx.fillStyle = skin.aura;
-    ctx.beginPath();
-    ctx.ellipse(px, py+10, 44, 24, 0, 0, Math.PI*2);
-    ctx.fill();
-    ctx.globalAlpha = player.invuln>0 ? 0.55 : 1;
-
-    ctx.fillStyle = skin.color;
-    roundRect(px - player.w/2, py - player.h/2, player.w, player.h, 14);
-    ctx.fill();
-
-    ctx.fillStyle = skin.aura;
-    ctx.beginPath();
-    heartShape(px, py-4, 10);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawHeart(h) {
-    ctx.save();
-    ctx.fillStyle = "rgba(255,105,180,0.95)";
-    ctx.beginPath();
-    heartShape(h.x, h.y, h.r);
-    ctx.fill();
-    ctx.globalAlpha = 0.25;
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(h.x - h.r*0.35, h.y - h.r*0.25, h.r*0.25, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawBad(b) {
-    ctx.save();
-    ctx.fillStyle = "rgba(255,80,120,0.92)";
-    const x=b.x, y=b.y;
-    ctx.beginPath(); heartShape(x - 10, y, 14); ctx.fill();
-    ctx.beginPath(); heartShape(x + 10, y, 14); ctx.fill();
-    ctx.strokeStyle = "rgba(20,10,16,0.55)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(x, y-20); ctx.lineTo(x-6, y-6); ctx.lineTo(x+6, y+6); ctx.lineTo(x-2, y+20);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  // Loop
+  // =========================
+  //   LOOP
+  // =========================
   let last = performance.now();
-  function step(now) {
-    const dt = Math.min(0.033, (now - last)/1000);
+  function tick(now) {
+    const dtRaw = (now - last) / 1000;
     last = now;
 
-    ctx.clearRect(0,0,W,H);
+    // clamp dt for mobile spikes
+    const dt = Math.min(0.033, Math.max(0.0, dtRaw));
+
+    // clear world
+    ctx.clearRect(0, 0, WORLD_W, WORLD_H);
+
     drawRoad();
 
-    if (game.running) {
-      game.t += dt;
-      game.speed += dt * 12;
-      game.score += dt * (30 + game.speed*0.02);
+    if (run.running) {
+      run.t += dt;
 
-      game.spawnHeart -= dt;
-      game.spawnBad -= dt;
+      // speed curve: ramps, but controlled for mobile
+      run.speed += dt * 6.5;
 
-      const heartRate = Math.max(0.28, 0.95 - game.t*0.01);
-      const badRate   = Math.max(0.50, 1.25 - game.t*0.01);
+      // slow power
+      if (run.slowT > 0) run.slowT -= dt;
+      const slowMul = (run.slowT > 0) ? lerp(0.72, 0.88, clamp(run.slowT/2,0,1)) : 1;
 
-      if (game.spawnHeart <= 0) {
+      // magnet timer
+      if (run.magnetT > 0) run.magnetT -= dt;
+
+      const speedEff = run.speed * slowMul;
+
+      // score: time + speed
+      run.score += dt * (22 + speedEff*0.06);
+
+      // spawns: increases gently (no "impossible" spam)
+      run.spawnH -= dt;
+      run.spawnB -= dt;
+
+      const heartRate = Math.max(0.30, 0.85 - run.t*0.008);
+      const badRate   = Math.max(0.55, 1.35 - run.t*0.009);
+
+      if (run.spawnH <= 0) {
         spawnHeart();
-        game.spawnHeart = heartRate * (0.75 + Math.random()*0.75);
+        run.spawnH = heartRate * (0.75 + Math.random()*0.85);
       }
-      if (game.spawnBad <= 0) {
+      if (run.spawnB <= 0) {
         spawnBad();
-        game.spawnBad = badRate * (0.80 + Math.random()*0.80);
+        run.spawnB = badRate * (0.80 + Math.random()*0.90);
       }
 
-      for (const h of game.hearts) h.y += game.speed * dt;
-      for (const b of game.bads)   b.y += game.speed * 1.02 * dt;
+      // move objects
+      for (const o of run.objects) {
+        if (!o.alive) continue;
+        o.y += speedEff * dt;
+        o.x = laneXAtDepth(o.lane, o.y);
 
-      const prx = player.x - player.w/2;
-      const pry = player.y - player.h/2;
-
-      for (let i=game.hearts.length-1;i>=0;i--){
-        const h = game.hearts[i];
-        drawHeart(h);
-        if (circleRectCollide(h.x, h.y, h.r, prx, pry, player.w, player.h)) {
-          game.hearts.splice(i,1);
-          state.coins += h.value;
-          game.earned += h.value;
-          sfx.heart();
-          addSpark(h.x, h.y, "rgba(255,105,180,0.95)");
-          save();
-          refreshMenuStats();
-        } else if (h.y > H+60) {
-          game.hearts.splice(i,1);
+        // magnet pulls hearts toward player when close
+        if (run.magnetT > 0 && o.kind === "heart") {
+          const dy = Math.abs(o.y - player.y);
+          if (dy < 140) {
+            const pull = (1 - dy/140) * 220;
+            o.x += (player.x - o.x) * (pull * dt / 220);
+          }
         }
-      }
-
-      for (let i=game.bads.length-1;i>=0;i--){
-        const b = game.bads[i];
-        drawBad(b);
-        if (player.invuln <= 0 && circleRectCollide(b.x, b.y, 18, prx, pry, player.w, player.h)) {
-          game.bads.splice(i,1);
-          game.lives -= 1;
-          player.invuln = 0.9;
-          sfx.bad();
-          addSpark(b.x, b.y, "rgba(255,80,120,0.95)");
-          if (game.lives <= 0) endGame();
-        } else if (b.y > H+80) {
-          game.bads.splice(i,1);
-        }
-      }
-
-      for (let i=game.spark.length-1;i>=0;i--){
-        const s = game.spark[i];
-        s.t += dt;
-        s.x += s.vx * dt;
-        s.y += s.vy * dt;
-        s.vx *= 0.92;
-        s.vy *= 0.92;
-        drawSpark(s);
-        if (s.t >= s.life) game.spark.splice(i,1);
       }
 
       if (player.invuln > 0) player.invuln -= dt;
 
+      // collision (sort by y for better feel & consistent draw)
+      run.objects.sort((a,b)=>a.y-b.y);
+
+      const pr = playerRect();
+
+      for (const o of run.objects) {
+        if (!o.alive) continue;
+
+        // offscreen cleanup
+        if (o.y > WORLD_H + 80) { o.alive = false; continue; }
+
+        // draw
+        if (o.kind === "heart") drawHeart(o);
+        else drawBad(o);
+
+        // collide
+        if (hit(o, pr)) {
+          if (o.kind === "heart") {
+            o.alive = false;
+
+            // coin payout w/ bonus
+            const mult = bonusMultiplier();
+            const gain = Math.round(1 * mult);
+            state.coins += gain;
+            run.earned += gain;
+
+            save();
+            refreshStats();
+
+            sfx.heart();
+            maybeTriggerMagnet(); // magnet chance when collecting
+          } else {
+            if (player.invuln > 0) { o.alive = false; continue; }
+
+            o.alive = false;
+
+            // shield power
+            if (player.shieldCharges > 0) {
+              player.shieldCharges -= 1;
+              player.invuln = 0.55;
+              sfx.bad();
+              applySlowOnDamage();
+            } else {
+              run.lives -= 1;
+              player.invuln = 0.90;
+              sfx.bad();
+              applySlowOnDamage();
+              if (run.lives <= 0) { endGame(); break; }
+            }
+          }
+        }
+      }
+
+      // compact array occasionally
+      if ((run.t*10|0) % 10 === 0) {
+        // cheap cleanup: keep alive only
+        // (don’t do every frame)
+      }
+      if ((run.t*2|0) % 2 === 0) {
+        run.objects = run.objects.filter(o=>o.alive);
+      }
+
       drawPlayer();
       drawHUD();
     } else {
-      // idle
-      game.t += dt;
+      // idle draw
+      run.t += dt;
       drawPlayer();
       drawHUD();
     }
 
-    requestAnimationFrame(step);
+    requestAnimationFrame(tick);
   }
 
-  // Stats + toggles
-  function refreshMenuStats() {
+  requestAnimationFrame(tick);
+
+  // =========================
+  //   SHOP + SETTINGS UI
+  // =========================
+  function refreshStats() {
     mCoins.textContent = state.coins|0;
     mHigh.textContent = state.highScore|0;
-    sCoins.textContent = state.coins|0;
-    sSelected.textContent = (skins[state.selectedSkin]?.name || "Klasik");
-    syncToggles();
-  }
 
-  function syncToggles() {
+    sCoins.textContent = state.coins|0;
+    sSkin.textContent = (SKINS[state.selectedSkin]?.name || "Klasik");
+    sPower.textContent = (POWERS[state.selectedPower]?.name || "Yok");
+
     togMusic.classList.toggle("on", !!state.settings.music);
     togSfx.classList.toggle("on", !!state.settings.sfx);
   }
 
-  // Shop render
-  function renderShop() {
-    shopGrid.innerHTML = "";
-    for (const item of shopItems) {
-      const owned = !!state.owned[item.id];
-      const selected = state.selectedSkin === item.id;
-
-      const row = document.createElement("div");
-      row.className = "item";
-
-      const left = document.createElement("div");
-      left.innerHTML = `<b>${item.title} ${owned ? `<span class="pill">Sahip</span>` : ""}</b><small>${item.desc}</small>`;
-
-      const right = document.createElement("div");
-      right.style.display = "flex";
-      right.style.gap = "8px";
-      right.style.alignItems = "center";
-
-      const pricePill = document.createElement("span");
-      pricePill.className = "pill";
-      pricePill.textContent = `💗 ${item.price}`;
-
-      const btn = document.createElement("button");
-      btn.className = "btn";
-      btn.textContent = owned ? (revealed ? "Seç" : "Seç") : "Satın Al";
-      btn.style.flex = "0 0 auto";
-
-      function setBtnText() {
-        const owned2 = !!state.owned[item.id];
-        const selected2 = state.selectedSkin === item.id;
-        btn.textContent = owned2 ? (selected2 ? "Seçili" : "Seç") : "Satın Al";
-        btn.disabled = owned2 && selected2;
-      }
-
-      setBtnText();
-
-      btn.onclick = () => {
-        ensureAudio();
-        if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
-
-        if (!state.owned[item.id]) {
-          if (state.coins < item.price) {
-            // “yetersiz para” için hafif bip
-            sfx.bad();
-            return;
-          }
-          state.coins -= item.price;
-          state.owned[item.id] = true;
-          sfx.buy();
-        } else {
-          sfx.select();
-        }
-        state.selectedSkin = item.id;
-        save();
-        refreshMenuStats();
-        renderShop();
-      };
-
-      right.appendChild(pricePill);
-      right.appendChild(btn);
-
-      row.appendChild(left);
-      row.appendChild(right);
-
-      shopGrid.appendChild(row);
-    }
-    // Classic always selectable
-    const classicRow = document.createElement("div");
-    classicRow.className = "item";
-    classicRow.innerHTML = `
-      <div>
-        <b>Klasik Skin <span class="pill">Sahip</span></b>
-        <small>Default görünüm. Her zaman açık.</small>
-      </div>
-      <div style="display:flex; gap:8px; align-items:center">
-        <span class="pill">Ücretsiz</span>
-        <button class="btn" id="btnSelectClassic">${state.selectedSkin==="classic" ? "Seçili" : "Seç"}</button>
-      </div>
-    `;
-    shopGrid.prepend(classicRow);
-    classicRow.querySelector("#btnSelectClassic").onclick = () => {
-      if (state.selectedSkin === "classic") return;
-      state.selectedSkin = "classic";
-      sfx.select();
-      save();
-      refreshMenuStats();
-      renderShop();
-    };
+  function powerNextPrice(id) {
+    const p = POWERS[id];
+    const lv = state.powerLevel[id]|0;
+    if (p.max === 0) return 0;
+    // rising price
+    return Math.round(p.basePrice * (1 + lv*0.55));
   }
 
-  // Settings toggles
+  function renderShop() {
+    shopGrid.innerHTML = "";
+
+    for (const section of SHOP_SECTIONS) {
+      const head = document.createElement("div");
+      head.className = "item";
+      head.innerHTML = `<div><b>${section.title}</b><small>Buradan seç / satın al / yükselt</small></div><div class="pill">💗 ${state.coins|0}</div>`;
+      shopGrid.appendChild(head);
+
+      if (section.type === "skins") {
+        for (const it of section.items) {
+          const id = it.id;
+          const owned = !!state.ownedSkins[id];
+          const selected = state.selectedSkin === id;
+
+          const row = document.createElement("div");
+          row.className = "item";
+
+          const left = document.createElement("div");
+          left.innerHTML = `<b>${SKINS[id].name} ${owned ? `<span class="pill">Sahip</span>` : ``}</b><small>${it.desc}</small>`;
+
+          const right = document.createElement("div");
+          right.style.display = "flex";
+          right.style.gap = "8px";
+          right.style.alignItems = "center";
+
+          const price = document.createElement("span");
+          price.className = "pill";
+          price.textContent = it.price === 0 ? "Ücretsiz" : `💗 ${it.price}`;
+
+          const btn = document.createElement("button");
+          btn.className = "btn";
+          btn.style.flex = "0 0 auto";
+
+          function sync() {
+            const o2 = !!state.ownedSkins[id];
+            const s2 = state.selectedSkin === id;
+            btn.textContent = o2 ? (s2 ? "Seçili" : "Seç") : "Satın Al";
+            btn.disabled = o2 && s2;
+          }
+          sync();
+
+          btn.onclick = () => {
+            resumeAudio();
+            if (!state.ownedSkins[id]) {
+              if (state.coins < it.price) { sfx.bad(); return; }
+              state.coins -= it.price;
+              state.ownedSkins[id] = true;
+              sfx.buy();
+            } else {
+              sfx.ui();
+            }
+            state.selectedSkin = id;
+            save();
+            refreshStats();
+            renderShop();
+          };
+
+          right.appendChild(price);
+          right.appendChild(btn);
+
+          row.appendChild(left);
+          row.appendChild(right);
+          shopGrid.appendChild(row);
+        }
+      } else if (section.type === "powers") {
+        for (const it of section.items) {
+          const id = it.id;
+          const p = POWERS[id];
+
+          const lv = state.powerLevel[id] || 0;
+          const unlocked = (id === "none") ? true : (lv > 0);
+          const selected = state.selectedPower === id;
+
+          const row = document.createElement("div");
+          row.className = "item";
+
+          const left = document.createElement("div");
+          const lvTxt = (id === "none") ? "" : (unlocked ? ` <span class="pill">Lv ${lv}</span>` : ` <span class="pill">Kilitli</span>`);
+          left.innerHTML = `<b>${p.name}${lvTxt} ${selected ? `<span class="pill">Seçili</span>` : ``}</b><small>${p.desc}</small>`;
+
+          const right = document.createElement("div");
+          right.style.display = "flex";
+          right.style.gap = "8px";
+          right.style.alignItems = "center";
+
+          const btnSelect = document.createElement("button");
+          btnSelect.className = "btn";
+          btnSelect.style.flex = "0 0 auto";
+          btnSelect.textContent = selected ? "Seçili" : "Seç";
+          btnSelect.disabled = selected || (!unlocked && id !== "none");
+
+          btnSelect.onclick = () => {
+            sfx.ui();
+            state.selectedPower = id;
+            save();
+            refreshStats();
+            renderShop();
+          };
+
+          // upgrade button
+          const btnUp = document.createElement("button");
+          btnUp.className = "btn";
+          btnUp.style.flex = "0 0 auto";
+
+          if (id === "none") {
+            btnUp.textContent = "—";
+            btnUp.disabled = true;
+          } else {
+            const nextPrice = powerNextPrice(id);
+            const maxed = lv >= p.max;
+            btnUp.textContent = maxed ? "Maks" : (lv === 0 ? `Aç 💗${nextPrice}` : `Yükselt 💗${nextPrice}`);
+            btnUp.disabled = maxed;
+            btnUp.onclick = () => {
+              resumeAudio();
+              const price = powerNextPrice(id);
+              if (state.coins < price) { sfx.bad(); return; }
+              state.coins -= price;
+              state.powerLevel[id] = (state.powerLevel[id]||0) + 1;
+              // auto select when first unlocked
+              if (state.powerLevel[id] === 1) state.selectedPower = id;
+              save();
+              sfx.buy();
+              refreshStats();
+              renderShop();
+            };
+          }
+
+          // price pill
+          const pill = document.createElement("span");
+          pill.className = "pill";
+          if (id === "none") pill.textContent = "Ücretsiz";
+          else {
+            const next = powerNextPrice(id);
+            const maxed = lv >= p.max;
+            pill.textContent = maxed ? "✅" : `💗 ${next}`;
+          }
+
+          right.appendChild(pill);
+          right.appendChild(btnSelect);
+          right.appendChild(btnUp);
+
+          row.appendChild(left);
+          row.appendChild(right);
+          shopGrid.appendChild(row);
+        }
+      }
+    }
+  }
+
+  // =========================
+  //   BUTTONS
+  // =========================
+  document.getElementById("btnPlay").onclick = () => { sfx.ui(); resetRun(); };
+  document.getElementById("btnRetry").onclick = () => { sfx.ui(); resetRun(); };
+
+  document.getElementById("btnMenu").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
+  document.getElementById("btnSettings").onclick = () => { sfx.ui(); showOnly(uiSettings); refreshStats(); };
+  document.getElementById("btnShop").onclick = () => { sfx.ui(); showOnly(uiShop); refreshStats(); renderShop(); };
+  document.getElementById("btnBackFromSettings").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
+  document.getElementById("btnBackFromShop").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
+
+  document.getElementById("btnReset").onclick = () => {
+    // wipe save
+    state = deepClone(defaults);
+    save();
+    refreshStats();
+    renderShop();
+    sfx.ui();
+  };
+
   togMusic.onclick = () => {
     state.settings.music = !state.settings.music;
     save();
-    refreshMenuStats();
-    refreshAudioFromSettings();
-    sfx.select();
+    refreshStats();
+    refreshAudioSettings();
+    sfx.ui();
   };
   togSfx.onclick = () => {
     state.settings.sfx = !state.settings.sfx;
     save();
-    refreshMenuStats();
-    sfx.select();
+    refreshStats();
+    sfx.ui();
   };
 
-  document.getElementById("btnApplyAudio").onclick = () => {
-    ensureAudio();
-    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
-    refreshAudioFromSettings();
-    sfx.select();
+  document.getElementById("btnAudioUnlock").onclick = () => {
+    resumeAudio();
+    refreshAudioSettings();
+    sfx.ui();
   };
 
-  // Navigation buttons
-  document.getElementById("btnPlay").onclick = () => resetRun();
+  // init
+  refreshStats();
+  // (iOS genelde ilk dokunuşa kadar başlamaz, ama ayarları hazır tutuyoruz)
+  if (state.settings.music) refreshAudioSettings();
 
-  document.getElementById("btnSettings").onclick = () => {
-    show(uiSettings); hide(uiMenu); hide(uiShop); hide(uiGameOver);
-    syncToggles();
-    sfx.select();
-  };
-
-  document.getElementById("btnBackFromSettings").onclick = () => {
-    show(uiMenu); hide(uiSettings); hide(uiShop); hide(uiGameOver);
-    refreshMenuStats();
-    sfx.select();
-  };
-
-  document.getElementById("btnShop").onclick = () => {
-    show(uiShop); hide(uiMenu); hide(uiSettings); hide(uiGameOver);
-    renderShop();
-    refreshMenuStats();
-    sfx.select();
-  };
-
-  document.getElementById("btnBackFromShop").onclick = () => {
-    show(uiMenu); hide(uiShop); hide(uiSettings); hide(uiGameOver);
-    refreshMenuStats();
-    sfx.select();
-  };
-
-  document.getElementById("btnRetry").onclick = () => resetRun();
-
-  document.getElementById("btnMenu").onclick = () => {
-    show(uiMenu); hide(uiGameOver); hide(uiSettings); hide(uiShop);
-    refreshMenuStats();
-    sfx.select();
-  };
-
-  document.getElementById("btnReset").onclick = () => {
-    // full wipe
-    state = structuredClone(defaultSave);
-    save();
-    refreshMenuStats();
-    renderShop();
-    sfx.select();
-  };
-
-  // Initial
-  refreshMenuStats();
-  if (state.settings.music) startMusic(); // will start after first interaction on many mobiles
-  requestAnimationFrame(step);
 })();
 </script>
 </body>
