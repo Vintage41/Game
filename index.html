@@ -1,0 +1,1486 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Canan için 💗</title>
+  <style>
+    :root{ --bgA:#ff6f9b; --bgB:#ffb3c7; }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      background:
+        radial-gradient(1200px 700px at 50% -10%, rgba(255,255,255,.35), rgba(255,255,255,0) 60%),
+        linear-gradient(180deg, var(--bgA), var(--bgB));
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+      color:#fff;
+      overscroll-behavior: none;
+      height: 100dvh;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    #wrap{ position:relative; width:min(540px, 96vw); }
+
+    canvas{
+      width:100%;
+      height:auto;
+      background: rgba(0,0,0,0.09);
+      border-radius: 22px;
+      display:block;
+
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+
+      border: 1px solid rgba(255,255,255,0.20);
+      box-shadow: 0 18px 60px rgba(0,0,0,.18);
+    }
+
+    .hudbar{
+      position:absolute; left:12px; right:12px; top:12px;
+      display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+      user-select:none; pointer-events:none;
+    }
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(0,0,0,0.26);
+      border: 1px solid rgba(255,255,255,0.18);
+      backdrop-filter: blur(7px);
+      font-weight:800;
+      font-size:13px;
+      line-height:1;
+      box-shadow: 0 10px 30px rgba(0,0,0,.10);
+      white-space:nowrap;
+    }
+    .chip b{ font-weight:950; }
+    .spacer{ flex:1 1 auto; }
+
+    .prog{
+      width:120px; height:8px; border-radius:99px;
+      background: rgba(255,255,255,0.20);
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+    .prog > i{ display:block; height:100%; width:0%; background: rgba(255,255,255,0.92); }
+
+    .hint{
+      position:absolute; left:12px; right:12px; bottom:12px;
+      text-align:center; font-size:13px; opacity:.95;
+      text-shadow: 0 1px 14px rgba(0,0,0,.25);
+      pointer-events:none; user-select:none;
+    }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="c"></canvas>
+
+    <div class="hudbar" id="hud">
+      <div class="chip">Lvl <b id="lvl">1</b>/10</div>
+      <div class="chip">Skor <b id="score">0</b></div>
+      <div class="chip">Rekor <b id="best">0</b></div>
+      <div class="chip">Can <b id="lives">3</b></div>
+      <div class="chip">Affet <b id="grace">1</b></div>
+      <div class="chip">Görev <b id="quest">0/0</b></div>
+      <div class="chip">
+        <span>İlerleme</span>
+        <span class="prog"><i id="progFill"></i></span>
+      </div>
+      <div class="spacer"></div>
+      <div class="chip" id="clock">00:00</div>
+    </div>
+
+    <div class="hint" id="hint">Dokun → başlat. Parmağını sürükle → kaydır 💗</div>
+  </div>
+
+<script>
+(() => {
+  // ---------- Canvas ----------
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d", { alpha:true });
+
+  const elHud = document.getElementById("hud");
+  const elLvl = document.getElementById("lvl");
+  const elScore = document.getElementById("score");
+  const elBest = document.getElementById("best");
+  const elLives = document.getElementById("lives");
+  const elGrace = document.getElementById("grace");
+  const elQuest = document.getElementById("quest");
+  const elProgFill = document.getElementById("progFill");
+  const elClock = document.getElementById("clock");
+  const hint = document.getElementById("hint");
+
+  const W = 420, H = 620;
+
+  // PERF: lower DPR (mobile friendly)
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+  canvas.style.width = W + "px";
+  canvas.style.height = H + "px";
+  canvas.width  = Math.floor(W * dpr);
+  canvas.height = Math.floor(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  const rand  = (a,b)=>a + Math.random()*(b-a);
+
+  // Istanbul time
+  const clockFmt = new Intl.DateTimeFormat("tr-TR", {
+    timeZone: "Europe/Istanbul",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  const nowClock = () => clockFmt.format(new Date());
+
+  // High score
+  const BEST_KEY = "canan_game_best_score_final_v1";
+  let bestScore = Number(localStorage.getItem(BEST_KEY) || 0);
+
+  const MAX_LEVEL = 10;
+
+  // More distinct palettes
+  const LEVELS = [
+    { bgA:"#ff2e63", bgB:"#08d9d6", hearts:["💖","💗","🩷"], deco:"bubbles"  },
+    { bgA:"#6a00f4", bgB:"#ffbe0b", hearts:["💗","💓","💞"], deco:"sparkles" },
+    { bgA:"#0f172a", bgB:"#22c55e", hearts:["💓","💞","💘"], deco:"stars"    },
+    { bgA:"#2563eb", bgB:"#f97316", hearts:["💞","💘","💗"], deco:"waves"    },
+    { bgA:"#14b8a6", bgB:"#f43f5e", hearts:["💘","💖","💓"], deco:"confetti" },
+    { bgA:"#111827", bgB:"#a78bfa", hearts:["🩷","💖","💗"], deco:"bubbles"  },
+    { bgA:"#f59e0b", bgB:"#06b6d4", hearts:["💗","💞","💓"], deco:"sparkles" },
+    { bgA:"#ef4444", bgB:"#3b82f6", hearts:["💘","💓","💖"], deco:"stars"    },
+    { bgA:"#10b981", bgB:"#8b5cf6", hearts:["💞","🩷","💗"], deco:"waves"    },
+    { bgA:"#0ea5e9", bgB:"#f472b6", hearts:["💖","💘","💓"], deco:"confetti" },
+  ];
+
+  // Goals
+  const levelGoals = [10, 12, 14, 16, 18, 20, 22, 24, 26, 28];
+
+  const levelCompliments = [
+    "Canan: 1 bitti — enerjin acayip iyi 💗",
+    "Canan: 2 tamam — odak çok güzel ✨",
+    "Canan: 3 bitti — ritim sende 😌",
+    "Canan: 4 tamam — net çok iyisin 💖",
+    "Canan: 5 bitti — senin vibe başka 🩷",
+    "Canan: 6 tamam — gittikçe parlıyorsun ✨",
+    "Canan: 7 bitti — sabır + stil çok iyi 💗",
+    "Canan: 8 tamam — oyun seninle güzel 💞",
+    "Canan: 9 bitti — az kaldı, harikasın 🩷",
+    "Canan: 10/10 — bitti! Çok özelsin 💖"
+  ];
+
+  // Calmer difficulty
+  function difficulty(lv){
+    return {
+      heartInterval: Math.max(0.32, 0.98 - lv*0.040),
+      brokenIntervalMul: 3.2,
+      speedMul: 1 + lv*0.070,
+      brokenChance: Math.min(0.08 + lv*0.028, 0.32),
+
+      wobbleHeart: 0.35 + lv*0.045,
+      wobbleBroken: 0.30 + lv*0.045,
+      wobbleGold: 0.45,
+
+      heartVxRange: 1.05 + lv*0.028,
+      brokenVxRange: 1.00 + lv*0.035,
+      goldVxRange: 2.4,
+    };
+  }
+
+  // Paddle
+  const BASE_W = 120;
+  const MAX_W = 170;
+  const player = { x: W/2, y: H-84, w: BASE_W, h: 18 };
+
+  // PERF caps
+  const MAX_DROPS = 22;
+  const MAX_PARTS = 60;
+
+  // Drops: {kind:'heart'|'broken'|'gold', emo, size, x,y, vy,vx,wob}
+  const drops = [];
+  const parts = [];
+  const warnings = [];
+
+  // ---------- Audio ----------
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = AudioCtx ? new AudioCtx() : null;
+
+  function ensureAudio(){
+    if (!audioCtx) return;
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+  }
+
+  function popSound(){
+    if (!audioCtx) return;
+    ensureAudio();
+    const t0 = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    const f = audioCtx.createBiquadFilter();
+
+    o.type = "sine";
+    o.frequency.setValueAtTime(520, t0);
+    o.frequency.exponentialRampToValueAtTime(240, t0 + 0.07);
+
+    f.type = "lowpass";
+    f.frequency.setValueAtTime(1700, t0);
+
+    g.gain.setValueAtTime(0.001, t0);
+    g.gain.exponentialRampToValueAtTime(0.06, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.10);
+
+    o.connect(f); f.connect(g); g.connect(audioCtx.destination);
+    o.start(t0); o.stop(t0 + 0.11);
+  }
+
+  function lifeLostSound(){
+    if (!audioCtx) return;
+    ensureAudio();
+    const t0 = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    const f = audioCtx.createBiquadFilter();
+
+    o.type = "triangle";
+    o.frequency.setValueAtTime(420, t0);
+    o.frequency.exponentialRampToValueAtTime(160, t0 + 0.13);
+
+    f.type = "lowpass";
+    f.frequency.setValueAtTime(1100, t0);
+
+    g.gain.setValueAtTime(0.001, t0);
+    g.gain.exponentialRampToValueAtTime(0.060, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+
+    o.connect(f); f.connect(g); g.connect(audioCtx.destination);
+    o.start(t0); o.stop(t0 + 0.19);
+  }
+
+  // --- Ambient (oyun geneli) ---
+  let ambientOn = false;
+  let ambientNodes = null;
+
+  function startAmbientMusic(){
+    if (!audioCtx || ambientOn) return;
+    ensureAudio();
+    ambientOn = true;
+
+    const t0 = audioCtx.currentTime;
+
+    const pad = audioCtx.createOscillator();
+    const pg = audioCtx.createGain();
+    const pf = audioCtx.createBiquadFilter();
+
+    pad.type = "sine";
+    pad.frequency.setValueAtTime(110, t0);
+    pf.type = "lowpass";
+    pf.frequency.setValueAtTime(650, t0);
+
+    // Çok kısık
+    pg.gain.setValueAtTime(0.0001, t0);
+    pg.gain.exponentialRampToValueAtTime(0.010, t0 + 0.8);
+
+    pad.connect(pf); pf.connect(pg); pg.connect(audioCtx.destination);
+    pad.start(t0);
+
+    let breathe = 0;
+    const breatheTimer = setInterval(() => {
+      if (!ambientOn) return;
+      breathe = (breathe + 1) % 2;
+      const tt = audioCtx.currentTime;
+      pg.gain.cancelScheduledValues(tt);
+      pg.gain.setValueAtTime(pg.gain.value || 0.010, tt);
+      pg.gain.linearRampToValueAtTime(breathe ? 0.012 : 0.009, tt + 1.2);
+    }, 1300);
+
+    ambientNodes = { pad, pg, pf, breatheTimer };
+  }
+
+  function stopAmbientMusic(){
+    if (!audioCtx || !ambientOn) return;
+    ambientOn = false;
+
+    const t0 = audioCtx.currentTime;
+    try{
+      ambientNodes.pg.gain.cancelScheduledValues(t0);
+      ambientNodes.pg.gain.setValueAtTime(ambientNodes.pg.gain.value || 0.01, t0);
+      ambientNodes.pg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.25);
+      setTimeout(() => {
+        try{ ambientNodes.pad.stop(); }catch{}
+        try{ ambientNodes.pad.disconnect(); }catch{}
+      }, 320);
+      clearInterval(ambientNodes.breatheTimer);
+    }catch{}
+    ambientNodes = null;
+  }
+
+  // Romantic music for finale (starts on YES)
+  let romanticOn = false;
+  let romanticTimer = null;
+
+  function startRomanticMusic(){
+    if (!audioCtx || romanticOn) return;
+    ensureAudio();
+    romanticOn = true;
+
+    const scale = [0, 4, 7, 12, 16];
+    const root = 392; // G4
+    let step = 0;
+
+    romanticTimer = setInterval(() => {
+      if (!romanticOn) return;
+      const t0 = audioCtx.currentTime + 0.01;
+
+      const pad = audioCtx.createOscillator();
+      const pg = audioCtx.createGain();
+      const pf = audioCtx.createBiquadFilter();
+
+      pad.type = "sine";
+      pad.frequency.setValueAtTime(root/2, t0);
+      pf.type = "lowpass";
+      pf.frequency.setValueAtTime(1300, t0);
+
+      pg.gain.setValueAtTime(0.001, t0);
+      pg.gain.exponentialRampToValueAtTime(0.018, t0 + 0.03);
+      pg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.45);
+
+      pad.connect(pf); pf.connect(pg); pg.connect(audioCtx.destination);
+      pad.start(t0); pad.stop(t0 + 0.46);
+
+      const note = audioCtx.createOscillator();
+      const ng = audioCtx.createGain();
+      const bf = audioCtx.createBiquadFilter();
+      note.type = "triangle";
+
+      const sem = scale[step % scale.length];
+      const freq = root * Math.pow(2, sem/12);
+      note.frequency.setValueAtTime(freq, t0);
+
+      bf.type = "lowpass";
+      bf.frequency.setValueAtTime(1200, t0);
+
+      ng.gain.setValueAtTime(0.001, t0);
+      ng.gain.exponentialRampToValueAtTime(0.030, t0 + 0.02);
+      ng.gain.exponentialRampToValueAtTime(0.001, t0 + 0.22);
+
+      note.connect(bf); bf.connect(ng); ng.connect(audioCtx.destination);
+      note.start(t0); note.stop(t0 + 0.23);
+
+      step++;
+    }, 260);
+  }
+
+  function stopRomanticMusic(){
+    romanticOn = false;
+    if (romanticTimer) clearInterval(romanticTimer);
+    romanticTimer = null;
+  }
+
+  // ---------- State ----------
+  let started=false, over=false, won=false;
+  let score=0, lives=3;
+  let level=1, levelHearts=0;
+
+  // 1 miss per level
+  let graceLeft = 1;
+
+  // Timers
+  let lastT=0;
+  let heartSpawnAcc = 0;
+  let brokenSpawnAcc = 0;
+
+  // Gold: ONE per run, random level 4..10, trigger at progress>=0.55 on that level
+  let goldRunLevel = 4 + ((Math.random()*7)|0);
+  let goldSpawnedThisRun = false;
+  let goldQueued = false;
+
+  // Toast
+  let toastText="", toastT=0;
+  let levelUpT=0;
+
+  // ---------- Background cache ----------
+  const bgCache = new Map();
+  function bgKey(lv){ return "lv" + lv; }
+
+  function buildBackground(level){
+    const key = bgKey(level);
+    if (bgCache.has(key)) return bgCache.get(key);
+
+    const off = document.createElement("canvas");
+    off.width = W;
+    off.height = H;
+    const b = off.getContext("2d");
+
+    b.fillStyle = "rgba(0,0,0,0.10)";
+    b.fillRect(0,0,W,H);
+
+    const deco = LEVELS[level-1].deco;
+    b.globalAlpha = 0.10;
+
+    if (deco === "bubbles"){
+      for (let i=0;i<5;i++){
+        const x = 40 + i*78;
+        const y = 90 + (i*i*31)%330;
+        b.beginPath();
+        b.arc(x, y, 14 + (i%3)*6, 0, Math.PI*2);
+        b.fillStyle = "#fff";
+        b.fill();
+      }
+    } else if (deco === "sparkles"){
+      b.font = "18px serif";
+      for (let i=0;i<8;i++){
+        const x = 30 + i*50;
+        const y = 90 + (i*56)%480;
+        b.fillText("✨", x, y);
+      }
+    } else if (deco === "stars"){
+      b.font = "18px serif";
+      for (let i=0;i<7;i++){
+        const x = 34 + i*56;
+        const y = 110 + (i*61)%470;
+        b.fillText("⭐", x, y);
+      }
+    } else if (deco === "waves"){
+      b.strokeStyle = "rgba(255,255,255,0.70)";
+      b.lineWidth = 2;
+      for (let r=0;r<3;r++){
+        b.beginPath();
+        const baseY = 130 + r*115;
+        for (let x=0;x<=W;x+=28){
+          const y = baseY + Math.sin((x*0.02) + r) * 7;
+          if (x===0) b.moveTo(x,y); else b.lineTo(x,y);
+        }
+        b.stroke();
+      }
+    } else if (deco === "confetti"){
+      for (let i=0;i<18;i++){
+        const x = 26 + (i*48)%W;
+        const y = 70 + (i*31)%560;
+        b.fillStyle = "rgba(255,255,255,0.80)";
+        b.fillRect(x, y, 4, 9);
+      }
+    }
+
+    b.globalAlpha = 1;
+    bgCache.set(key, off);
+    return off;
+  }
+
+  function applyLevelTheme(){
+    const t = LEVELS[level-1];
+    document.documentElement.style.setProperty("--bgA", t.bgA);
+    document.documentElement.style.setProperty("--bgB", t.bgB);
+    buildBackground(level);
+  }
+
+  // ---------- Emoji sprite cache (broken heart outlined) ----------
+  const spriteCache = new Map();
+  function makeOutlinedEmoji(octx, emo, x, y){
+    octx.save();
+    octx.shadowBlur = 0;
+    octx.globalAlpha = 0.75;
+    octx.fillStyle = "#000";
+    octx.fillText(emo, x-1.2, y);
+    octx.fillText(emo, x+1.2, y);
+    octx.fillText(emo, x, y-1.2);
+    octx.fillText(emo, x, y+1.2);
+    octx.restore();
+  }
+
+  function getSprite(emo, size){
+    const key = emo + "_" + size;
+    const cached = spriteCache.get(key);
+    if (cached) return cached;
+
+    const pad = 12;
+    const off = document.createElement("canvas");
+    off.width = size + pad*2;
+    off.height = size + pad*2;
+    const octx = off.getContext("2d");
+
+    octx.font = `${size}px serif`;
+    octx.textBaseline = "alphabetic";
+    octx.textAlign = "left";
+
+    if (emo === "💔"){
+      makeOutlinedEmoji(octx, emo, pad, size + pad*0.92);
+      octx.shadowColor = "rgba(0,0,0,0.75)";
+      octx.shadowBlur = 8;
+      octx.shadowOffsetY = 2;
+    } else {
+      octx.shadowColor = "rgba(0,0,0,0.60)";
+      octx.shadowBlur = 6;
+      octx.shadowOffsetY = 2;
+    }
+    octx.fillText(emo, pad, size + pad*0.92);
+
+    spriteCache.set(key, off);
+    return off;
+  }
+
+  // ---------- HUD / helpers ----------
+  function setToast(t, dur=1.2){ toastText=t; toastT=dur; }
+
+  function puff(x,y, amount=4, emo="✨"){
+    for (let i=0;i<amount && parts.length<MAX_PARTS;i++){
+      parts.push({
+        x, y,
+        vx: rand(-80,80),
+        vy: rand(-140,-50),
+        life: rand(0.26,0.46),
+        t: 0,
+        emo
+      });
+    }
+  }
+
+  function updateBest(){
+    if (score > bestScore){
+      bestScore = score;
+      localStorage.setItem(BEST_KEY, String(bestScore));
+    }
+  }
+
+  function updateHud(){
+    elLvl.textContent = level;
+    elScore.textContent = score;
+    elBest.textContent = bestScore;
+    elLives.textContent = lives;
+    elGrace.textContent = graceLeft;
+    elClock.textContent = nowClock();
+    elQuest.textContent = `${levelHearts}/${levelGoals[level-1]}`;
+
+    const goal = levelGoals[level-1];
+    const prog = clamp(levelHearts / goal, 0, 1);
+    elProgFill.style.width = Math.round(prog * 100) + "%";
+  }
+
+  // Input throttle
+  let lastMoveTs = 0;
+  function setPlayerFromClientX(clientX){
+    const now = performance.now();
+    if (now - lastMoveTs < 12) return;
+    lastMoveTs = now;
+
+    const rect = canvas.getBoundingClientRect();
+    const cx = (clientX - rect.left) / rect.width;
+    player.x = clamp(cx * W, player.w/2, W - player.w/2);
+  }
+
+  // ---------- Spawns ----------
+  function pushDrop(o){
+    if (drops.length >= MAX_DROPS) drops.shift();
+    drops.push(o);
+  }
+
+  function spawnHeartSingle(){
+    const d = difficulty(level);
+    const theme = LEVELS[level-1];
+    const emo = theme.hearts[(Math.random()*theme.hearts.length)|0];
+
+    pushDrop({
+      kind: "heart",
+      emo,
+      size: 40,
+      x: rand(22, W-66),
+      y: -44,
+      vy: rand(140, 205) * d.speedMul,
+      vx: rand(-d.heartVxRange, d.heartVxRange),
+      wob: rand(0, Math.PI*2),
+    });
+  }
+
+  function scheduleBroken(){
+    const x = rand(22, W-62);
+    warnings.push({ x, t: 0.28 });
+    if (warnings.length > 2) warnings.shift();
+  }
+
+  function spawnBrokenAt(x){
+    const d = difficulty(level);
+    pushDrop({
+      kind: "broken",
+      emo: "💔",
+      size: 28,
+      x,
+      y: -40,
+      vy: rand(165, 230) * d.speedMul,
+      vx: rand(-d.brokenVxRange, d.brokenVxRange),
+      wob: rand(0, Math.PI*2),
+    });
+  }
+
+  function scheduleGold(){
+    if (goldQueued || goldSpawnedThisRun) return;
+    goldQueued = true;
+    setToast("💛 geliyor… (tek şans) ✨", 1.0);
+    popSound();
+  }
+
+  function spawnGold(){
+    const d = difficulty(level);
+    pushDrop({
+      kind: "gold",
+      emo: "💛",
+      size: 28,
+      x: rand(22, W-62),
+      y: -46,
+      vy: rand(320, 390) * (1 + level*0.02),
+      vx: rand(-d.goldVxRange, d.goldVxRange),
+      wob: rand(0, Math.PI*2),
+    });
+  }
+
+  // ---------- Lives ----------
+  function loseLife(reason){
+    lives -= 1;
+
+    setToast(reason === "brokenHit" ? "💔 yakalandı… can gitti." : "💖 kaçtı… can gitti.", 1.0);
+    lifeLostSound();
+    if (navigator.vibrate) navigator.vibrate([18, 28, 18]);
+
+    if (lives <= 0){
+      lives = 0;
+      over = true;
+      started = false;
+      updateBest();
+      hint.textContent = "Dokun → tekrar";
+      stopAmbientMusic();
+    }
+  }
+
+  function handleHeartMiss(){
+    if (graceLeft > 0){
+      graceLeft -= 1;
+      setToast("🛡️ Affedildi — devam 💗", 0.95);
+      popSound();
+      return;
+    }
+    loseLife("heartMiss");
+  }
+
+  function showQuestBanner(){
+    setToast(`🎯 Görev: ${levelGoals[level-1]} kalp yakala`, 0.95);
+  }
+
+  function nextLevel(){
+    setToast(levelCompliments[level-1] || "Canan, çok iyisin 💗", 1.8);
+
+    if (level >= MAX_LEVEL){
+      won = true;
+      started = false;
+      updateBest();
+      hint.textContent = "";
+      openFinale();
+      return;
+    }
+
+    level++;
+    levelHearts = 0;
+    graceLeft = 1;
+
+    if (level === 5) {
+      lives = Math.min(5, lives + 1);
+      setToast("Level 5 💗 Bonus: +1 can", 1.25);
+      popSound();
+    }
+
+    levelUpT = 0.85;
+    applyLevelTheme();
+    showQuestBanner();
+  }
+
+  // ---------- Game loop ----------
+  function drawBackground(){
+    const img = buildBackground(level);
+    ctx.drawImage(img, 0, 0);
+  }
+
+  function step(dt){
+    if (finale.active){
+      stepFinale(dt);
+      updateHud();
+      return;
+    }
+
+    const d = difficulty(level);
+
+    if (goldQueued){
+      goldQueued = false;
+      goldSpawnedThisRun = true;
+      spawnGold();
+    }
+
+    // Spawn hearts (guard)
+    heartSpawnAcc += dt;
+    const heartInterval = d.heartInterval;
+    let guard = 0;
+    while (heartSpawnAcc >= heartInterval && guard++ < 2){
+      heartSpawnAcc -= heartInterval;
+      spawnHeartSingle();
+    }
+    heartSpawnAcc = Math.min(heartSpawnAcc, heartInterval * 2);
+
+    // Broken schedule
+    brokenSpawnAcc += dt;
+    const brokenInterval = d.heartInterval * d.brokenIntervalMul;
+    if (brokenSpawnAcc >= brokenInterval){
+      brokenSpawnAcc -= brokenInterval;
+      if (Math.random() < d.brokenChance) scheduleBroken();
+    }
+    brokenSpawnAcc = Math.min(brokenSpawnAcc, brokenInterval * 2);
+
+    // warnings -> spawn broken
+    for (let i=warnings.length-1;i>=0;i--){
+      warnings[i].t -= dt;
+      if (warnings[i].t <= 0){
+        spawnBrokenAt(warnings[i].x);
+        warnings.splice(i,1);
+      }
+    }
+
+    // Collisions + misses
+    let write = 0;
+    let missedHeart = false;
+
+    const hitPad = 10;
+    const px1 = player.x - player.w/2 - hitPad;
+    const px2 = player.x + player.w/2 + hitPad;
+    const py1 = player.y - hitPad;
+    const py2 = player.y + player.h + hitPad;
+
+    for (let i=0;i<drops.length;i++){
+      const o = drops[i];
+
+      o.wob += dt * 2.0;
+
+      let wobbleAmp = 0;
+      if (o.kind === "heart") wobbleAmp = d.wobbleHeart;
+      else if (o.kind === "broken") wobbleAmp = d.wobbleBroken;
+      else wobbleAmp = d.wobbleGold;
+
+      o.x += o.vx * dt + Math.sin(o.wob) * wobbleAmp;
+      o.y += o.vy * dt;
+
+      o.x = clamp(o.x, 6, W-62);
+
+      const s = (o.size || 28);
+      const cx = o.x + s * 0.45;
+      const cy = o.y - s * 0.45;
+
+      const coll = (cx >= px1 && cx <= px2 && cy >= py1 && cy <= py2);
+
+      if (coll){
+        if (o.kind === "heart"){
+          score += 1;
+          levelHearts += 1;
+
+          // Gold trigger: 1 run, chosen level 4-10, progress >= 55%
+          if (!goldSpawnedThisRun && !goldQueued && level === goldRunLevel) {
+            const prog = levelHearts / levelGoals[level-1];
+            if (prog >= 0.55) scheduleGold();
+          }
+
+          puff(player.x, player.y, 4, "✨");
+          if (navigator.vibrate) navigator.vibrate(10);
+          updateBest();
+
+          if (levelHearts >= levelGoals[level-1]) nextLevel();
+        } else if (o.kind === "broken"){
+          loseLife("brokenHit");
+        } else {
+          player.w = Math.min(MAX_W, player.w + 18);
+          score += 2;
+          updateBest();
+          setToast("💛 yakalandı! +2 · çubuk uzadı ✨", 1.1);
+          popSound();
+          puff(player.x, player.y, 6, "✨");
+          if (navigator.vibrate) navigator.vibrate([12,18,12]);
+        }
+        continue;
+      }
+
+      if (o.y > H + 90){
+        if (o.kind === "heart") missedHeart = true;
+        continue;
+      }
+
+      drops[write++] = o;
+    }
+    drops.length = write;
+
+    if (missedHeart && !over && !won && lives > 0) handleHeartMiss();
+
+    // Particles
+    for (let i=parts.length-1;i>=0;i--){
+      const p = parts[i];
+      p.t += dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 420 * dt;
+      if (p.t >= p.life) parts.splice(i,1);
+    }
+
+    if (toastT > 0) toastT -= dt;
+    if (levelUpT > 0) levelUpT -= dt;
+
+    updateHud();
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    if (finale.active){
+      drawFinale();
+      return;
+    }
+
+    drawBackground();
+
+    // player
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    ctx.fillRect(player.x - player.w/2, player.y, player.w, player.h);
+
+    // warnings
+    for (let i=0;i<warnings.length;i++){
+      const spr = getSprite("✨", 22);
+      ctx.drawImage(spr, warnings[i].x - 10, 40);
+    }
+
+    // drops
+    for (let i=0;i<drops.length;i++){
+      const o = drops[i];
+      const spr = getSprite(o.emo, o.size || 28);
+      ctx.drawImage(spr, o.x - 8, o.y - (o.size || 28) - 8);
+    }
+
+    // particles
+    for (let i=parts.length-1;i>=0;i--){
+      const p = parts[i];
+      const a = 1 - (p.t / p.life);
+      ctx.globalAlpha = a > 0 ? a : 0;
+      ctx.font = "15px serif";
+      ctx.fillText(p.emo || "✨", p.x, p.y);
+      ctx.globalAlpha = 1;
+    }
+
+    // toast
+    if (toastT > 0){
+      ctx.globalAlpha = Math.min(1, toastT*2);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      roundRect(18, 92, W-36, 44, 14);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "850 14px system-ui";
+      ctx.fillText(toastText, W/2, 120);
+      ctx.globalAlpha = 1;
+    }
+
+    // level banner
+    if (levelUpT > 0){
+      ctx.globalAlpha = Math.min(1, levelUpT*2);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(255,255,255,0.22)";
+      roundRect(92, 160, W-184, 54, 16);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "950 18px system-ui";
+      ctx.fillText(`LEVEL ${level} ✨`, W/2, 194);
+      ctx.globalAlpha = 1;
+    }
+
+    if (!started && !over && !won){
+      overlay("Canan için 💗", "Dokun ve başla", "Kombo yok · daha akıcı · final sürpriz 💍");
+    }
+    if (over){
+      overlay("Oyun bitti", `Skor: ${score} · Rekor: ${bestScore} · Lvl: ${level}/10`, "Dokun → tekrar");
+    }
+  }
+
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  function overlay(title, line1, line2){
+    ctx.fillStyle = "rgba(0,0,0,0.28)";
+    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.font = "950 26px system-ui";
+    ctx.fillText(title, W/2, H/2 - 44);
+    ctx.font = "750 16px system-ui";
+    ctx.fillText(line1, W/2, H/2 - 12);
+    ctx.font = "14px system-ui";
+    ctx.fillText(line2, W/2, H/2 + 18);
+  }
+
+  function loop(t){
+    const dt = Math.min(0.033, (t - lastT)/1000);
+    lastT = t;
+
+    step(dt);
+    draw();
+
+    if (started || finale.active) requestAnimationFrame(loop);
+  }
+
+  // ---------- Reset ----------
+  function reset(){
+    stopAmbientMusic();
+    stopRomanticMusic();
+    finale.active = false;
+
+    started=false; over=false; won=false;
+    score=0; lives=3;
+    level=1; levelHearts=0;
+
+    heartSpawnAcc = 0;
+    brokenSpawnAcc = 0;
+
+    drops.length=0;
+    parts.length=0;
+    warnings.length=0;
+
+    graceLeft = 1;
+
+    goldQueued = false;
+    goldSpawnedThisRun = false;
+    goldRunLevel = 4 + ((Math.random()*7)|0);
+
+    toastT=0; toastText="";
+    levelUpT=0;
+
+    player.x = W/2;
+    player.w = BASE_W;
+
+    elHud.style.display = "";
+    applyLevelTheme();
+    hint.textContent = "Dokun → başlat. Parmağını sürükle → kaydır 💗";
+    showQuestBanner();
+    updateHud();
+    draw();
+  }
+
+  // ---------- Start ----------
+  function startIfNeeded(){
+    ensureAudio();
+
+    if (finale.active) return;
+
+    if (!started && !over && !won){
+      started = true;
+      startAmbientMusic();
+      hint.textContent = "💖 topla · 🛡️ Affet var · 💔 can alır · 💛 1 kez (Lvl 4-10 arasında)";
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    } else if (over){
+      reset();
+    }
+  }
+
+  // ---------- Input ----------
+  let activePointerId = null;
+
+  canvas.addEventListener("pointerdown", (e)=>{
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    activePointerId = e.pointerId;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width * W;
+    const y = (e.clientY - rect.top) / rect.height * H;
+
+    if (finale.active){
+      handleFinalTap(x,y);
+      return;
+    }
+
+    setPlayerFromClientX(e.clientX);
+    startIfNeeded();
+  });
+
+  canvas.addEventListener("pointermove", (e)=>{
+    if (activePointerId !== e.pointerId) return;
+    if (finale.active) return;
+    e.preventDefault();
+    setPlayerFromClientX(e.clientX);
+  });
+
+  canvas.addEventListener("pointerup", (e)=>{ if (activePointerId===e.pointerId) activePointerId=null; });
+  canvas.addEventListener("pointercancel", (e)=>{ if (activePointerId===e.pointerId) activePointerId=null; });
+
+  canvas.addEventListener("touchstart", (e)=>{
+    e.preventDefault();
+    const t = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = (t.clientX - rect.left) / rect.width * W;
+    const y = (t.clientY - rect.top) / rect.height * H;
+
+    if (finale.active){
+      handleFinalTap(x,y);
+      return;
+    }
+
+    setPlayerFromClientX(t.clientX);
+    startIfNeeded();
+  }, { passive:false });
+
+  canvas.addEventListener("touchmove", (e)=>{
+    if (finale.active) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    setPlayerFromClientX(t.clientX);
+  }, { passive:false });
+
+  // ---------- Finale (premium, canvas) ----------
+  const finale = {
+    active: false,
+    yes: false,
+    t: 0,
+    typeT: 0,
+    line1: "Benimle evlenir misin?",
+    line2: "Dünyamın en tatlı ve güzel kızı",
+    out1: "",
+    out2: "",
+    phase: 0,
+    bg: null,
+    stars: [],
+    hearts: [],
+    bursts: [],
+    btn: { x: W/2, y: 505, w: 320, h: 170 }, // BIG hitbox
+  };
+
+  function buildFinaleBg(){
+    if (finale.bg) return finale.bg;
+
+    const off = document.createElement("canvas");
+    off.width = W;
+    off.height = H;
+    const g = off.getContext("2d");
+
+    const grd = g.createLinearGradient(0,0,0,H);
+    grd.addColorStop(0, "rgba(12,14,30,1)");
+    grd.addColorStop(0.55, "rgba(28,16,52,1)");
+    grd.addColorStop(1, "rgba(68,22,58,1)");
+    g.fillStyle = grd;
+    g.fillRect(0,0,W,H);
+
+    // Moon
+    const mx = 320, my = 95;
+    const moon = g.createRadialGradient(mx, my, 8, mx, my, 95);
+    moon.addColorStop(0, "rgba(255,255,255,0.95)");
+    moon.addColorStop(0.35, "rgba(255,255,255,0.35)");
+    moon.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = moon;
+    g.beginPath();
+    g.arc(mx, my, 95, 0, Math.PI*2);
+    g.fill();
+
+    // Stars
+    finale.stars = [];
+    for (let i=0;i<42;i++){
+      finale.stars.push({
+        x: rand(20, W-20),
+        y: rand(20, 240),
+        r: rand(0.7, 1.6),
+        a: rand(0.25, 0.8),
+      });
+    }
+    for (const s of finale.stars){
+      g.globalAlpha = s.a;
+      g.fillStyle = "#fff";
+      g.beginPath();
+      g.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      g.fill();
+    }
+    g.globalAlpha = 1;
+
+    // Vignette
+    const vig = g.createRadialGradient(W/2, H/2, 120, W/2, H/2, 420);
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(0,0,0,0.55)");
+    g.fillStyle = vig;
+    g.fillRect(0,0,W,H);
+
+    finale.bg = off;
+    return off;
+  }
+
+  function drawGlassPanel(x,y,w,h,r){
+    const stroke = ctx.createLinearGradient(x, y, x+w, y+h);
+    stroke.addColorStop(0, "rgba(255,236,190,0.92)");
+    stroke.addColorStop(0.5, "rgba(255,210,140,0.88)");
+    stroke.addColorStop(1, "rgba(255,245,210,0.95)");
+
+    const fill = ctx.createLinearGradient(x, y, x, y+h);
+    fill.addColorStop(0, "rgba(255,255,255,0.12)");
+    fill.addColorStop(1, "rgba(255,255,255,0.06)");
+
+    ctx.save();
+    ctx.lineWidth = 2.2;
+    ctx.shadowColor = "rgba(0,0,0,0.35)";
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 8;
+
+    roundRect(x,y,w,h,r);
+    ctx.fillStyle = fill;
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = stroke;
+    ctx.stroke();
+
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = 1;
+    roundRect(x+6, y+6, w-12, h-12, r-6);
+    ctx.strokeStyle = "rgba(255,255,255,0.25)";
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function heartPath(cx, cy, size){
+    const s = size;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + s*0.30);
+    ctx.bezierCurveTo(cx - s*0.55, cy - s*0.15, cx - s*0.55, cy - s*0.65, cx, cy - s*0.35);
+    ctx.bezierCurveTo(cx + s*0.55, cy - s*0.65, cx + s*0.55, cy - s*0.15, cx, cy + s*0.30);
+    ctx.closePath();
+  }
+
+  function drawHeartButton(btn, pressed=false){
+    const {x,y} = btn;
+    const cx = x, cy = y;
+
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    const glow = ctx.createRadialGradient(cx, cy, 10, cx, cy, 120);
+    glow.addColorStop(0, "rgba(255,140,190,0.55)");
+    glow.addColorStop(1, "rgba(255,140,190,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(cx, cy, 120, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    const size = 52;
+
+    ctx.save();
+    ctx.translate(0, pressed ? 1.5 : 0);
+
+    heartPath(cx, cy, size);
+
+    const grad = ctx.createLinearGradient(cx - 60, cy - 40, cx + 60, cy + 60);
+    grad.addColorStop(0, "rgba(255,110,170,0.98)");
+    grad.addColorStop(0.55, "rgba(210,90,190,0.98)");
+    grad.addColorStop(1, "rgba(150,90,235,0.98)");
+
+    ctx.shadowColor = "rgba(0,0,0,0.45)";
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 10;
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255,255,255,0.28)";
+    ctx.stroke();
+
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.font = "950 16px ui-rounded, system-ui, -apple-system";
+    ctx.shadowColor = "rgba(0,0,0,0.35)";
+    ctx.shadowBlur = 10;
+    ctx.fillText("EVET 💖", cx, cy + 6);
+
+    ctx.restore();
+  }
+
+  function spawnHeartBurst(x,y,n){
+    const emos = ["💖","💗","🩷","✨"];
+    for (let i=0;i<n;i++){
+      finale.bursts.push({
+        x, y,
+        vx: rand(-120,120),
+        vy: rand(-220,-80),
+        g: 420,
+        t: 0,
+        life: rand(0.55, 0.95),
+        emo: emos[(Math.random()*emos.length)|0],
+        size: rand(18, 28),
+      });
+    }
+    while (finale.bursts.length > 140) finale.bursts.shift();
+  }
+
+  function openFinale(){
+    // stop game music, prep finale
+    stopAmbientMusic();
+    stopRomanticMusic();
+
+    finale.active = true;
+    finale.yes = false;
+    finale.t = 0;
+    finale.typeT = 0;
+    finale.out1 = "";
+    finale.out2 = "";
+    finale.phase = 0;
+    finale.hearts.length = 0;
+    finale.bursts.length = 0;
+    buildFinaleBg();
+
+    elHud.style.display = "none";
+    started = false;
+    over = false;
+    won = true;
+
+    lastT = performance.now();
+    requestAnimationFrame(loop);
+  }
+
+  function handleFinalTap(x,y){
+    ensureAudio();
+
+    // YES sonrası: herhangi yere dokun -> reset
+    if (finale.yes){
+      reset();
+      return;
+    }
+
+    const b = finale.btn;
+
+    const hitBtn =
+      (x >= b.x - b.w/2 && x <= b.x + b.w/2 && y >= b.y - b.h/2 && y <= b.y + b.h/2);
+
+    // Yazı bitince: alt yarı dokunuşu da EVET
+    const hitAltYari = (finale.phase >= 2 && y >= H * 0.42);
+
+    if (hitBtn || hitAltYari){
+      finale.yes = true;
+
+      // Anında görünür tepki
+      spawnHeartBurst(b.x, b.y, 52);
+      for (let i=0;i<18;i++){
+        finale.hearts.push({
+          x: rand(40, W-40),
+          y: H + rand(0, 50),
+          vy: rand(45, 85),
+          wob: rand(0, Math.PI*2),
+          emo: ["💖","💗","🩷","✨"][(Math.random()*4)|0],
+          size: rand(18, 30),
+          a: rand(0.70, 0.99)
+        });
+      }
+
+      popSound();
+      startRomanticMusic();
+      if (navigator.vibrate) navigator.vibrate([12,16,12]);
+    }
+  }
+
+  function stepFinale(dt){
+    finale.t += dt;
+
+    // typing
+    if (!finale.yes){
+      finale.typeT += dt;
+      const speed = 0.045;
+      while (finale.typeT >= speed){
+        finale.typeT -= speed;
+
+        if (finale.phase === 0){
+          finale.out1 = finale.line1.slice(0, finale.out1.length + 1);
+          if (finale.out1.length >= finale.line1.length) finale.phase = 1;
+        } else if (finale.phase === 1){
+          finale.out2 = finale.line2.slice(0, finale.out2.length + 1);
+          if (finale.out2.length >= finale.line2.length) finale.phase = 2;
+        }
+      }
+    } else {
+      // YES sonrası: yumuşak kalp yağışı
+      if (Math.random() < 0.35){
+        finale.hearts.push({
+          x: rand(40, W-40),
+          y: H + rand(0, 60),
+          vy: rand(30, 65),
+          wob: rand(0, Math.PI*2),
+          emo: ["💖","💗","🩷","✨"][(Math.random()*4)|0],
+          size: rand(18, 26),
+          a: rand(0.55, 0.95)
+        });
+      }
+      while (finale.hearts.length > 44) finale.hearts.shift();
+    }
+
+    for (let i=finale.hearts.length-1;i>=0;i--){
+      const h = finale.hearts[i];
+      h.wob += dt*2;
+      h.y -= h.vy * dt;
+      h.x += Math.sin(h.wob) * 10 * dt;
+      if (h.y < -50) finale.hearts.splice(i,1);
+    }
+
+    for (let i=finale.bursts.length-1;i>=0;i--){
+      const p = finale.bursts[i];
+      p.t += dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += p.g * dt;
+      if (p.t >= p.life) finale.bursts.splice(i,1);
+    }
+  }
+
+  function drawFinale(){
+    ctx.drawImage(buildFinaleBg(), 0, 0);
+
+    // cinematic layer
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.fillRect(0,0,W,H);
+
+    // panel
+    const px = 44, py = 140, pw = W-88, ph = 280;
+    drawGlassPanel(px, py, pw, ph, 22);
+
+    // panel shine (premium)
+    ctx.save();
+    ctx.globalAlpha = 0.22;
+    const shine = ctx.createLinearGradient(0, 140, W, 380);
+    shine.addColorStop(0, "rgba(255,255,255,0)");
+    shine.addColorStop(0.5, "rgba(255,255,255,0.45)");
+    shine.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = shine;
+    ctx.fillRect(60, 160, W-120, 26);
+    ctx.restore();
+
+    // cute bottom emojis
+    ctx.save();
+    ctx.globalAlpha = 0.95;
+    ctx.font = "38px serif";
+    ctx.textAlign = "left";
+    ctx.shadowColor = "rgba(0,0,0,0.45)";
+    ctx.shadowBlur = 18;
+    ctx.fillText("💍", 78, 520);
+    ctx.font = "34px serif";
+    ctx.fillText("💖", 112, 522);
+
+    ctx.textAlign = "right";
+    ctx.font = "38px serif";
+    ctx.fillText("🩷", W-78, 520);
+    ctx.font = "34px serif";
+    ctx.fillText("💗", W-112, 522);
+    ctx.restore();
+
+    // small title
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(255,255,255,0.88)";
+    ctx.font = "900 14px system-ui";
+    ctx.fillText("Final ödülün 💗", W/2, py + 42);
+    ctx.restore();
+
+    // main text
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(255,255,255,0.96)";
+    ctx.shadowColor = "rgba(0,0,0,0.45)";
+    ctx.shadowBlur = 18;
+
+    ctx.font = "950 21px ui-rounded, system-ui, -apple-system";
+    ctx.fillText(finale.out1 || "", W/2, py + 110);
+
+    ctx.font = "900 19px ui-rounded, system-ui, -apple-system";
+    ctx.fillText(finale.out2 || "", W/2, py + 155);
+
+    if (!finale.yes && finale.phase >= 2){
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 0.85;
+      ctx.font = "18px serif";
+      ctx.fillText("✨", W/2, py + 192);
+    }
+    ctx.restore();
+
+    if (!finale.yes){
+      ctx.save();
+      ctx.globalAlpha = 0.92;
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.font = "800 13px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText("EVET’e dokun 💖", W/2, 458);
+      ctx.restore();
+
+      drawHeartButton(finale.btn, false);
+    } else {
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.shadowColor = "rgba(0,0,0,0.45)";
+      ctx.shadowBlur = 14;
+      ctx.font = "950 18px system-ui";
+      ctx.fillText("💖💖💖", W/2, 462);
+      ctx.font = "850 13px system-ui";
+      ctx.fillText("Dokun → tekrar oyna  ✨", W/2, 488);
+      ctx.restore();
+    }
+
+    // floating hearts
+    for (const h of finale.hearts){
+      const spr = getSprite(h.emo, h.size);
+      ctx.globalAlpha = h.a;
+      ctx.drawImage(spr, h.x - 14, h.y - 14);
+    }
+    ctx.globalAlpha = 1;
+
+    // bursts
+    for (const p of finale.bursts){
+      const a = 1 - (p.t / p.life);
+      ctx.globalAlpha = a > 0 ? a : 0;
+      const spr = getSprite(p.emo, p.size);
+      ctx.drawImage(spr, p.x - 10, p.y - 10);
+    }
+    ctx.globalAlpha = 1;
+
+    // footer score
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "rgba(255,255,255,0.80)";
+    ctx.font = "800 12px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(`Skor: ${score}   ·   Rekor: ${bestScore}`, W/2, H - 22);
+    ctx.restore();
+  }
+
+  // ---------- Draw helpers ----------
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  // ---------- Init ----------
+  function init(){
+    applyLevelTheme();
+    showQuestBanner();
+    updateHud();
+    draw();
+  }
+
+  setInterval(() => {
+    updateHud();
+    if (!started || over || won || finale.active) draw();
+  }, 1000);
+
+  init();
+})();
+</script>
+</body>
+</html>
