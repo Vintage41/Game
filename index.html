@@ -1098,12 +1098,51 @@ function drawCanan(){
   ctx.fillText("CANAN", x, y-33);
 }
 function drawObstacle(o){
-  const pulse=0.55 + 0.45*Math.sin(performance.now()/240);
-  ctx.fillStyle=`rgba(255,60,60,${0.60 + pulse*0.20})`;
-  ctx.beginPath(); ctx.roundRect(o.x-o.w/2, o.y-o.h/2, o.w, o.h, 14); ctx.fill();
+  const pulse = 0.55 + 0.45 * Math.sin(performance.now() / 240);
 
-  ctx.fillStyle="rgba(255,255,255,.10)";
-  ctx.beginPath(); ctx.roundRect(o.x-o.w/2+6, o.y-o.h/2+6, o.w-12, o.h-12, 10); ctx.fill();
+  // ana gövde (kırmızı – tehlike)
+  ctx.fillStyle = `rgba(255,60,60,${0.60 + pulse*0.20})`;
+  ctx.beginPath();
+  ctx.roundRect(
+    o.x - o.w/2,
+    o.y - o.h/2,
+    o.w,
+    o.h,
+    14
+  );
+  ctx.fill();
+
+  // iç panel (metal / koyu)
+  ctx.fillStyle = "rgba(0,0,0,.22)";
+  ctx.beginPath();
+  ctx.roundRect(
+    o.x - o.w/2 + 6,
+    o.y - o.h/2 + 6,
+    o.w - 12,
+    o.h - 12,
+    10
+  );
+  ctx.fill();
+
+  // kenar çizgisi (daha net okunurluk)
+  ctx.strokeStyle = "rgba(255,120,120,.55)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(
+    o.x - o.w/2,
+    o.y - o.h/2,
+    o.w,
+    o.h,
+    14
+  );
+  ctx.stroke();
+
+  // uyarı işareti (mini ama etkili)
+  ctx.fillStyle = "rgba(0,0,0,.55)";
+  ctx.font = "900 16px system-ui";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("!", o.x, o.y);
 }
 function drawHeart(h){
   const x=h.x, y=h.y, r=h.r;
@@ -1590,4 +1629,5 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 </body>
 </html>
 ```
+
 
