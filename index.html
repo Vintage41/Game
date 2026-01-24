@@ -115,8 +115,8 @@
 
   const W = 420, H = 620;
 
-  // PERF: lower DPR (mobile friendly)
-  const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+  // PERF: lower DPR => smoother on mobile
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.0);
   canvas.style.width = W + "px";
   canvas.style.height = H + "px";
   canvas.width  = Math.floor(W * dpr);
@@ -135,12 +135,12 @@
   const nowClock = () => clockFmt.format(new Date());
 
   // High score
-  const BEST_KEY = "canan_game_best_score_final_v1";
+  const BEST_KEY = "canan_game_best_score_final_v2";
   let bestScore = Number(localStorage.getItem(BEST_KEY) || 0);
 
   const MAX_LEVEL = 10;
 
-  // More distinct palettes
+  // Palettes
   const LEVELS = [
     { bgA:"#ff2e63", bgB:"#08d9d6", hearts:["💖","💗","🩷"], deco:"bubbles"  },
     { bgA:"#6a00f4", bgB:"#ffbe0b", hearts:["💗","💓","💞"], deco:"sparkles" },
@@ -170,7 +170,7 @@
     "Canan: 10/10 — bitti! Çok özelsin 💖"
   ];
 
-  // Calmer difficulty
+  // Calmer difficulty (less sideways movement)
   function difficulty(lv){
     return {
       heartInterval: Math.max(0.32, 0.98 - lv*0.040),
@@ -193,11 +193,10 @@
   const MAX_W = 170;
   const player = { x: W/2, y: H-84, w: BASE_W, h: 18 };
 
-  // PERF caps
-  const MAX_DROPS = 22;
-  const MAX_PARTS = 60;
+  // PERF caps (for mobile fps)
+  const MAX_DROPS = 18;
+  const MAX_PARTS = 45;
 
-  // Drops: {kind:'heart'|'broken'|'gold', emo, size, x,y, vy,vx,wob}
   const drops = [];
   const parts = [];
   const warnings = [];
@@ -227,7 +226,7 @@
     f.frequency.setValueAtTime(1700, t0);
 
     g.gain.setValueAtTime(0.001, t0);
-    g.gain.exponentialRampToValueAtTime(0.06, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.05, t0 + 0.01);
     g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.10);
 
     o.connect(f); f.connect(g); g.connect(audioCtx.destination);
@@ -250,14 +249,38 @@
     f.frequency.setValueAtTime(1100, t0);
 
     g.gain.setValueAtTime(0.001, t0);
-    g.gain.exponentialRampToValueAtTime(0.060, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.055, t0 + 0.01);
     g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
 
     o.connect(f); f.connect(g); g.connect(audioCtx.destination);
     o.start(t0); o.stop(t0 + 0.19);
   }
 
-  // --- Ambient (oyun geneli) ---
+  // NEW: heart catch sound
+  function heartCatchSound(){
+    if (!audioCtx) return;
+    ensureAudio();
+    const t0 = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    const f = audioCtx.createBiquadFilter();
+
+    o.type = "sine";
+    o.frequency.setValueAtTime(740, t0);
+    o.frequency.exponentialRampToValueAtTime(980, t0 + 0.05);
+
+    f.type = "lowpass";
+    f.frequency.setValueAtTime(2200, t0);
+
+    g.gain.setValueAtTime(0.001, t0);
+    g.gain.exponentialRampToValueAtTime(0.028, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.09);
+
+    o.connect(f); f.connect(g); g.connect(audioCtx.destination);
+    o.start(t0); o.stop(t0 + 0.10);
+  }
+
+  // --- Ambient (relaxing, not too low) ---
   let ambientOn = false;
   let ambientNodes = null;
 
@@ -268,33 +291,55 @@
 
     const t0 = audioCtx.currentTime;
 
-    const pad = audioCtx.createOscillator();
-    const pg = audioCtx.createGain();
-    const pf = audioCtx.createBiquadFilter();
+    // Layer 1: warm pad
+    const pad1 = audioCtx.createOscillator();
+    const g1 = audioCtx.createGain();
+    const f1 = audioCtx.createBiquadFilter();
 
-    pad.type = "sine";
-    pad.frequency.setValueAtTime(110, t0);
-    pf.type = "lowpass";
-    pf.frequency.setValueAtTime(650, t0);
+    pad1.type = "sine";
+    pad1.frequency.setValueAtTime(98, t0);
+    f1.type = "lowpass";
+    f1.frequency.setValueAtTime(520, t0);
 
-    // Çok kısık
-    pg.gain.setValueAtTime(0.0001, t0);
-    pg.gain.exponentialRampToValueAtTime(0.010, t0 + 0.8);
+    // Layer 2: soft air
+    const pad2 = audioCtx.createOscillator();
+    const g2 = audioCtx.createGain();
+    const f2 = audioCtx.createBiquadFilter();
 
-    pad.connect(pf); pf.connect(pg); pg.connect(audioCtx.destination);
-    pad.start(t0);
+    pad2.type = "triangle";
+    pad2.frequency.setValueAtTime(196, t0);
+    f2.type = "lowpass";
+    f2.frequency.setValueAtTime(780, t0);
+
+    // audible but gentle
+    g1.gain.setValueAtTime(0.0001, t0);
+    g1.gain.exponentialRampToValueAtTime(0.016, t0 + 0.9);
+
+    g2.gain.setValueAtTime(0.0001, t0);
+    g2.gain.exponentialRampToValueAtTime(0.007, t0 + 0.9);
 
     let breathe = 0;
     const breatheTimer = setInterval(() => {
       if (!ambientOn) return;
       breathe = (breathe + 1) % 2;
       const tt = audioCtx.currentTime;
-      pg.gain.cancelScheduledValues(tt);
-      pg.gain.setValueAtTime(pg.gain.value || 0.010, tt);
-      pg.gain.linearRampToValueAtTime(breathe ? 0.012 : 0.009, tt + 1.2);
-    }, 1300);
 
-    ambientNodes = { pad, pg, pf, breatheTimer };
+      g1.gain.cancelScheduledValues(tt);
+      g1.gain.setValueAtTime(g1.gain.value || 0.016, tt);
+      g1.gain.linearRampToValueAtTime(breathe ? 0.018 : 0.014, tt + 1.4);
+
+      g2.gain.cancelScheduledValues(tt);
+      g2.gain.setValueAtTime(g2.gain.value || 0.007, tt);
+      g2.gain.linearRampToValueAtTime(breathe ? 0.008 : 0.006, tt + 1.4);
+    }, 1500);
+
+    pad1.connect(f1); f1.connect(g1); g1.connect(audioCtx.destination);
+    pad2.connect(f2); f2.connect(g2); g2.connect(audioCtx.destination);
+
+    pad1.start(t0);
+    pad2.start(t0);
+
+    ambientNodes = { pad1, pad2, g1, g2, f1, f2, breatheTimer };
   }
 
   function stopAmbientMusic(){
@@ -303,14 +348,20 @@
 
     const t0 = audioCtx.currentTime;
     try{
-      ambientNodes.pg.gain.cancelScheduledValues(t0);
-      ambientNodes.pg.gain.setValueAtTime(ambientNodes.pg.gain.value || 0.01, t0);
-      ambientNodes.pg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.25);
-      setTimeout(() => {
-        try{ ambientNodes.pad.stop(); }catch{}
-        try{ ambientNodes.pad.disconnect(); }catch{}
-      }, 320);
       clearInterval(ambientNodes.breatheTimer);
+
+      ambientNodes.g1.gain.cancelScheduledValues(t0);
+      ambientNodes.g1.gain.setValueAtTime(ambientNodes.g1.gain.value || 0.016, t0);
+      ambientNodes.g1.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.25);
+
+      ambientNodes.g2.gain.cancelScheduledValues(t0);
+      ambientNodes.g2.gain.setValueAtTime(ambientNodes.g2.gain.value || 0.007, t0);
+      ambientNodes.g2.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.25);
+
+      setTimeout(() => {
+        try{ ambientNodes.pad1.stop(); }catch{}
+        try{ ambientNodes.pad2.stop(); }catch{}
+      }, 320);
     }catch{}
     ambientNodes = null;
   }
@@ -522,13 +573,13 @@
   // ---------- HUD / helpers ----------
   function setToast(t, dur=1.2){ toastText=t; toastT=dur; }
 
-  function puff(x,y, amount=4, emo="✨"){
+  function puff(x,y, amount=3, emo="✨"){
     for (let i=0;i<amount && parts.length<MAX_PARTS;i++){
       parts.push({
         x, y,
-        vx: rand(-80,80),
-        vy: rand(-140,-50),
-        life: rand(0.26,0.46),
+        vx: rand(-75,75),
+        vy: rand(-130,-45),
+        life: rand(0.24,0.42),
         t: 0,
         emo
       });
@@ -556,11 +607,11 @@
     elProgFill.style.width = Math.round(prog * 100) + "%";
   }
 
-  // Input throttle
+  // Input throttle (a bit stronger for mobile)
   let lastMoveTs = 0;
   function setPlayerFromClientX(clientX){
     const now = performance.now();
-    if (now - lastMoveTs < 12) return;
+    if (now - lastMoveTs < 16) return;
     lastMoveTs = now;
 
     const rect = canvas.getBoundingClientRect();
@@ -692,10 +743,9 @@
   }
 
   // ---------- Game loop ----------
-  function drawBackground(){
-    const img = buildBackground(level);
-    ctx.drawImage(img, 0, 0);
-  }
+  let lastT = 0;
+  let heartSpawnAcc = 0;
+  let brokenSpawnAcc = 0;
 
   function step(dt){
     if (finale.active){
@@ -775,6 +825,7 @@
         if (o.kind === "heart"){
           score += 1;
           levelHearts += 1;
+          heartCatchSound(); // NEW
 
           // Gold trigger: 1 run, chosen level 4-10, progress >= 55%
           if (!goldSpawnedThisRun && !goldQueued && level === goldRunLevel) {
@@ -782,7 +833,7 @@
             if (prog >= 0.55) scheduleGold();
           }
 
-          puff(player.x, player.y, 4, "✨");
+          puff(player.x, player.y, 3, "✨");
           if (navigator.vibrate) navigator.vibrate(10);
           updateBest();
 
@@ -795,7 +846,7 @@
           updateBest();
           setToast("💛 yakalandı! +2 · çubuk uzadı ✨", 1.1);
           popSound();
-          puff(player.x, player.y, 6, "✨");
+          puff(player.x, player.y, 5, "✨");
           if (navigator.vibrate) navigator.vibrate([12,18,12]);
         }
         continue;
@@ -826,6 +877,36 @@
     if (levelUpT > 0) levelUpT -= dt;
 
     updateHud();
+  }
+
+  // ---------- Drawing ----------
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  function overlay(title, line1, line2){
+    ctx.fillStyle = "rgba(0,0,0,0.28)";
+    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.font = "950 26px system-ui";
+    ctx.fillText(title, W/2, H/2 - 44);
+    ctx.font = "750 16px system-ui";
+    ctx.fillText(line1, W/2, H/2 - 12);
+    ctx.font = "14px system-ui";
+    ctx.fillText(line2, W/2, H/2 + 18);
+  }
+
+  const bgCacheImg = new Map();
+  function drawBackground(){
+    const img = buildBackground(level);
+    ctx.drawImage(img, 0, 0);
   }
 
   function draw(){
@@ -892,34 +973,11 @@
     }
 
     if (!started && !over && !won){
-      overlay("Canan için 💗", "Dokun ve başla", "Kombo yok · daha akıcı · final sürpriz 💍");
+      overlay("Canan için 💗", "Dokun ve başla", "60 FPS hedef · müzik + efektler ✅");
     }
     if (over){
       overlay("Oyun bitti", `Skor: ${score} · Rekor: ${bestScore} · Lvl: ${level}/10`, "Dokun → tekrar");
     }
-  }
-
-  function roundRect(x,y,w,h,r){
-    ctx.beginPath();
-    ctx.moveTo(x+r,y);
-    ctx.arcTo(x+w,y,x+w,y+h,r);
-    ctx.arcTo(x+w,y+h,x,y+h,r);
-    ctx.arcTo(x,y+h,x,y,r);
-    ctx.arcTo(x,y,x+w,y,r);
-    ctx.closePath();
-  }
-
-  function overlay(title, line1, line2){
-    ctx.fillStyle = "rgba(0,0,0,0.28)";
-    ctx.fillRect(0,0,W,H);
-    ctx.fillStyle = "#fff";
-    ctx.textAlign = "center";
-    ctx.font = "950 26px system-ui";
-    ctx.fillText(title, W/2, H/2 - 44);
-    ctx.font = "750 16px system-ui";
-    ctx.fillText(line1, W/2, H/2 - 12);
-    ctx.font = "14px system-ui";
-    ctx.fillText(line2, W/2, H/2 + 18);
   }
 
   function loop(t){
@@ -978,7 +1036,7 @@
     if (!started && !over && !won){
       started = true;
       startAmbientMusic();
-      hint.textContent = "💖 topla · 🛡️ Affet var · 💔 can alır · 💛 1 kez (Lvl 4-10 arasında)";
+      hint.textContent = "💖 topla · 🛡️ Affet var · 💔 can alır · 💛 1 kez (Lvl 4-10)";
       lastT = performance.now();
       requestAnimationFrame(loop);
     } else if (over){
@@ -1040,14 +1098,15 @@
     setPlayerFromClientX(t.clientX);
   }, { passive:false });
 
-  // ---------- Finale (premium, canvas) ----------
+  // ---------- Finale ----------
   const finale = {
     active: false,
     yes: false,
     t: 0,
     typeT: 0,
+    // FINAL TEXT (fixed Turkish)
     line1: "Benimle evlenir misin?",
-    line2: "Dünyamın en tatlı ve güzel kızı",
+    line2: "Dünyamın en tatlı ve en güzel kızı",
     out1: "",
     out2: "",
     phase: 0,
@@ -1055,7 +1114,7 @@
     stars: [],
     hearts: [],
     bursts: [],
-    btn: { x: W/2, y: 505, w: 320, h: 170 }, // BIG hitbox
+    btn: { x: W/2, y: 505, w: 320, h: 170 },
   };
 
   function buildFinaleBg(){
@@ -1073,7 +1132,6 @@
     g.fillStyle = grd;
     g.fillRect(0,0,W,H);
 
-    // Moon
     const mx = 320, my = 95;
     const moon = g.createRadialGradient(mx, my, 8, mx, my, 95);
     moon.addColorStop(0, "rgba(255,255,255,0.95)");
@@ -1084,7 +1142,6 @@
     g.arc(mx, my, 95, 0, Math.PI*2);
     g.fill();
 
-    // Stars
     finale.stars = [];
     for (let i=0;i<42;i++){
       finale.stars.push({
@@ -1103,7 +1160,6 @@
     }
     g.globalAlpha = 1;
 
-    // Vignette
     const vig = g.createRadialGradient(W/2, H/2, 120, W/2, H/2, 420);
     vig.addColorStop(0, "rgba(0,0,0,0)");
     vig.addColorStop(1, "rgba(0,0,0,0.55)");
@@ -1156,7 +1212,7 @@
     ctx.closePath();
   }
 
-  function drawHeartButton(btn, pressed=false){
+  function drawHeartButton(btn){
     const {x,y} = btn;
     const cx = x, cy = y;
 
@@ -1172,8 +1228,6 @@
     const size = 52;
 
     ctx.save();
-    ctx.translate(0, pressed ? 1.5 : 0);
-
     heartPath(cx, cy, size);
 
     const grad = ctx.createLinearGradient(cx - 60, cy - 40, cx + 60, cy + 60);
@@ -1216,13 +1270,12 @@
         size: rand(18, 28),
       });
     }
-    while (finale.bursts.length > 140) finale.bursts.shift();
+    while (finale.bursts.length > 120) finale.bursts.shift();
   }
 
   function openFinale(){
-    // stop game music, prep finale
-    stopAmbientMusic();
-    stopRomanticMusic();
+    stopAmbientMusic();    // stop game music
+    stopRomanticMusic();   // ensure off
 
     finale.active = true;
     finale.yes = false;
@@ -1240,6 +1293,7 @@
     over = false;
     won = true;
 
+    hint.textContent = "";
     lastT = performance.now();
     requestAnimationFrame(loop);
   }
@@ -1247,7 +1301,6 @@
   function handleFinalTap(x,y){
     ensureAudio();
 
-    // YES sonrası: herhangi yere dokun -> reset
     if (finale.yes){
       reset();
       return;
@@ -1258,13 +1311,11 @@
     const hitBtn =
       (x >= b.x - b.w/2 && x <= b.x + b.w/2 && y >= b.y - b.h/2 && y <= b.y + b.h/2);
 
-    // Yazı bitince: alt yarı dokunuşu da EVET
     const hitAltYari = (finale.phase >= 2 && y >= H * 0.42);
 
     if (hitBtn || hitAltYari){
       finale.yes = true;
 
-      // Anında görünür tepki
       spawnHeartBurst(b.x, b.y, 52);
       for (let i=0;i<18;i++){
         finale.hearts.push({
@@ -1287,7 +1338,6 @@
   function stepFinale(dt){
     finale.t += dt;
 
-    // typing
     if (!finale.yes){
       finale.typeT += dt;
       const speed = 0.045;
@@ -1303,7 +1353,6 @@
         }
       }
     } else {
-      // YES sonrası: yumuşak kalp yağışı
       if (Math.random() < 0.35){
         finale.hearts.push({
           x: rand(40, W-40),
@@ -1339,15 +1388,13 @@
   function drawFinale(){
     ctx.drawImage(buildFinaleBg(), 0, 0);
 
-    // cinematic layer
     ctx.fillStyle = "rgba(0,0,0,0.18)";
     ctx.fillRect(0,0,W,H);
 
-    // panel
     const px = 44, py = 140, pw = W-88, ph = 280;
     drawGlassPanel(px, py, pw, ph, 22);
 
-    // panel shine (premium)
+    // panel shine
     ctx.save();
     ctx.globalAlpha = 0.22;
     const shine = ctx.createLinearGradient(0, 140, W, 380);
@@ -1358,7 +1405,7 @@
     ctx.fillRect(60, 160, W-120, 26);
     ctx.restore();
 
-    // cute bottom emojis
+    // cute emojis
     ctx.save();
     ctx.globalAlpha = 0.95;
     ctx.font = "38px serif";
@@ -1384,7 +1431,7 @@
     ctx.fillText("Final ödülün 💗", W/2, py + 42);
     ctx.restore();
 
-    // main text
+    // text
     ctx.save();
     ctx.textAlign = "center";
     ctx.fillStyle = "rgba(255,255,255,0.96)";
@@ -1414,7 +1461,7 @@
       ctx.fillText("EVET’e dokun 💖", W/2, 458);
       ctx.restore();
 
-      drawHeartButton(finale.btn, false);
+      drawHeartButton(finale.btn);
     } else {
       ctx.save();
       ctx.textAlign = "center";
@@ -1424,7 +1471,7 @@
       ctx.font = "950 18px system-ui";
       ctx.fillText("💖💖💖", W/2, 462);
       ctx.font = "850 13px system-ui";
-      ctx.fillText("Dokun → tekrar oyna  ✨", W/2, 488);
+      ctx.fillText("Dokun → tekrar oyna ✨", W/2, 488);
       ctx.restore();
     }
 
@@ -1455,18 +1502,10 @@
     ctx.restore();
   }
 
-  // ---------- Draw helpers ----------
-  function roundRect(x,y,w,h,r){
-    ctx.beginPath();
-    ctx.moveTo(x+r,y);
-    ctx.arcTo(x+w,y,x+w,y+h,r);
-    ctx.arcTo(x+w,y+h,x,y+h,r);
-    ctx.arcTo(x,y+h,x,y,r);
-    ctx.arcTo(x,y,x+w,y,r);
-    ctx.closePath();
-  }
+  // ---------- Finale input routing ----------
+  // (already handled in pointer/touch events)
 
-  // ---------- Init ----------
+  // ---------- Start / init ----------
   function init(){
     applyLevelTheme();
     showQuestBanner();
