@@ -653,7 +653,88 @@ function renderShop(){
         save();
         toast(`Alındı: ${a.n} ✨`, 1100);
       }
+      let shopTab = "aura";
+
+function priceWithDeal(kind,id,base){
+  ensureShopDailyDeal();
+  const d = state.shopDaily;
+  if(d && d.kind===kind && d.id===id) return Math.max(0, Math.floor(base*(1-d.off)));
+  return base;
+}
+function isDeal(kind,id){
+  ensureShopDailyDeal();
+  const d = state.shopDaily;
+  return d && d.kind===kind && d.id===id;
+}
+
+function renderShop(){
+  ensureShopDailyDeal();
+  shopWallet.textContent = `${state.wallet||0} 💖`;
+
+  // tab button active look
+  const ta=document.getElementById("tabAura");
+  const tt=document.getElementById("tabTrail");
+  const th=document.getElementById("tabTheme");
+  [ta,tt,th].forEach(b=>b.style.opacity="0.75");
+  if(shopTab==="aura") ta.style.opacity="1";
+  if(shopTab==="trail") tt.style.opacity="1";
+  if(shopTab==="theme") th.style.opacity="1";
+
+  shopList.innerHTML = "";
+
+  const ownedKey = shopTab==="aura" ? "ownedAuras" : shopTab==="trail" ? "ownedTrails" : "ownedThemes";
+  const selectedKey = shopTab==="aura" ? "aura" : shopTab==="trail" ? "trail" : "theme";
+
+  const items = SHOP[shopTab];
+  Object.keys(items).forEach(id=>{
+    const it = items[id];
+    const owned = (state[ownedKey]||[]).includes(id);
+    const selected = state[selectedKey]===id;
+
+    const base = it.p|0;
+    const finalP = priceWithDeal(shopTab,id,base);
+    const deal = isDeal(shopTab,id);
+    const priceText = owned ? (selected ? "Seçili ✅" : "Sahipsin") : (deal ? `<span style="color:var(--warn)">Günlük Teklif</span> • <b style="color:var(--a)">${finalP} 💖</b> <s style="opacity:.6">${base}</s>` : `<b style="color:var(--a)">${finalP} 💖</b>`);
+
+    const row=document.createElement("div");
+    row.className="card";
+
+    const left=document.createElement("div");
+    left.innerHTML = `
+      <div style="font-weight:1000">${it.n} <span class="tag">${it.tag}</span></div>
+      <div class="muted">${priceText}</div>
+    `;
+
+    const btn=document.createElement("button");
+    btn.className="btn miniBtn";
+    btn.textContent = owned ? (selected ? "SEÇİLİ" : "SEÇ") : "AL";
+    btn.style.background = owned ? "rgba(255,255,255,.08)" : "linear-gradient(135deg, rgba(255,79,163,.95), rgba(255,79,163,.70))";
+    btn.style.color="#fff";
+
+    btn.onclick=()=>{
+      unlockAudio();
+      if(owned){
+        state[selectedKey]=id;
+        save();
+        toast(`Seçildi: ${it.n}`, 900);
+      }else{
+        if((state.wallet||0) < finalP){ toast("Kalp yetmedi 💀", 900); return; }
+        state.wallet -= finalP;
+        state[ownedKey].push(id);
+        state[selectedKey]=id;
+        save();
+        toast(`Alındı: ${it.n} ✨`, 1100);
+      }
       renderShop();
+      refreshMenu();
+    };
+
+    row.appendChild(left);
+    row.appendChild(btn);
+    shopList.appendChild(row);
+  });
+}
+
       refreshMenu();
     };
      function ensureShopDailyDeal(){
@@ -1672,6 +1753,7 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 </body>
 </html>
 ```
+
 
 
 
