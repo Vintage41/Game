@@ -1,283 +1,1439 @@
 <!doctype html>
 <html lang="tr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Kalp Yolu v7 — Soul Update</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Kalp Yolu v7 — Soul Update</title>
+  <style>
+    :root{
+      --p:#00d4ff; --a:#ff4fa3; --g:#ffd700;
+      --bg0:#050814; --bg1:#0b1635;
+      --card: rgba(14,18,40,.90);
+      --stroke: rgba(255,255,255,.10);
+    }
+    *{ box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent; }
+    html,body{ margin:0; height:100%; background:var(--bg0); font-family:system-ui,-apple-system,sans-serif; overflow:hidden; color:#fff; }
+    #wrap{ height:100%; display:flex; align-items:center; justify-content:center; padding:0; }
+    canvas{
+      width:min(100vw, 600px);
+      height:min(100vh, 960px);
+      border-radius:22px;
+      box-shadow:0 22px 80px rgba(0,0,0,.85);
+      background: radial-gradient(circle at 50% 15%, var(--bg1) 0%, var(--bg0) 100%);
+      border:1px solid rgba(255,255,255,.06);
+      display:block;
+      touch-action:none;
+    }
 
-<style>
-:root{
-  --p:#00d4ff;
-  --a:#ff4fa3;
-  --bg:#050814;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
-html,body{margin:0;height:100%;background:var(--bg);color:#fff;font-family:system-ui;overflow:hidden}
-#wrap{height:100%;display:flex;justify-content:center;align-items:center}
-canvas{
-  width:min(100vw,560px);
-  height:min(100vh,920px);
-  background:radial-gradient(circle at 50% 20%, #0c1a3a, #050814);
-  border-radius:22px;
-  box-shadow:0 20px 70px rgba(0,0,0,.8);
-}
+    /* HUD */
+    #hud{
+      position:absolute; top:16px; left:0; width:100%;
+      display:flex; justify-content:space-between; padding:0 12px;
+      z-index:60; pointer-events:none;
+      font-weight:950;
+      text-shadow:0 2px 18px rgba(0,0,0,.55);
+    }
+    .pill{
+      background:rgba(0,0,0,.40);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:999px;
+      padding:8px 12px;
+      backdrop-filter: blur(12px);
+      font-size:13px;
+      display:flex; gap:8px; align-items:center;
+    }
+    #hudRight{ display:flex; gap:8px; align-items:center; }
+    #hudPause{ pointer-events:auto; cursor:pointer; }
+    #hudMood{ opacity:.9; }
 
-.ui{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:50}
-.panel{
-  width:360px;
-  background:rgba(10,15,35,.9);
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:22px;
-  padding:18px;
-  text-align:center;
-  backdrop-filter:blur(14px)
-}
-.hidden{display:none}
+    #toast{
+      position:absolute; left:50%; top:92px; transform:translateX(-50%);
+      background:rgba(0,0,0,.62);
+      border:1px solid rgba(255,255,255,.12);
+      padding:10px 14px;
+      border-radius:999px;
+      font-weight:950;
+      font-size:12px;
+      opacity:0;
+      transition:opacity .16s ease, transform .16s ease;
+      z-index:70;
+      pointer-events:none;
+      white-space:nowrap;
+    }
+    #toast.show{ opacity:1; transform:translateX(-50%) translateY(-5px); }
 
-button{
-  width:100%;padding:14px;margin:8px 0;
-  border-radius:14px;border:none;
-  background:var(--p);font-weight:900;cursor:pointer
-}
-button.sec{background:rgba(255,255,255,.08);color:#fff}
-
-#hud{
-  position:absolute;top:20px;left:0;width:100%;
-  display:flex;justify-content:space-between;
-  padding:0 14px;font-weight:900
-}
-.pill{
-  background:rgba(0,0,0,.4);
-  padding:8px 12px;border-radius:999px;
-  border:1px solid rgba(255,255,255,.1)
-}
-#toast{
-  position:absolute;top:90px;left:50%;
-  transform:translateX(-50%);
-  background:rgba(0,0,0,.6);
-  padding:10px 16px;border-radius:999px;
-  font-weight:900;font-size:12px;
-  opacity:0;transition:.2s
-}
-#toast.show{opacity:1}
-</style>
+    /* UI */
+    .ui{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:100; padding:16px; }
+    .panel{
+      pointer-events:auto;
+      width:min(420px, 100%);
+      background:var(--card);
+      border:1px solid var(--stroke);
+      border-radius:22px;
+      padding:18px;
+      box-shadow:0 26px 90px rgba(0,0,0,.78);
+      backdrop-filter: blur(16px);
+    }
+    .hidden{ display:none!important; }
+    .topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .brand{ display:flex; flex-direction:column; gap:4px; }
+    .brand .title{ font-weight:1000; letter-spacing:3px; color:var(--p); text-shadow:0 0 14px rgba(0,212,255,.35); }
+    .brand .sub{ font-size:12px; opacity:.75; }
+    .tag{
+      font-size:10px; font-weight:1000;
+      padding:4px 8px; border-radius:999px;
+      background:rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .hero{
+      background:
+        radial-gradient(circle at 22% 10%, rgba(0,212,255,.18), transparent 55%),
+        radial-gradient(circle at 85% 25%, rgba(255,79,163,.16), transparent 58%),
+        rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:18px;
+      padding:14px;
+      margin-bottom:12px;
+    }
+    .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .stat{
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:14px;
+      padding:10px 12px;
+      display:flex; flex-direction:column; gap:2px;
+    }
+    .stat .k{ font-size:11px; opacity:.75; }
+    .stat .v{ font-size:15px; font-weight:1000; }
+    .btn{
+      width:100%;
+      display:flex; align-items:center; justify-content:center;
+      padding:13px 14px;
+      margin:8px 0;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      cursor:pointer;
+      font-weight:1000;
+      letter-spacing:.3px;
+      transition:.16s;
+      background: linear-gradient(135deg, rgba(0,212,255,.96), rgba(0,212,255,.72));
+      color:#001019;
+    }
+    .btn:active{ transform:scale(.985); filter:brightness(1.06); }
+    .btn.sec{ background:rgba(255,255,255,.06); color:#fff; }
+    .btn.danger{ background:rgba(255,68,68,.92); color:#fff; }
+    .row{ display:flex; gap:10px; }
+    .scroll{ max-height:360px; overflow:auto; padding-right:6px; scrollbar-width:thin; }
+    .card{
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      padding:12px;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      margin-bottom:10px;
+    }
+    .muted{ opacity:.75; font-size:12px; }
+    .small{ font-size:11px; opacity:.75; }
+    .miniBtn{
+      width:auto; padding:10px 12px; margin:0;
+      border-radius:12px;
+      font-weight:1000;
+    }
+    input{
+      width:100%;
+      padding:12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.15);
+      background:rgba(0,0,0,.22);
+      color:#fff;
+      outline:none;
+    }
+  </style>
 </head>
-
 <body>
+
 <div id="wrap"><canvas id="c"></canvas></div>
 
 <div id="hud" class="hidden">
-  <div class="pill">💖 <span id="hudHeart">0</span></div>
-  <div class="pill">🌿 Flow <span id="hudFlow">0%</span></div>
+  <div class="pill" style="color:var(--a)">💖 <span id="hudHearts">0</span></div>
+  <div class="pill" id="hudCenter">🌿 Flow <span id="hudFlow">0%</span></div>
+  <div id="hudRight">
+    <div class="pill" id="hudMood">😌</div>
+    <div class="pill" id="hudPause">⏸</div>
+  </div>
 </div>
 <div id="toast"></div>
 
 <!-- MENU -->
 <div id="uiMenu" class="ui">
   <div class="panel">
-    <h2 style="color:var(--p);letter-spacing:3px">KALP YOLU</h2>
-    <div style="opacity:.7;margin-bottom:10px">v7 – Soul Update</div>
-    <button id="btnStart">KOŞUYA BAŞLA</button>
-    <button id="btnZen" class="sec">ZEN MOD</button>
+    <div class="topbar">
+      <div class="brand">
+        <div class="title">KALP YOLU</div>
+        <div class="sub">Canan koşuyor — sen yön veriyorsun.</div>
+      </div>
+      <div class="tag">v7</div>
+    </div>
+
+    <div class="hero">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="font-weight:1000;">Karakter: <span style="color:var(--p)">Canan</span></div>
+        <div class="tag" id="dailyTag" style="color:var(--g); border-color:rgba(255,215,0,.20)">GÜNLÜK</div>
+      </div>
+      <div class="grid2">
+        <div class="stat">
+          <div class="k">REKOR</div>
+          <div class="v" id="mHigh">0m</div>
+        </div>
+        <div class="stat">
+          <div class="k">KALP CÜZDAN</div>
+          <div class="v" id="mWallet">0 💖</div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="stat">
+          <div class="k">SEÇİLİ SKIN</div>
+          <div class="v" id="mSkin">Klasik</div>
+        </div>
+        <div class="stat">
+          <div class="k">SEÇİLİ AURA</div>
+          <div class="v" id="mAura">Soft Glow</div>
+        </div>
+      </div>
+      <div class="small" style="margin-top:10px;">
+        Kontrol: ⬅️➡️ / sağ-sol swipe. Dikey swipe = duraklat.
+      </div>
+    </div>
+
+    <div id="questBox" class="hero"></div>
+
+    <button class="btn" id="btnStart">KOŞUYA BAŞLA</button>
+    <div class="row">
+      <button class="btn sec" id="btnZen">ZEN MOD</button>
+      <button class="btn sec" id="btnDaily">GÜNLÜK ÖDÜL</button>
+    </div>
+    <div class="row">
+      <button class="btn sec" id="btnShop">MARKET</button>
+      <button class="btn sec" id="btnSettings">AYARLAR</button>
+    </div>
+    <button class="btn sec" id="btnPatch">YAMA NOTLARI</button>
   </div>
 </div>
 
-<!-- GAME OVER -->
+<!-- SHOP -->
+<div id="uiShop" class="ui hidden">
+  <div class="panel">
+    <div class="topbar">
+      <div class="brand">
+        <div class="title">MARKET</div>
+        <div class="sub">Skin + Aura (tamamen kozmetik)</div>
+      </div>
+      <div class="tag" id="shopWallet">0 💖</div>
+    </div>
+
+    <div class="hero">
+      <div class="muted">Favori skin ⭐ ve aura ✨ seç. Etkisi yok, sadece vibe.</div>
+    </div>
+
+    <div class="scroll">
+      <div style="font-weight:1000; margin:6px 0 10px;">SKINLER</div>
+      <div id="shopSkins"></div>
+
+      <div style="font-weight:1000; margin:16px 0 10px;">AURALAR</div>
+      <div id="shopAuras"></div>
+    </div>
+
+    <button class="btn sec" id="btnBackShop">GERİ</button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="uiSettings" class="ui hidden">
+  <div class="panel">
+    <div class="topbar">
+      <div class="brand">
+        <div class="title">AYARLAR</div>
+        <div class="sub">Performans & ses</div>
+      </div>
+      <div class="tag">⚙️</div>
+    </div>
+
+    <button class="btn sec" id="togMusic">MÜZİK: AÇIK</button>
+    <button class="btn sec" id="togSfx">SFX: AÇIK</button>
+    <button class="btn sec" id="togLowFx">LOW FX: KAPALI</button>
+
+    <div class="hero" style="margin-top:10px;">
+      <div style="font-weight:1000; margin-bottom:8px;">Özel Müzik URL (mp3/ogg)</div>
+      <input id="musicUrl" placeholder="https://.../music.mp3">
+      <button class="btn sec" id="btnUseUrl" style="margin-top:10px;">URL MÜZİĞİNİ KULLAN</button>
+      <div class="small" style="margin-top:8px;">Not: YouTube linki değil; direkt mp3/ogg olmalı.</div>
+    </div>
+
+    <button class="btn danger" id="btnReset">VERİLERİ SIFIRLA</button>
+    <button class="btn sec" id="btnBackSettings">GERİ</button>
+  </div>
+</div>
+
+<!-- PATCH -->
+<div id="uiPatch" class="ui hidden">
+  <div class="panel">
+    <div class="topbar">
+      <div class="brand">
+        <div class="title">YAMA NOTLARI</div>
+        <div class="sub">Tüm sürümler görünür</div>
+      </div>
+      <div class="tag">🧾</div>
+    </div>
+    <div class="scroll" style="font-size:12px; line-height:1.55;">
+      <b style="color:var(--p)">v7 (Soul Update):</b><br>
+      - Para sistemi: 💖 Kalp. Market, ödül, görevler tamamen kalp.<br>
+      - Kalp toplama hatası fix (çarpışma sistemi yenilendi).<br>
+      - Flow sistemi eklendi (dodge + near-miss + kalp ile artar).<br>
+      - Flow’a bağlı dinamik müzik + yumuşak filtreler.<br>
+      - Zen Mod: ölüm yok, skor yok, sadece huzur.<br>
+      - Aura sistemi + Market 2.0 (skin + aura seçimi, favori).<br>
+      - Gece/Gündüz yumuşak geçiş eklendi.<br><br>
+
+      <b style="color:var(--a)">v6.1:</b><br>
+      - Combo & near-miss denemeleri, menü/market iyileştirmeleri.<br><br>
+
+      <b style="color:var(--a)">v6:</b><br>
+      - Tek engel, sadece sağ-sol kontrol, temel ses sistemi.<br><br>
+
+      <b style="color:var(--a)">v5:</b><br>
+      - HUD/menü düzenlemeleri ve stabilite yamaları.<br><br>
+
+      <b style="color:var(--a)">v4:</b><br>
+      - Görev sistemi ve kayıt iyileştirmeleri.<br><br>
+
+      <b style="color:var(--a)">v3:</b><br>
+      - Market ve skin sistemi eklendi.<br><br>
+
+      <b style="color:var(--a)">v2:</b><br>
+      - Engeller ve kayıt sistemi.<br><br>
+
+      <b style="color:var(--a)">v1:</b><br>
+      - İlk sürüm: 3 şerit runner prototipi.<br>
+    </div>
+    <button class="btn sec" id="btnBackPatch">KAPAT</button>
+  </div>
+</div>
+
+<!-- OVER -->
 <div id="uiOver" class="ui hidden">
   <div class="panel">
-    <h2 style="color:var(--a)">BİTTİ</h2>
-    <div id="overText" style="margin:12px 0"></div>
-    <button onclick="resetRun()">TEKRAR</button>
-    <button onclick="location.reload()" class="sec">MENÜ</button>
+    <div class="topbar">
+      <div class="brand">
+        <div class="title" style="color:var(--a)">OYUN BİTTİ</div>
+        <div class="sub">Tekrar dene. Bu sefer flow’u koru.</div>
+      </div>
+      <div class="tag">💥</div>
+    </div>
+    <div id="overStats" class="hero"></div>
+    <button class="btn" id="btnRetry">TEKRAR</button>
+    <button class="btn sec" id="btnMenu">ANA MENÜ</button>
   </div>
 </div>
 
 <script>
-/* ================= CORE ================= */
-const c = document.getElementById("c");
-const ctx = c.getContext("2d");
-let W,H;
+/* =========================
+   Kalp Yolu v7 — Soul Update
+   ========================= */
+
+/* ---------- helpers ---------- */
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+
+/* ---------- save/load ---------- */
+const LS="kalp_yolu_v7";
+const SKINS={
+  classic:{ n:"Klasik", c1:"#00d4ff", c2:"#ffffff", p:0,   tag:"FREE" },
+  neon:   { n:"Neon",   c1:"#39ff14", c2:"#00d4ff", p:90,  tag:"POP"  },
+  sunset: { n:"Sunset", c1:"#ff8c00", c2:"#ff4fa3", p:220, tag:"VIBE" },
+  royal:  { n:"Royal",  c1:"#b388ff", c2:"#00d4ff", p:420, tag:"VIP"  },
+  gold:   { n:"Altın",  c1:"#ffd700", c2:"#ffffff", p:900, tag:"🔥"   }
+};
+const AURAS={
+  soft:{ n:"Soft Glow", p:0,   tag:"FREE" },
+  pulse:{ n:"Pulse Ring", p:140, tag:"CLEAN" },
+  stardust:{ n:"Stardust", p:260, tag:"✨" },
+  comet:{ n:"Comet Trail", p:420, tag:"FAST" }
+};
+
+const defaults={
+  hearts:0, high:0,
+  ownedSkins:["classic"], skin:"classic", favSkin:"classic",
+  ownedAuras:["soft"], aura:"soft",
+  sett:{ music:true, sfx:true, lowFx:false, customUrl:"" },
+  daily:{ lastClaim:0, streak:0 },
+  quests:{ day:0, q:[] }
+};
+
+let state=(()=>{
+  try{
+    const raw=localStorage.getItem(LS);
+    if(!raw) return structuredClone(defaults);
+    const p=JSON.parse(raw);
+    const s=structuredClone(defaults);
+
+    if(Number.isFinite(p.hearts)) s.hearts=p.hearts;
+    if(Number.isFinite(p.high)) s.high=p.high;
+
+    if(Array.isArray(p.ownedSkins)) s.ownedSkins=p.ownedSkins;
+    if(typeof p.skin==="string") s.skin=p.skin;
+    if(typeof p.favSkin==="string") s.favSkin=p.favSkin;
+
+    if(Array.isArray(p.ownedAuras)) s.ownedAuras=p.ownedAuras;
+    if(typeof p.aura==="string") s.aura=p.aura;
+
+    if(p.sett){
+      s.sett.music=!!p.sett.music;
+      s.sett.sfx=!!p.sett.sfx;
+      s.sett.lowFx=!!p.sett.lowFx;
+      if(typeof p.sett.customUrl==="string") s.sett.customUrl=p.sett.customUrl;
+    }
+    if(p.daily){
+      if(Number.isFinite(p.daily.lastClaim)) s.daily.lastClaim=p.daily.lastClaim;
+      if(Number.isFinite(p.daily.streak)) s.daily.streak=p.daily.streak;
+    }
+    if(p.quests){
+      if(Number.isFinite(p.quests.day)) s.quests.day=p.quests.day;
+      if(Array.isArray(p.quests.q)) s.quests.q=p.quests.q;
+    }
+
+    if(!s.ownedSkins.includes("classic")) s.ownedSkins.push("classic");
+    if(!s.ownedAuras.includes("soft")) s.ownedAuras.push("soft");
+    if(!SKINS[s.skin]) s.skin="classic";
+    if(!AURAS[s.aura]) s.aura="soft";
+    if(!SKINS[s.favSkin]) s.favSkin="classic";
+    return s;
+  }catch{
+    return structuredClone(defaults);
+  }
+})();
+const save=()=>localStorage.setItem(LS, JSON.stringify(state));
+
+/* ---------- canvas ---------- */
+const canvas=document.getElementById("c");
+const ctx=canvas.getContext("2d",{alpha:true,desynchronized:true});
+let W=0,H=0,DPR=1;
 function resize(){
-  W=c.width=c.offsetWidth;
-  H=c.height=c.offsetHeight;
+  const r=canvas.getBoundingClientRect();
+  DPR=Math.min(2, Math.max(1, window.devicePixelRatio||1));
+  canvas.width=Math.floor(r.width*DPR);
+  canvas.height=Math.floor(r.height*DPR);
+  W=r.width; H=r.height;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
 }
-window.onresize=resize; resize();
+window.addEventListener("resize", resize, {passive:true});
+resize();
 
-/* ================= STATE ================= */
-let run=null;
-const player={ lane:1, x:0, y:0 };
-const lanes=3;
+/* ---------- roundRect polyfill ---------- */
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+    const rr=Math.min(r,w/2,h/2);
+    this.beginPath();
+    this.moveTo(x+rr,y);
+    this.arcTo(x+w,y,x+w,y+h,rr);
+    this.arcTo(x+w,y+h,x,y+h,rr);
+    this.arcTo(x,y+h,x,y,rr);
+    this.arcTo(x,y,x+w,y,rr);
+    this.closePath();
+    return this;
+  };
+}
 
-/* ================= AUDIO (HUZURLU) ================= */
-const audio = new (window.AudioContext||webkitAudioContext)();
-let musicGain=audio.createGain();
-musicGain.gain.value=.12;
-musicGain.connect(audio.destination);
-
-const pad=audio.createOscillator();
-pad.type="triangle";
-pad.frequency.value=110;
-pad.connect(musicGain);
-pad.start();
-
-/* ================= UI ================= */
+/* ---------- UI ---------- */
 const toastEl=document.getElementById("toast");
-function toast(t){
-  toastEl.textContent=t;
+function toast(msg, ms=1100){
+  toastEl.textContent=msg;
   toastEl.classList.add("show");
-  setTimeout(()=>toastEl.classList.remove("show"),900);
+  clearTimeout(toastEl._t);
+  toastEl._t=setTimeout(()=>toastEl.classList.remove("show"), ms);
+}
+function showOnly(id){
+  document.querySelectorAll(".ui").forEach(u=>u.classList.add("hidden"));
+  document.getElementById("hud").classList.add("hidden");
+  if(id!=="none") document.getElementById(id).classList.remove("hidden");
 }
 
-/* ================= GAME START ================= */
-function resetRun(zen=false){
-  run={
-    active:true,
-    hearts:0,
-    flow:0,
-    zen,
-    speed:260,
-    obstacle:null,
-    heart:null
-  };
-  player.lane=1;
-  player.x=W/2;
-  player.y=H*0.88;
-  document.getElementById("uiMenu").classList.add("hidden");
-  document.getElementById("uiOver").classList.add("hidden");
-  document.getElementById("hud").classList.remove("hidden");
-  loop();
+/* ---------- daily + quests ---------- */
+function isSameDay(a,b){
+  const da=new Date(a), db=new Date(b);
+  return da.getFullYear()===db.getFullYear() && da.getMonth()===db.getMonth() && da.getDate()===db.getDate();
+}
+function canClaimDaily(){
+  const now=Date.now();
+  return !state.daily.lastClaim || !isSameDay(state.daily.lastClaim, now);
+}
+function claimDaily(){
+  if(!canClaimDaily()){ toast("Günlük ödül zaten alındı 😄", 1200); sfx(200,"square"); return; }
+  const now=Date.now();
+  const yesterday=now-24*60*60*1000;
+  if(state.daily.lastClaim && isSameDay(state.daily.lastClaim, yesterday)) state.daily.streak=clamp((state.daily.streak||0)+1,1,7);
+  else state.daily.streak=1;
+
+  const reward=40 + (state.daily.streak-1)*18;
+  state.hearts += reward;
+  state.daily.lastClaim = now;
+  save();
+  toast(`Günlük ödül +${reward} 💖 (Seri ${state.daily.streak}/7)`, 1500);
+  sfx(900,"triangle",0.10,0.12);
+  updateMenuStats();
+}
+function dayKey(){
+  const d=new Date();
+  return d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+}
+function resetQuestsIfNeeded(){
+  const dk=dayKey();
+  if(state.quests.day!==dk){
+    state.quests.day=dk;
+    state.quests.q=[
+      { id:"hearts25", t:"25 kalp topla", cur:0, goal:25, done:false, rew:80 },
+      { id:"dodges12", t:"12 engel kaç", cur:0, goal:12, done:false, rew:110 }
+    ];
+    save();
+  }
+}
+function addQuest(id, inc=1){
+  resetQuestsIfNeeded();
+  const q=state.quests.q.find(x=>x.id===id);
+  if(!q || q.done) return;
+  q.cur=Math.min(q.goal, q.cur+inc);
+  if(q.cur>=q.goal){
+    q.done=true;
+    state.hearts += q.rew;
+    toast(`Görev tamam! +${q.rew} 💖`, 1400);
+    sfx(1100,"triangle",0.10,0.12);
+  }
+  save();
+  updateMenuStats();
 }
 
-/* ================= SPAWN ================= */
+function updateMenuStats(){
+  document.getElementById("mHigh").textContent = `${state.high}m`;
+  document.getElementById("mWallet").textContent = `${state.hearts} 💖`;
+  document.getElementById("mSkin").textContent = SKINS[state.skin].n;
+  document.getElementById("mAura").textContent = AURAS[state.aura].n;
+
+  document.getElementById("dailyTag").style.opacity = canClaimDaily() ? "1" : ".35";
+  document.getElementById("btnDaily").style.opacity = canClaimDaily() ? "1" : ".55";
+
+  resetQuestsIfNeeded();
+  const qb=document.getElementById("questBox");
+  qb.innerHTML =
+    `<div style="font-weight:1000;margin-bottom:8px;">Günlük Görevler</div>` +
+    state.quests.q.map(q=>{
+      const done=q.done ? "✅" : `${q.cur}/${q.goal}`;
+      return `<div style="display:flex;justify-content:space-between;gap:10px;
+        background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);
+        padding:10px 12px;border-radius:14px;margin-bottom:8px;">
+        <div style="font-size:12px;opacity:.9">${q.t} <span style="opacity:.7">(+${q.rew}💖)</span></div>
+        <div style="font-weight:1000;color:${q.done?"#39ff14":"#fff"}">${done}</div>
+      </div>`;
+    }).join("");
+}
+
+/* ---------- shop ---------- */
+function renderShop(){
+  document.getElementById("shopWallet").textContent = `${state.hearts} 💖`;
+
+  const skinsEl=document.getElementById("shopSkins");
+  skinsEl.innerHTML="";
+  for(const id in SKINS){
+    const s=SKINS[id];
+    const owned=state.ownedSkins.includes(id);
+    const selected=state.skin===id;
+
+    const row=document.createElement("div");
+    row.className="card";
+
+    const left=document.createElement("div");
+    left.style.display="flex";
+    left.style.flexDirection="column";
+    left.style.gap="6px";
+    left.innerHTML = `
+      <div><b style="color:${s.c1}">${s.n}</b> <span class="tag">${s.tag}</span></div>
+      <div class="muted">${owned ? (selected ? "Seçili ✅" : "Sahipsin") : `Fiyat: <span style="color:var(--a);font-weight:1000">${s.p} 💖</span>`}</div>
+      <div class="small">
+        <span style="display:inline-block;width:18px;height:18px;border-radius:6px;background:${s.c1};border:1px solid rgba(255,255,255,.18)"></span>
+        <span style="display:inline-block;width:18px;height:18px;border-radius:6px;background:${s.c2};border:1px solid rgba(255,255,255,.18);margin-left:6px"></span>
+        <span style="margin-left:8px;opacity:.75">Preview</span>
+      </div>
+    `;
+
+    const buy=document.createElement("button");
+    buy.className="btn miniBtn";
+    buy.textContent = owned ? (selected ? "SEÇİLİ" : "SEÇ") : "AL";
+    buy.style.background = owned ? "rgba(255,255,255,.08)" : "linear-gradient(135deg, rgba(255,79,163,.95), rgba(255,79,163,.70))";
+    buy.style.color="#fff";
+
+    buy.onclick=()=>{
+      unlockAudio();
+      if(owned){
+        state.skin=id;
+        save();
+        toast(`Seçildi: ${s.n}`, 900);
+        sfx(520,"sine",0.06,0.10);
+      }else{
+        if(state.hearts < s.p){ toast("Kalp yetmedi 💀", 900); sfx(180,"square",0.10,0.10); return; }
+        state.hearts -= s.p;
+        state.ownedSkins.push(id);
+        state.skin=id;
+        save();
+        toast(`Alındı: ${s.n} ✨`, 1100);
+        sfx(900,"triangle",0.08,0.12);
+      }
+      renderShop();
+      updateMenuStats();
+    };
+
+    const fav=document.createElement("button");
+    fav.className="btn sec miniBtn";
+    fav.style.width="56px";
+    fav.textContent = state.favSkin===id ? "⭐" : "☆";
+    fav.onclick=()=>{
+      unlockAudio();
+      state.favSkin=id; save();
+      toast(`Favori: ${s.n}`, 900);
+      sfx(860,"triangle",0.06,0.10);
+      renderShop();
+      updateMenuStats();
+    };
+
+    row.appendChild(left);
+    row.appendChild(buy);
+    row.appendChild(fav);
+    skinsEl.appendChild(row);
+  }
+
+  const aurasEl=document.getElementById("shopAuras");
+  aurasEl.innerHTML="";
+  for(const id in AURAS){
+    const a=AURAS[id];
+    const owned=state.ownedAuras.includes(id);
+    const selected=state.aura===id;
+
+    const row=document.createElement("div");
+    row.className="card";
+
+    const left=document.createElement("div");
+    left.style.display="flex";
+    left.style.flexDirection="column";
+    left.style.gap="6px";
+    left.innerHTML = `
+      <div><b>${a.n}</b> <span class="tag">${a.tag}</span></div>
+      <div class="muted">${owned ? (selected ? "Seçili ✅" : "Sahipsin") : `Fiyat: <span style="color:var(--a);font-weight:1000">${a.p} 💖</span>`}</div>
+    `;
+
+    const buy=document.createElement("button");
+    buy.className="btn miniBtn";
+    buy.textContent = owned ? (selected ? "SEÇİLİ" : "SEÇ") : "AL";
+    buy.style.background = owned ? "rgba(255,255,255,.08)" : "linear-gradient(135deg, rgba(0,212,255,.95), rgba(0,212,255,.70))";
+    buy.style.color = owned ? "#fff" : "#001019";
+
+    buy.onclick=()=>{
+      unlockAudio();
+      if(owned){
+        state.aura=id; save();
+        toast(`Aura seçildi: ${a.n}`, 900);
+        sfx(600,"sine",0.06,0.10);
+      }else{
+        if(state.hearts < a.p){ toast("Kalp yetmedi 💀", 900); sfx(180,"square",0.10,0.10); return; }
+        state.hearts -= a.p;
+        state.ownedAuras.push(id);
+        state.aura=id;
+        save();
+        toast(`Aura alındı: ${a.n} ✨`, 1100);
+        sfx(980,"triangle",0.08,0.12);
+      }
+      renderShop();
+      updateMenuStats();
+    };
+
+    row.appendChild(left);
+    row.appendChild(buy);
+    aurasEl.appendChild(row);
+  }
+}
+
+/* ---------- audio ---------- */
+let audio=null, master=null, musicGain=null;
+let musicNodes=null;
+let customAudioEl=null;
+
+function ensureAudio(){
+  if(audio) return;
+  audio=new (window.AudioContext||window.webkitAudioContext)();
+  master=audio.createGain();
+  master.gain.value=0.9;
+  master.connect(audio.destination);
+
+  musicGain=audio.createGain();
+  musicGain.gain.value = state.sett.music ? 0.14 : 0;
+  musicGain.connect(master);
+}
+async function unlockAudio(){
+  try{
+    ensureAudio();
+    if(audio.state==="suspended") await audio.resume();
+    // tiny click-less unlock
+    const o=audio.createOscillator(), g=audio.createGain();
+    o.type="sine"; o.frequency.value=440; g.gain.value=0.0001;
+    o.connect(g); g.connect(master);
+    o.start(); o.stop(audio.currentTime+0.02);
+  }catch{}
+}
+function sfx(freq,type="sine",dur=0.08,vol=0.12){
+  if(!state.sett.sfx) return;
+  ensureAudio();
+  if(audio.state==="suspended") return;
+  const o=audio.createOscillator(), g=audio.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq, audio.currentTime);
+  const t=audio.currentTime;
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  o.connect(g); g.connect(master);
+  o.start(t); o.stop(t+dur);
+}
+function stopMusic(){
+  if(customAudioEl){ try{ customAudioEl.pause(); }catch{} }
+  if(!musicNodes) return;
+  try{
+    clearTimeout(musicNodes.timer);
+    musicNodes.pad.stop(); musicNodes.lead.stop(); musicNodes.lfo.stop();
+  }catch{}
+  musicNodes=null;
+}
+function startCustomUrl(url){
+  if(!url) return false;
+  try{
+    if(!customAudioEl){
+      customAudioEl=new Audio();
+      customAudioEl.loop=true;
+      customAudioEl.preload="auto";
+    }
+    customAudioEl.src=url;
+    customAudioEl.volume = state.sett.music ? 0.55 : 0;
+    customAudioEl.play().catch(()=>{});
+    return true;
+  }catch{ return false; }
+}
+
+/* procedural calm music that reacts to Flow (filter + subtle tempo) */
+function startMusic(){
+  ensureAudio();
+  if(!state.sett.music) return;
+  if(audio.state==="suspended") return;
+
+  if(state.sett.customUrl){
+    const ok=startCustomUrl(state.sett.customUrl);
+    if(ok) return;
+  }
+
+  if(musicNodes) return;
+
+  const pad=audio.createOscillator();
+  const lead=audio.createOscillator();
+  const filter=audio.createBiquadFilter();
+  const padG=audio.createGain();
+  const leadG=audio.createGain();
+
+  const lfo=audio.createOscillator();
+  const lfoG=audio.createGain();
+
+  filter.type="lowpass";
+  filter.frequency.value=900;
+  filter.Q.value=0.7;
+
+  pad.type="triangle";
+  lead.type="sine";
+  pad.frequency.value=110;
+  lead.frequency.value=220;
+
+  padG.gain.value=0.12;
+  leadG.gain.value=0.07;
+
+  lfo.type="sine";
+  lfo.frequency.value=0.18;
+  lfoG.gain.value=18;
+
+  lfo.connect(lfoG);
+  lfoG.connect(filter.frequency);
+
+  pad.connect(padG); lead.connect(leadG);
+  padG.connect(filter); leadG.connect(filter);
+  filter.connect(musicGain);
+
+  pad.start(); lead.start(); lfo.start();
+
+  const mode=[0,2,4,7,9]; // major-ish calm
+  const melody=[0,2,4,2,1,3,2,4];
+  let step=0;
+  let baseTempo=520;
+
+  function tick(){
+    if(!musicNodes || !state.sett.music || audio.state==="suspended") return;
+    const now=audio.currentTime;
+
+    // Flow react (global var runFlow if running)
+    const f = (window.__flow||0); // 0..1
+    const cutoff = 750 + f*950; // more open when flow high
+    filter.frequency.setTargetAtTime(cutoff, now, 0.12);
+
+    // tempo slightly faster with flow, but still calm
+    const tempo = baseTempo - f*120;
+
+    const m = mode[melody[step % melody.length] % mode.length];
+    const freq = 110 * Math.pow(2, m/12);
+    pad.frequency.setTargetAtTime(110, now, 0.10);
+    lead.frequency.setTargetAtTime(freq * (step%4===0 ? 2 : 1), now, 0.08);
+
+    step++;
+    musicNodes.timer=setTimeout(tick, tempo);
+  }
+
+  musicNodes={ pad, lead, lfo, filter, timer:null };
+  musicNodes.timer=setTimeout(tick, 160);
+}
+function refreshAudio(){
+  ensureAudio();
+  if(customAudioEl) customAudioEl.volume = state.sett.music ? 0.55 : 0;
+  musicGain.gain.value = state.sett.music ? 0.14 : 0;
+  if(!state.sett.music) stopMusic();
+  else { stopMusic(); startMusic(); }
+}
+
+/* ---------- game ---------- */
+const laneCount=3;
 function laneX(l){
-  const rw=W*.7, start=(W-rw)/2;
-  return start+(l+.5)*(rw/lanes);
+  const roadW=W*0.74, start=(W-roadW)/2;
+  return start + (l+0.5)*(roadW/laneCount);
 }
-function spawnObstacle(){
-  run.obstacle={
-    lane:Math.floor(Math.random()*3),
-    y:-40,w:80,h:30
-  };
+function collideRect(ax,ay,aw,ah,bx,by,bw,bh){
+  return ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by;
 }
-function spawnHeart(){
-  run.heart={
-    lane:Math.floor(Math.random()*3),
-    y:-20,r:16
-  };
+// circle-rect collision (fix for heart pickup)
+function circleRectHit(cx,cy,r, rx,ry,rw,rh){
+  const nx=clamp(cx, rx, rx+rw);
+  const ny=clamp(cy, ry, ry+rh);
+  const dx=cx-nx, dy=cy-ny;
+  return (dx*dx + dy*dy) <= r*r;
 }
 
-/* ================= LOOP ================= */
-function loop(){
-  if(!run||!run.active) return;
+const player={ lane:1, x:0, y:0, glow:0 };
+const fx={ trails:[], sparks:[] };
 
-  ctx.clearRect(0,0,W,H);
+function spawnTrail(){
+  if(state.sett.lowFx) return;
+  fx.trails.push({ x:player.x, y:player.y-34, a:0.75, r:10 });
+}
+function spawnSpark(){
+  if(state.sett.lowFx) return;
+  for(let i=0;i<10;i++){
+    fx.sparks.push({
+      x:player.x+(Math.random()*30-15),
+      y:player.y-60+(Math.random()*30-15),
+      vx:(Math.random()*2-1)*70,
+      vy:(Math.random()*2-1)*70,
+      a:0.9
+    });
+  }
+}
+function drawFx(dt, skin){
+  // aura effects
+  if(state.aura==="pulse" && !state.sett.lowFx){
+    ctx.globalAlpha=0.12 + player.glow*0.16;
+    ctx.strokeStyle=skin.c1;
+    ctx.lineWidth=4;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y-45, 60 + Math.sin(performance.now()/180)*3, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+  if(state.aura==="stardust" && !state.sett.lowFx){
+    if(Math.random()<0.12){
+      fx.sparks.push({ x:player.x+(Math.random()*50-25), y:player.y-80+(Math.random()*40-20), vx:0, vy:35, a:0.4 });
+    }
+  }
 
-  // background
+  // trails
+  for(let i=fx.trails.length-1;i>=0;i--){
+    const t=fx.trails[i];
+    t.a -= dt*2.2; t.r += dt*22;
+    if(t.a<=0){ fx.trails.splice(i,1); continue; }
+    ctx.globalAlpha=t.a;
+    ctx.strokeStyle=skin.c1;
+    ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+  // sparks
+  for(let i=fx.sparks.length-1;i>=0;i--){
+    const s=fx.sparks[i];
+    s.a -= dt*3;
+    s.x += (s.vx||0)*dt;
+    s.y += (s.vy||0)*dt;
+    if(s.a<=0){ fx.sparks.splice(i,1); continue; }
+    ctx.globalAlpha=s.a;
+    ctx.fillStyle="#fff";
+    ctx.fillRect(s.x, s.y, 2, 2);
+    ctx.globalAlpha=1;
+  }
+}
+
+let run=null, raf=0, lastT=0, paused=false;
+
+// background day-night cycle
+let dayT=0; // 0..1
+function drawBackground(dt){
+  dayT = (dayT + dt/90) % 1; // ~90 seconds cycle
+  const k = 0.5 - 0.5*Math.cos(dayT*Math.PI*2); // 0..1 smooth
+
+  // base
   ctx.fillStyle="#050814";
   ctx.fillRect(0,0,W,H);
 
-  // speed & flow
-  run.flow=Math.min(100, run.flow+0.02);
-  pad.frequency.value=110+run.flow*0.3;
+  // sky gradients shift
+  const topC = `rgba(${Math.floor(8+20*k)},${Math.floor(14+20*k)},${Math.floor(36+25*k)},1)`;
+  const botC = `rgba(5,8,20,1)`;
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0, topC);
+  g.addColorStop(1, botC);
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,W,H);
 
-  // spawn
-  if(!run.obstacle && Math.random()<0.02) spawnObstacle();
-  if(!run.heart && Math.random()<0.03) spawnHeart();
+  // stars more visible at night (k low -> night)
+  const night = 1-k;
+  ctx.globalAlpha = 0.12 + night*0.28;
+  for(let i=0;i<70;i++){
+    const x=(i*97)%W;
+    const y=(i*53)%H;
+    ctx.fillStyle="#fff";
+    ctx.fillRect(x, y, 2, 2);
+  }
+  ctx.globalAlpha=1;
+
+  // road
+  const roadW=W*0.74, x0=(W-roadW)/2, y0=H*0.10;
+  ctx.fillStyle="rgba(255,255,255,0.06)";
+  ctx.fillRect(x0,y0,roadW,H-y0);
+
+  ctx.strokeStyle="rgba(255,255,255,0.10)";
+  ctx.lineWidth=2;
+  ctx.setLineDash([10,10]);
+  for(let i=1;i<laneCount;i++){
+    const lx=x0+i*(roadW/laneCount);
+    ctx.beginPath(); ctx.moveTo(lx,y0); ctx.lineTo(lx,H); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
+
+// Canan draw (better than a rectangle)
+function drawCanan(skin){
+  player.x += (laneX(player.lane)-player.x)*0.28;
+
+  const x=player.x, y=player.y;
+  const bodyW=56, bodyH=78;
+
+  // shadow
+  ctx.globalAlpha=0.18;
+  ctx.fillStyle="#fff";
+  ctx.beginPath(); ctx.ellipse(x, y+12, 28, 11, 0, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha=1;
+
+  // aura glow
+  ctx.globalAlpha=0.10 + player.glow*0.16;
+  ctx.strokeStyle=skin.c1;
+  ctx.lineWidth=4;
+  ctx.beginPath(); ctx.arc(x, y-bodyH*0.45, 54, 0, Math.PI*2); ctx.stroke();
+  ctx.globalAlpha=1;
+
+  // hair cap
+  ctx.fillStyle="rgba(0,0,0,.25)";
+  ctx.roundRect(x-bodyW/2-2, y-bodyH-10, bodyW+4, 22, 12).fill();
+
+  // body gradient
+  const grd=ctx.createLinearGradient(x-bodyW/2,y-bodyH,x+bodyW/2,y);
+  grd.addColorStop(0, skin.c1); grd.addColorStop(1, skin.c2);
+  ctx.fillStyle=grd;
+  ctx.roundRect(x-bodyW/2, y-bodyH, bodyW, bodyH, 18).fill();
+
+  // inner panel
+  ctx.fillStyle="rgba(0,0,0,.18)";
+  ctx.roundRect(x-bodyW/2+8, y-bodyH+12, bodyW-16, bodyH-24, 14).fill();
+
+  // visor
+  ctx.fillStyle="rgba(0,0,0,.38)";
+  ctx.roundRect(x-bodyW/2+10, y-bodyH+14, bodyW-20, 18, 10).fill();
+
+  // eyes
+  ctx.fillStyle="rgba(255,255,255,.95)";
+  ctx.beginPath();
+  ctx.arc(x-10, y-bodyH+23, 3.2, 0, Math.PI*2);
+  ctx.arc(x+10, y-bodyH+23, 3.2, 0, Math.PI*2);
+  ctx.fill();
+
+  // name tag
+  ctx.globalAlpha=.85;
+  ctx.fillStyle="rgba(255,255,255,.10)";
+  ctx.roundRect(x-bodyW/2+12, y-bodyH+40, bodyW-24, 14, 8).fill();
+  ctx.globalAlpha=1;
+  ctx.fillStyle="#fff";
+  ctx.font="900 10px system-ui";
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText("CANAN", x, y-bodyH+47);
+
+  // shoes
+  ctx.fillStyle="rgba(0,0,0,.25)";
+  ctx.roundRect(x-bodyW/2+6, y-12, 18, 10, 6).fill();
+  ctx.roundRect(x+bodyW/2-24, y-12, 18, 10, 6).fill();
+}
+
+function drawObstacle(o, t, skin){
+  const isLaser=o.variant==="laser";
+  const pulse=0.5+0.5*Math.sin(t*2+o.pulse);
+
+  ctx.save();
+  ctx.translate(o.x,o.y);
+
+  ctx.globalAlpha=0.18 + pulse*0.14;
+  ctx.fillStyle = isLaser ? "rgba(255,79,163,.65)" : skin.c1;
+  ctx.roundRect(-o.w/2-10,-o.h/2-8,o.w+20,o.h+16,14).fill();
+  ctx.globalAlpha=1;
+
+  ctx.fillStyle = isLaser ? "rgba(255,79,163,.14)" : "rgba(255,255,255,.08)";
+  ctx.roundRect(-o.w/2,-o.h/2,o.w,o.h,12).fill();
+
+  if(isLaser){
+    ctx.globalAlpha=0.9;
+    ctx.strokeStyle="rgba(255,79,163,.95)";
+    ctx.lineWidth=4;
+    for(let i=-2;i<=2;i++){
+      ctx.beginPath();
+      ctx.moveTo(-o.w/2+10, i*6);
+      ctx.lineTo(o.w/2-10, i*6);
+      ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  }else{
+    ctx.globalAlpha=0.7;
+    ctx.strokeStyle=skin.c2;
+    ctx.lineWidth=3;
+    for(let i=-2;i<=2;i++){
+      ctx.beginPath();
+      ctx.moveTo(-o.w/2+10, i*6);
+      ctx.lineTo(o.w/2-10, i*6);
+      ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  }
+
+  ctx.fillStyle="rgba(0,0,0,.35)";
+  ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle="#fff";
+  ctx.font="900 12px system-ui";
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText(isLaser ? "≋" : "!", 0, 1);
+
+  ctx.restore();
+}
+
+function drawHeart(h, skin){
+  const x=h.x, y=h.y, r=h.r;
+  // heart shape
+  ctx.globalAlpha=0.95;
+  ctx.fillStyle = "rgba(255,79,163,.95)";
+  ctx.beginPath();
+  const top = y - r*0.15;
+  ctx.moveTo(x, top + r*0.65);
+  ctx.bezierCurveTo(x - r, top, x - r*0.95, top - r*0.55, x, top - r*0.10);
+  ctx.bezierCurveTo(x + r*0.95, top - r*0.55, x + r, top, x, top + r*0.65);
+  ctx.closePath();
+  ctx.fill();
+
+  // highlight
+  ctx.globalAlpha=0.25;
+  ctx.fillStyle="#fff";
+  ctx.beginPath();
+  ctx.arc(x-r*0.35, y-r*0.65, r*0.22, 0, Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha=1;
+
+  // aura tint with flow
+  if(!state.sett.lowFx){
+    ctx.globalAlpha=0.10;
+    ctx.strokeStyle=skin.c1;
+    ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(x,y,r+6,0,Math.PI*2); ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+}
+
+/* fairness lane picker */
+function pickLaneFair(lastLane){
+  let lane=(Math.random()*3)|0;
+  if(lastLane!==-1){
+    if(lane===lastLane && Math.random()<0.75) lane=(lane + 1 + ((Math.random()*2)|0))%3;
+    const extreme=(lastLane===0 && lane===2)||(lastLane===2 && lane===0);
+    if(extreme && Math.random()<0.75) lane=1;
+  }
+  return lane;
+}
+
+function resetRun(zen=false){
+  unlockAudio();
+  stopMusic(); startMusic();
+
+  paused=false;
+  run={
+    active:true,
+    zen,
+    score:0,
+    runHearts:0,
+    speed: 300,
+    accel: 18,
+    difficulty: 1,
+    obstacle:null,
+    spawnT: 0.0,
+    heart:null,
+    heartT: 0.45,
+    flow: 0.25,        // 0..1
+    flowVel: 0,        // for smooth
+  };
+
+  player.lane=1;
+  player.x=laneX(player.lane);
+  player.y=H*0.90;
+  player.glow=0;
+
+  fx.trails.length=0;
+  fx.sparks.length=0;
+
+  showOnly("none");
+  document.getElementById("hud").classList.remove("hidden");
+  updateHud();
+
+  toast(zen ? "Zen Mod 🌙" : "Başlıyoruz 💨", 900);
+
+  lastT=performance.now();
+  cancelAnimationFrame(raf);
+  raf=requestAnimationFrame(loop);
+}
+
+function updateHud(){
+  document.getElementById("hudHearts").textContent = run ? run.runHearts : 0;
+  document.getElementById("hudFlow").textContent = `${Math.floor((run?run.flow:0)*100)}%`;
+
+  const f = run ? run.flow : 0;
+  const mood = f>0.66 ? "😌" : (f>0.35 ? "🙂" : "😰");
+  document.getElementById("hudMood").textContent = mood;
+}
+
+function scheduleObstacle(){
+  const d=run.difficulty;
+  const min=clamp(0.70 - (d-1)*0.06, 0.52, 0.70);
+  const max=clamp(1.05 - (d-1)*0.08, 0.74, 1.05);
+  run.spawnT = min + Math.random()*(max-min);
+}
+function spawnObstacle(){
+  const lastLane = run.obstacle ? run.obstacle.lane : -1;
+  const lane = pickLaneFair(lastLane);
+  const variant = Math.random()<0.5 ? "wall":"laser";
+  run.obstacle={
+    lane, variant,
+    x:laneX(lane), y:-80,
+    w:78, h:36,
+    pulse:Math.random()*Math.PI*2,
+    passed:false
+  };
+}
+function spawnHeart(dt){
+  run.heartT -= dt;
+  if(run.heartT>0) return;
+
+  let lane=(Math.random()*3)|0;
+  if(run.obstacle && run.obstacle.lane===lane && run.obstacle.y<220){
+    lane = (lane + 1 + ((Math.random()*2)|0))%3;
+  }
+  run.heart={ lane, x:laneX(lane), y:-30, r:18 };
+
+  const d=run.difficulty;
+  const base=0.45;
+  const next=clamp(base - (d-1)*0.02, 0.33, base);
+  run.heartT = next + Math.random()*0.12;
+}
+
+function gameOver(){
+  if(run.zen){
+    toast("Zen Mod: ölüm yok 😌", 900);
+    // Zen'de çarpınca sadece flow düşsün
+    run.flow = Math.max(0.15, run.flow - 0.25);
+    run.obstacle = null;
+    sfx(220,"square",0.10,0.10);
+    return;
+  }
+  run.active=false;
+  stopMusic();
+  sfx(160,"sawtooth",0.18,0.12);
+
+  const final=Math.floor(run.score);
+  if(final>state.high) state.high=final;
+
+  // run hearts -> wallet hearts
+  state.hearts += run.runHearts;
+  save();
+
+  document.getElementById("overStats").innerHTML = `
+    <div class="grid2">
+      <div class="stat"><div class="k">SKOR</div><div class="v">${final}m</div></div>
+      <div class="stat"><div class="k">TOPLANAN</div><div class="v">${run.runHearts} 💖</div></div>
+    </div>
+    <div class="grid2" style="margin-top:10px;">
+      <div class="stat"><div class="k">FLOW</div><div class="v">${Math.floor(run.flow*100)}%</div></div>
+      <div class="stat"><div class="k">REKOR</div><div class="v">${state.high}m</div></div>
+    </div>
+  `;
+  showOnly("uiOver");
+  updateMenuStats();
+}
+
+// pause
+function togglePause(){
+  if(!run?.active) return;
+  paused=!paused;
+  toast(paused ? "Duraklatıldı ⏸" : "Devam ▶️", 900);
+  sfx(paused?240:520,"square",0.10,0.10);
+}
+
+/* ---------- main loop ---------- */
+function loop(now){
+  if(!run || !run.active) return;
+
+  let dt=(now-lastT)/1000;
+  lastT=now;
+  dt=Math.min(0.033, Math.max(0, dt));
+
+  // expose flow to music
+  window.__flow = run.flow;
+
+  if(paused){
+    const skin=SKINS[state.skin];
+    drawBackground(0);
+    if(run.obstacle) drawObstacle(run.obstacle, now/1000, skin);
+    if(run.heart) drawHeart(run.heart, skin);
+    drawCanan(skin);
+    drawFx(0.016, skin);
+    raf=requestAnimationFrame(loop);
+    return;
+  }
+
+  // difficulty (no levels)
+  run.score += (run.speed*dt)/9;
+  run.difficulty = 1 + Math.min(4, run.score/650);
+  run.speed = clamp(run.speed + run.accel*dt*(0.35 + run.difficulty*0.08), 300, 540);
+
+  // flow natural decay to baseline
+  const baseline=0.25;
+  const decay = 0.065; // per sec
+  run.flow = lerp(run.flow, baseline, dt*decay);
+
+  // spawn obstacle
+  run.spawnT -= dt;
+  if(!run.obstacle && run.spawnT<=0){
+    spawnObstacle();
+    scheduleObstacle();
+  }
+
+  // spawn heart
+  spawnHeart(dt);
 
   // move
+  const v=run.speed;
   if(run.obstacle){
-    run.obstacle.y+=run.speed/60;
-    if(run.obstacle.y>H+40) run.obstacle=null;
+    run.obstacle.y += v*dt;
+    if(run.obstacle.y > H+120) run.obstacle=null;
   }
   if(run.heart){
-    run.heart.y+=run.speed/70;
-    if(run.heart.y>H+40) run.heart=null;
+    run.heart.y += (v*dt)*0.95;
+    if(run.heart.y > H+60) run.heart=null;
   }
 
-  // draw obstacle
-  if(run.obstacle){
+  // player rect
+  const pw=52, ph=78;
+  const pr={ x:player.x-pw/2, y:player.y-ph, w:pw, h:ph };
+
+  // dodge + near miss
+  if(run.obstacle && !run.obstacle.passed && run.obstacle.y > player.y){
+    run.obstacle.passed=true;
+
+    // dodge adds flow
+    run.flow = clamp(run.flow + 0.08, 0, 1);
+    addQuest("dodges12", 1);
+    sfx(720,"triangle",0.07,0.10);
+
+    // near miss if same lane and close to player line
     const o=run.obstacle;
-    const x=laneX(o.lane);
-    ctx.fillStyle="rgba(255,80,120,.6)";
-    ctx.fillRect(x-o.w/2,o.y,o.w,o.h);
-
-    // collision
-    if(!run.zen &&
-       Math.abs(x-player.x)<40 &&
-       Math.abs(o.y-player.y)<30){
-      gameOver();
-      return;
-    }
-
-    // dodge -> flow
-    if(o.y>player.y && !o.passed){
-      o.passed=true;
-      run.flow=Math.min(100, run.flow+8);
+    const oy=o.y-o.h/2;
+    const near = (o.lane===player.lane) && Math.abs((oy+o.h)-pr.y) < 18;
+    if(near){
+      const bonus = 2 + Math.floor(run.flow*6);
+      run.runHearts += bonus;
+      run.flow = clamp(run.flow + 0.05, 0, 1);
+      toast(`Near-miss +${bonus} 💖`, 900);
+      sfx(980,"square",0.06,0.10);
+    }else{
+      toast("Kaçış! 🌿", 650);
     }
   }
 
-  // draw heart (FIXED HITBOX)
+  // heart pickup (FIXED)
   if(run.heart){
     const h=run.heart;
-    const x=laneX(h.lane);
-    ctx.fillStyle=varColor(run.flow);
-    ctx.beginPath();
-    ctx.arc(x,h.y,h.r,0,7);
-    ctx.fill();
+    if(circleRectHit(h.x, h.y, h.r, pr.x, pr.y, pr.w, pr.h)){
+      run.runHearts += 1;
+      addQuest("hearts25", 1);
 
-    if(Math.abs(x-player.x)<30 &&
-       Math.abs(h.y-player.y)<30){
-      run.hearts++;
-      run.flow=Math.min(100, run.flow+5);
-      toast("+1 💖");
+      run.flow = clamp(run.flow + 0.05, 0, 1);
+      player.glow = 1;
+      spawnSpark();
+      toast("+1 💖", 650);
+      sfx(1050,"triangle",0.08,0.13);
+
       run.heart=null;
     }
   }
 
-  // player
-  player.x+= (laneX(player.lane)-player.x)*.25;
-  ctx.fillStyle=varColor(run.flow);
-  ctx.fillRect(player.x-25,player.y-60,50,60);
+  // obstacle collision
+  if(run.obstacle){
+    const o=run.obstacle;
+    const ox=o.x-o.w/2, oy=o.y-o.h/2;
+    if(collideRect(pr.x, pr.y, pr.w, pr.h, ox, oy, o.w, o.h)){
+      gameOver();
+      if(!run.active) return; // non-zen ends
+    }
+  }
 
-  // HUD
-  document.getElementById("hudHeart").textContent=run.hearts;
-  document.getElementById("hudFlow").textContent=Math.floor(run.flow)+"%";
+  player.glow = Math.max(0, player.glow - dt*2);
 
-  requestAnimationFrame(loop);
+  // draw
+  const skin=SKINS[state.skin];
+  drawBackground(dt);
+  if(run.obstacle) drawObstacle(run.obstacle, now/1000, skin);
+  if(run.heart) drawHeart(run.heart, skin);
+  drawCanan(skin);
+
+  // comet trail aura
+  if(state.aura==="comet" && !state.sett.lowFx){
+    if(Math.random()<0.55) spawnTrail();
+  }
+  drawFx(dt, skin);
+
+  updateHud();
+  raf=requestAnimationFrame(loop);
 }
 
-/* ================= GAME OVER ================= */
-function gameOver(){
-  run.active=false;
-  document.getElementById("uiOver").classList.remove("hidden");
-  document.getElementById("overText").innerHTML=
-    `Toplanan Kalp: 💖 ${run.hearts}<br>Flow: ${Math.floor(run.flow)}%`;
+/* ---------- controls (only left/right + pause on vertical swipe) ---------- */
+function control(dir){
+  if(!run?.active) return;
+  if(dir==="L" && player.lane>0){ player.lane--; spawnTrail(); sfx(360,"sine",0.05,0.10); }
+  if(dir==="R" && player.lane<2){ player.lane++; spawnTrail(); sfx(420,"sine",0.05,0.10); }
+}
+window.addEventListener("keydown", e=>{
+  if(e.key==="ArrowLeft") control("L");
+  if(e.key==="ArrowRight") control("R");
+  if(e.key==="Escape") togglePause();
+});
+let sx=0, sy=0;
+canvas.addEventListener("pointerdown", e=>{
+  sx=e.clientX; sy=e.clientY;
+  unlockAudio(); startMusic();
+}, {passive:true});
+canvas.addEventListener("pointerup", e=>{
+  const dx=e.clientX-sx, dy=e.clientY-sy;
+  if(Math.abs(dx)>Math.abs(dy)){
+    if(Math.abs(dx)>18) control(dx>0?"R":"L");
+  }else{
+    if(Math.abs(dy)>22) togglePause();
+  }
+}, {passive:true});
+
+/* ---------- settings wiring ---------- */
+function updateSettingsTexts(){
+  document.getElementById("togMusic").textContent = "MÜZİK: " + (state.sett.music ? "AÇIK" : "KAPALI");
+  document.getElementById("togSfx").textContent = "SFX: " + (state.sett.sfx ? "AÇIK" : "KAPALI");
+  document.getElementById("togLowFx").textContent = "LOW FX: " + (state.sett.lowFx ? "AÇIK" : "KAPALI");
+  document.getElementById("musicUrl").value = state.sett.customUrl || "";
 }
 
-/* ================= COLOR BY FLOW ================= */
-function varColor(f){
-  return `hsl(${180+f},80%,60%)`;
-}
+/* ---------- buttons ---------- */
+document.getElementById("btnStart").onclick = ()=>resetRun(false);
+document.getElementById("btnZen").onclick = ()=>resetRun(true);
+document.getElementById("btnDaily").onclick = ()=>{ unlockAudio(); claimDaily(); };
 
-/* ================= INPUT ================= */
-window.onkeydown=e=>{
-  if(e.key==="ArrowLeft"&&player.lane>0)player.lane--;
-  if(e.key==="ArrowRight"&&player.lane<2)player.lane++;
+document.getElementById("btnShop").onclick = ()=>{ showOnly("uiShop"); renderShop(); };
+document.getElementById("btnSettings").onclick = ()=>{ showOnly("uiSettings"); updateSettingsTexts(); };
+document.getElementById("btnPatch").onclick = ()=>showOnly("uiPatch");
+
+document.getElementById("btnBackShop").onclick = ()=>showOnly("uiMenu");
+document.getElementById("btnBackSettings").onclick = ()=>showOnly("uiMenu");
+document.getElementById("btnBackPatch").onclick = ()=>showOnly("uiMenu");
+
+document.getElementById("togMusic").onclick = ()=>{
+  unlockAudio();
+  state.sett.music=!state.sett.music; save();
+  refreshAudio(); updateSettingsTexts();
+};
+document.getElementById("togSfx").onclick = ()=>{
+  unlockAudio();
+  state.sett.sfx=!state.sett.sfx; save();
+  sfx(520,"sine",0.06,0.10);
+  updateSettingsTexts();
+};
+document.getElementById("togLowFx").onclick = ()=>{
+  state.sett.lowFx=!state.sett.lowFx; save();
+  toast(state.sett.lowFx ? "Low FX açık" : "Low FX kapalı", 900);
+  updateSettingsTexts();
 };
 
-let sx=0;
-c.ontouchstart=e=>sx=e.touches[0].clientX;
-c.ontouchend=e=>{
-  const dx=e.changedTouches[0].clientX-sx;
-  if(Math.abs(dx)>30){
-    if(dx>0&&player.lane<2)player.lane++;
-    if(dx<0&&player.lane>0)player.lane--;
+document.getElementById("btnUseUrl").onclick = async ()=>{
+  await unlockAudio();
+  const url=document.getElementById("musicUrl").value.trim();
+  if(!url){ toast("URL boş 😅", 900); return; }
+  if(/youtube\.com|youtu\.be/i.test(url)){
+    toast("YouTube linki olmaz. Direkt mp3/ogg lazım.", 1400);
+    sfx(180,"square",0.12,0.10);
+    return;
+  }
+  state.sett.customUrl=url; save();
+  stopMusic(); startMusic();
+  toast("Özel müzik aktif 🎵", 900);
+};
+
+document.getElementById("btnReset").onclick = ()=>{
+  if(confirm("Tüm veriler silinsin mi?")){
+    localStorage.removeItem(LS);
+    location.reload();
   }
 };
 
-/* ================= BUTTONS ================= */
-btnStart.onclick=()=>resetRun(false);
-btnZen.onclick=()=>resetRun(true);
+document.getElementById("hudPause").onclick = ()=>togglePause();
+document.getElementById("btnRetry").onclick = ()=>resetRun(run?.zen||false);
+document.getElementById("btnMenu").onclick = ()=>location.reload();
+
+/* ---------- init ---------- */
+(function init(){
+  resetQuestsIfNeeded();
+  updateMenuStats();
+  updateSettingsTexts();
+
+  // first frame
+  const skin=SKINS[state.skin];
+  drawBackground(0);
+  player.x=laneX(1); player.y=H*0.90;
+  drawCanan(skin);
+})();
 </script>
 </body>
 </html>
