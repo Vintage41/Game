@@ -1,1489 +1,283 @@
 <!doctype html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Kalp Yolu v6.1 — Canan Glow</title>
-  <style>
-    :root{
-      --p:#00d4ff; --a:#ff2f8e; --g:#ffd700;
-      --bg0:#060814; --bg1:#0b1430;
-      --card: rgba(18,24,44,.88);
-      --stroke: rgba(255,255,255,.10);
-    }
-    *{ box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent; }
-    html,body{ margin:0; height:100%; background:var(--bg0); font-family:system-ui,-apple-system,sans-serif; overflow:hidden; color:#fff; }
-    #wrap{ height:100%; display:flex; align-items:center; justify-content:center; }
-    canvas{
-      width:min(100vw,560px);
-      height:min(100vh,920px);
-      border-radius:22px;
-      box-shadow:0 20px 70px rgba(0,0,0,.85);
-      background: radial-gradient(circle at 50% 20%, var(--bg1) 0%, var(--bg0) 100%);
-      display:block;
-      touch-action:none;
-      border:1px solid rgba(255,255,255,.06);
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Kalp Yolu v7 — Soul Update</title>
 
-    /* HUD */
-    #hud{
-      position:absolute; top:22px; left:0; width:100%;
-      display:flex; justify-content:space-between; padding:0 14px;
-      pointer-events:none; /* hud genel tıklanmaz */
-      font-weight:900;
-      text-shadow:0 2px 14px rgba(0,0,0,.6);
-      z-index:50;
-    }
-    #hud .left, #hud .right{ display:flex; gap:10px; align-items:center; }
-    .pill{
-      background:rgba(0,0,0,.38);
-      border:1px solid rgba(255,255,255,.12);
-      border-radius:999px;
-      padding:8px 12px;
-      font-size:13px;
-      backdrop-filter: blur(10px);
-      user-select:none;
-    }
-    /* HUD içinden tıklanabilir olan */
-    #hudPause{ pointer-events:auto; cursor:pointer; }
+<style>
+:root{
+  --p:#00d4ff;
+  --a:#ff4fa3;
+  --bg:#050814;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:#fff;font-family:system-ui;overflow:hidden}
+#wrap{height:100%;display:flex;justify-content:center;align-items:center}
+canvas{
+  width:min(100vw,560px);
+  height:min(100vh,920px);
+  background:radial-gradient(circle at 50% 20%, #0c1a3a, #050814);
+  border-radius:22px;
+  box-shadow:0 20px 70px rgba(0,0,0,.8);
+}
 
-    #toast{
-      position:absolute; left:50%; top:102px; transform:translateX(-50%);
-      background:rgba(0,0,0,.58);
-      border:1px solid rgba(255,255,255,.12);
-      padding:10px 14px;
-      border-radius:999px;
-      font-weight:900;
-      font-size:12px;
-      pointer-events:none;
-      opacity:0;
-      transition:opacity .18s ease, transform .18s ease;
-      white-space:nowrap;
-      z-index:60;
-    }
-    #toast.show{ opacity:1; transform:translateX(-50%) translateY(-4px); }
+.ui{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:50}
+.panel{
+  width:360px;
+  background:rgba(10,15,35,.9);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:22px;
+  padding:18px;
+  text-align:center;
+  backdrop-filter:blur(14px)
+}
+.hidden{display:none}
 
-    /* UI */
-    .ui{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:100; padding:16px; }
-    .panel{
-      pointer-events:auto;
-      width:min(390px, 100%);
-      background:var(--card);
-      border:1px solid var(--stroke);
-      border-radius:22px;
-      padding:18px;
-      box-shadow:0 24px 80px rgba(0,0,0,.75);
-      backdrop-filter: blur(16px);
-      overflow:hidden;
-    }
-    .topbar{
-      display:flex; align-items:center; justify-content:space-between;
-      margin-bottom:12px;
-    }
-    .brand{ display:flex; flex-direction:column; gap:4px; text-align:left; }
-    .brand .title{
-      font-size:18px; letter-spacing:3px; font-weight:1000;
-      color:var(--p);
-      text-shadow:0 0 14px rgba(0,212,255,.45);
-    }
-    .brand .sub{ font-size:12px; opacity:.75; }
+button{
+  width:100%;padding:14px;margin:8px 0;
+  border-radius:14px;border:none;
+  background:var(--p);font-weight:900;cursor:pointer
+}
+button.sec{background:rgba(255,255,255,.08);color:#fff}
 
-    .hero{
-      background:
-        radial-gradient(circle at 20% 10%, rgba(0,212,255,.22), transparent 55%),
-        radial-gradient(circle at 85% 25%, rgba(255,47,142,.22), transparent 55%),
-        rgba(0,0,0,.18);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:18px;
-      padding:14px;
-      margin-bottom:12px;
-    }
-    .hero .row{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
-    .stat{
-      display:flex; flex-direction:column; gap:2px;
-      padding:10px 12px;
-      background:rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.09);
-      border-radius:14px;
-      width:100%;
-    }
-    .stat .k{ font-size:11px; opacity:.75; }
-    .stat .v{ font-size:15px; font-weight:950; }
-
-    .btn{
-      display:flex; align-items:center; justify-content:center;
-      width:100%;
-      padding:13px 14px;
-      margin:8px 0;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.12);
-      cursor:pointer;
-      font-weight:950;
-      letter-spacing:.5px;
-      transition:.16s;
-      background: linear-gradient(135deg, rgba(0,212,255,.95), rgba(0,212,255,.75));
-      color:#001019;
-    }
-    .btn:active{ transform:scale(.98); filter:brightness(1.06); }
-    .btn.sec{ background:rgba(255,255,255,.06); color:#fff; }
-    .btn.danger{ background:rgba(255,68,68,.92); color:#fff; }
-    .hidden{ display:none!important; }
-
-    .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .scroll{ max-height:340px; overflow:auto; padding-right:6px; scrollbar-width:thin; }
-
-    .card{
-      background:rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:16px;
-      padding:12px;
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-    }
-    .tag{
-      font-size:10px; font-weight:1000; padding:4px 8px; border-radius:999px;
-      background:rgba(255,255,255,.08);
-      border:1px solid rgba(255,255,255,.10);
-      opacity:.95;
-      white-space:nowrap;
-    }
-    .price{ color:var(--g); font-weight:1000; font-size:12px; }
-
-    #audioHint{
-      position:absolute; left:50%; top:12px; transform:translateX(-50%);
-      background:rgba(0,0,0,.45);
-      border:1px solid rgba(255,255,255,.12);
-      padding:8px 12px;
-      border-radius:12px;
-      font-size:11px; font-weight:900;
-      pointer-events:none;
-      opacity:0;
-      transition:opacity .2s ease;
-      z-index:70;
-    }
-    #audioHint.show{ opacity:1; }
-  </style>
+#hud{
+  position:absolute;top:20px;left:0;width:100%;
+  display:flex;justify-content:space-between;
+  padding:0 14px;font-weight:900
+}
+.pill{
+  background:rgba(0,0,0,.4);
+  padding:8px 12px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.1)
+}
+#toast{
+  position:absolute;top:90px;left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,.6);
+  padding:10px 16px;border-radius:999px;
+  font-weight:900;font-size:12px;
+  opacity:0;transition:.2s
+}
+#toast.show{opacity:1}
+</style>
 </head>
-<body>
 
+<body>
 <div id="wrap"><canvas id="c"></canvas></div>
 
 <div id="hud" class="hidden">
-  <div class="left">
-    <div id="hudCoin" class="pill" style="color:var(--g)">💰 0</div>
-    <div id="hudScore" class="pill">0m</div>
-  </div>
-  <div class="right">
-    <div id="hudCombo" class="pill" style="color:var(--a)">🔥 x1</div>
-    <div id="hudPause" class="pill">⏸</div>
-  </div>
+  <div class="pill">💖 <span id="hudHeart">0</span></div>
+  <div class="pill">🌿 Flow <span id="hudFlow">0%</span></div>
 </div>
-
 <div id="toast"></div>
-<div id="audioHint">Ses için ekrana 1 kere dokun 👍</div>
 
 <!-- MENU -->
 <div id="uiMenu" class="ui">
   <div class="panel">
-    <div class="topbar">
-      <div class="brand">
-        <div class="title">KALP YOLU</div>
-        <div class="sub">Canan koşuyor — sen yön veriyorsun.</div>
-      </div>
-      <div class="tag">v6.1</div>
-    </div>
-
-    <div class="hero">
-      <div class="row" style="margin-bottom:10px;">
-        <div style="font-weight:1000; font-size:14px;">Karakter: <span style="color:var(--p)">Canan</span></div>
-        <div id="dailyBadge" class="tag" style="border-color:rgba(255,215,0,.25); color:var(--g)">GÜNLÜK ÖDÜL</div>
-      </div>
-      <div class="grid2">
-        <div class="stat">
-          <div class="k">REKOR</div>
-          <div id="mHigh" class="v">0m</div>
-        </div>
-        <div class="stat">
-          <div class="k">CÜZDAN</div>
-          <div id="mCoins" class="v">0 💰</div>
-        </div>
-      </div>
-      <div class="grid2" style="margin-top:10px;">
-        <div class="stat">
-          <div class="k">SEÇİLİ SKIN</div>
-          <div id="mSkin" class="v">Klasik</div>
-        </div>
-        <div class="stat">
-          <div class="k">KONTROL</div>
-          <div class="v">⬅️ ➡️ / Sürükle</div>
-        </div>
-      </div>
-    </div>
-
-    <div id="questBox" class="hero" style="margin-top:12px;"></div>
-
-    <button id="btnStart" class="btn">KOŞUYA BAŞLA</button>
-    <button id="btnDaily" class="btn sec">GÜNLÜK ÖDÜLÜ AL</button>
-    <div class="grid2">
-      <button id="btnShop" class="btn sec">MARKET</button>
-      <button id="btnSettings" class="btn sec">AYARLAR</button>
-    </div>
-    <button id="btnPatch" class="btn sec">YAMA NOTLARI</button>
+    <h2 style="color:var(--p);letter-spacing:3px">KALP YOLU</h2>
+    <div style="opacity:.7;margin-bottom:10px">v7 – Soul Update</div>
+    <button id="btnStart">KOŞUYA BAŞLA</button>
+    <button id="btnZen" class="sec">ZEN MOD</button>
   </div>
 </div>
 
-<!-- SHOP -->
-<div id="uiShop" class="ui hidden">
-  <div class="panel">
-    <div class="topbar">
-      <div class="brand">
-        <div class="title">MARKET</div>
-        <div class="sub">Skin al, Canan’ı parlat ✨</div>
-      </div>
-      <div class="tag" id="shopWallet">0 💰</div>
-    </div>
-
-    <div class="scroll" id="shopList"></div>
-
-    <button id="btnBackShop" class="btn sec">GERİ</button>
-  </div>
-</div>
-
-<!-- SETTINGS -->
-<div id="uiSettings" class="ui hidden">
-  <div class="panel">
-    <div class="topbar">
-      <div class="brand">
-        <div class="title">AYARLAR</div>
-        <div class="sub">Basit, net.</div>
-      </div>
-      <div class="tag">⚙️</div>
-    </div>
-
-    <button id="togMusic" class="btn sec">MÜZİK: AÇIK</button>
-    <button id="btnNextTrack" class="btn sec">MÜZİK: CHILL</button>
-    <button id="togSfx" class="btn sec">SFX: AÇIK</button>
-    <button id="btnAudioUnlock" class="btn sec">SESİ BAŞLAT (MOBİL)</button>
-
-    <!-- İstersen kendi mp3 linkini yapıştırırsın (YouTube değil) -->
-    <div class="hero" style="margin-top:10px;">
-      <div style="font-weight:1000; margin-bottom:8px;">Özel Müzik (mp3/ogg URL)</div>
-      <input id="musicUrl" placeholder="https://.../music.mp3" style="width:100%; padding:12px; border-radius:14px; border:1px solid rgba(255,255,255,.15); background:rgba(0,0,0,.25); color:#fff; outline:none;">
-      <button id="btnUseUrl" class="btn sec" style="margin-top:10px;">URL MÜZİĞİNİ KULLAN</button>
-      <div style="font-size:11px; opacity:.7; margin-top:6px;">
-        YouTube linki değil: direkt mp3/ogg dosya linki olmalı.
-      </div>
-    </div>
-
-    <button id="btnReset" class="btn danger">VERİLERİ SIFIRLA</button>
-    <button id="btnBackSettings" class="btn sec">GERİ</button>
-  </div>
-</div>
-
-<!-- PATCH -->
-<div id="uiPatch" class="ui hidden">
-  <div class="panel">
-    <div class="topbar">
-      <div class="brand">
-        <div class="title">YAMA NOTLARI</div>
-        <div class="sub">Tüm sürümler</div>
-      </div>
-      <div class="tag">🧾</div>
-    </div>
-
-    <div class="scroll" style="font-size:12px; line-height:1.55;">
-      <b style="color:var(--p)">v6.1 (GÜNCEL):</b><br>
-      - Engel varyantları (Duvar / Lazer) eklendi (hitbox aynı, görünüş farklı).<br>
-      - Combo sistemi değişti: combo artık engel kaçınca artıyor.<br>
-      - Near-miss bonus eklendi (çok yakın kaçışta ekstra coin).<br>
-      - Canan animasyonları: dash trail + kalp sparkle.<br>
-      - Günlük görevler eklendi (2 mini görev).<br>
-      - Market 2.0: önizleme + favori ⭐.<br>
-      - Müzik geçişleri fade, track’ler daha “tatlı”.<br><br>
-
-      <b style="color:var(--a)">v6:</b><br>
-      - Tek engel sistemine geçiş + sadece sağ-sol kontrol.<br>
-      - Menü tasarımı yenilendi, Canan karakteri yenilendi.<br>
-      - Günlük ödül eklendi, temel müzik sistemi eklendi.<br><br>
-
-      <b style="color:var(--a)">v5:</b><br>
-      - 2D yapıya geçiş denemesi, engel/spawn düzenlemeleri.<br>
-      - Çoklu müzik denemeleri ve HUD iyileştirmeleri.<br><br>
-
-      <b style="color:var(--a)">v4:</b><br>
-      - Görev sistemi ve HUD iyileştirmeleri.<br><br>
-
-      <b style="color:var(--a)">v3:</b><br>
-      - Market ve Skin sistemi eklendi.<br><br>
-
-      <b style="color:var(--a)">v2:</b><br>
-      - Temel engeller ve kayıt sistemi.<br><br>
-
-      <b style="color:var(--a)">v1:</b><br>
-      - İlk sürüm: 3 şerit koşu mekaniği.<br>
-    </div>
-
-    <button id="btnBackPatch" class="btn sec">KAPAT</button>
-  </div>
-</div>
-
-<!-- OVER -->
+<!-- GAME OVER -->
 <div id="uiOver" class="ui hidden">
   <div class="panel">
-    <div class="topbar">
-      <div class="brand">
-        <div class="title" style="color:#ff4b4b;">OYUN BİTTİ</div>
-        <div class="sub">Bir daha dene. Bu sefer daha temiz.</div>
-      </div>
-      <div class="tag">💥</div>
-    </div>
-    <div id="overStats" class="hero" style="margin-bottom:12px;"></div>
-    <button id="btnRetry" class="btn">TEKRAR DENE</button>
-    <button id="btnMenu" class="btn sec">ANA MENÜ</button>
+    <h2 style="color:var(--a)">BİTTİ</h2>
+    <div id="overText" style="margin:12px 0"></div>
+    <button onclick="resetRun()">TEKRAR</button>
+    <button onclick="location.reload()" class="sec">MENÜ</button>
   </div>
 </div>
 
 <script>
-/* =========================================================
-   Kalp Yolu v6.1 — Canan Glow
-   ========================================================= */
-
-/* ---------- DATA ---------- */
-const SKINS = {
-  classic:{ n:"Klasik",      c1:"#00d4ff", c2:"#ffffff", p:0,    tag:"FREE" },
-  neon:   { n:"Neon",        c1:"#39ff14", c2:"#00d4ff", p:300,  tag:"POP"  },
-  sunset: { n:"Sunset",      c1:"#ff8c00", c2:"#ff2f8e", p:750,  tag:"VIBE" },
-  royal:  { n:"Royal",       c1:"#b388ff", c2:"#00d4ff", p:1200, tag:"VIP"  },
-  gold:   { n:"Altın",       c1:"#ffd700", c2:"#ffffff", p:2000, tag:"🔥"   }
-};
-
-const TRACKS = [
-  { id:"chill", name:"CHILL", base:110,   mode:[0,3,5,7,10], wave:"triangle", tempo:520, lp:0.22 },
-  { id:"neon",  name:"NEON",  base:130.8, mode:[0,2,5,7,9],  wave:"sine",     tempo:420, lp:0.28 },
-  { id:"rush",  name:"RUSH",  base:146.8, mode:[0,3,5,8,10], wave:"square",   tempo:340, lp:0.34 },
-  { id:"dream", name:"DREAM", base:98,    mode:[0,2,4,7,9],  wave:"triangle", tempo:560, lp:0.18 }
-];
-
-const defaults = {
-  coins:0,
-  high:0,
-  owned:["classic"],
-  skin:"classic",
-  favSkin:"classic",
-  sett:{ music:true, sfx:true, track:0, customUrl:"" },
-  daily:{ lastClaim:0, streak:0 },
-  quests:{ day:0, q:[] }
-};
-
-const LS_KEY = "kalp_yolu_v61";
-let state = (() => {
-  try{
-    const raw = localStorage.getItem(LS_KEY);
-    if(!raw) return structuredClone(defaults);
-    const p = JSON.parse(raw);
-    const s = structuredClone(defaults);
-
-    if(typeof p.coins==="number") s.coins=p.coins;
-    if(typeof p.high==="number") s.high=p.high;
-    if(Array.isArray(p.owned)) s.owned=p.owned;
-    if(typeof p.skin==="string") s.skin=p.skin;
-    if(typeof p.favSkin==="string") s.favSkin=p.favSkin;
-
-    if(p.sett){
-      s.sett.music=!!p.sett.music;
-      s.sett.sfx=!!p.sett.sfx;
-      if(Number.isFinite(p.sett.track)) s.sett.track = Math.max(0, Math.min(TRACKS.length-1, p.sett.track));
-      if(typeof p.sett.customUrl==="string") s.sett.customUrl = p.sett.customUrl;
-    }
-    if(p.daily){
-      if(Number.isFinite(p.daily.lastClaim)) s.daily.lastClaim = p.daily.lastClaim;
-      if(Number.isFinite(p.daily.streak)) s.daily.streak = p.daily.streak;
-    }
-    if(p.quests){
-      if(Number.isFinite(p.quests.day)) s.quests.day = p.quests.day;
-      if(Array.isArray(p.quests.q)) s.quests.q = p.quests.q;
-    }
-
-    if(!s.owned.includes("classic")) s.owned.push("classic");
-    if(!SKINS[s.skin]) s.skin="classic";
-    if(!SKINS[s.favSkin]) s.favSkin="classic";
-    return s;
-  }catch{
-    return structuredClone(defaults);
-  }
-})();
-const save = () => localStorage.setItem(LS_KEY, JSON.stringify(state));
-
-/* ---------- CANVAS/PERF ---------- */
-const canvas = document.getElementById("c");
-const ctx = canvas.getContext("2d", { alpha:true, desynchronized:true });
-
-let W=0,H=0,DPR=1;
+/* ================= CORE ================= */
+const c = document.getElementById("c");
+const ctx = c.getContext("2d");
+let W,H;
 function resize(){
-  const r = canvas.getBoundingClientRect();
-  DPR = Math.min(2, Math.max(1, window.devicePixelRatio||1));
-  canvas.width = Math.floor(r.width*DPR);
-  canvas.height= Math.floor(r.height*DPR);
-  W = r.width; H=r.height;
-  ctx.setTransform(DPR,0,0,DPR,0,0);
+  W=c.width=c.offsetWidth;
+  H=c.height=c.offsetHeight;
 }
-window.addEventListener("resize", resize, { passive:true });
-resize();
+window.onresize=resize; resize();
 
-const stars = Array.from({length: 90}, () => ({
-  x: Math.random()*W,
-  y: Math.random()*H,
-  s: Math.random()*1.2+0.2,
-  v: Math.random()*0.45+0.12
-}));
-const clouds = Array.from({length: 12}, () => ({
-  x: Math.random()*W,
-  y: Math.random()*H*0.65,
-  w: 80 + Math.random()*140,
-  h: 18 + Math.random()*34,
-  v: 0.12 + Math.random()*0.22,
-  a: 0.05 + Math.random()*0.06
-}));
-
-/* roundRect polyfill (safety) */
-if(!CanvasRenderingContext2D.prototype.roundRect){
-  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
-    const rr = Math.min(r, w/2, h/2);
-    this.beginPath();
-    this.moveTo(x+rr, y);
-    this.arcTo(x+w, y, x+w, y+h, rr);
-    this.arcTo(x+w, y+h, x, y+h, rr);
-    this.arcTo(x, y+h, x, y, rr);
-    this.arcTo(x, y, x+w, y, rr);
-    this.closePath();
-    return this;
-  };
-}
-
-/* ---------- AUDIO ---------- */
-let audio=null, master=null;
-let musicGain=null, musicNodes=null;
-let customAudioEl = null;
-
-function ensureAudio(){
-  if(audio) return;
-  audio = new (window.AudioContext || window.webkitAudioContext)();
-  master = audio.createGain();
-  master.gain.value=0.9;
-  master.connect(audio.destination);
-
-  musicGain = audio.createGain();
-  musicGain.gain.value = state.sett.music ? 0.16 : 0;
-  musicGain.connect(master);
-}
-
-async function unlockAudio(){
-  try{
-    ensureAudio();
-    if(audio.state==="suspended") await audio.resume();
-    const o=audio.createOscillator(), g=audio.createGain();
-    o.type="sine"; o.frequency.value=440; g.gain.value=0.0001;
-    o.connect(g); g.connect(master);
-    o.start(); o.stop(audio.currentTime+0.02);
-    document.getElementById("audioHint").classList.remove("show");
-  }catch{
-    document.getElementById("audioHint").classList.add("show");
-  }
-}
-
-function playSfx(freq, type="sine", dur=0.10, vol=0.12){
-  if(!state.sett.sfx) return;
-  ensureAudio();
-  if(audio.state==="suspended") return;
-  const o=audio.createOscillator(), g=audio.createGain();
-  o.type=type;
-  o.frequency.setValueAtTime(freq, audio.currentTime);
-  const t=audio.currentTime;
-  g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
-  o.connect(g); g.connect(master);
-  o.start(t); o.stop(t+dur);
-}
-
-function stopMusic(){
-  if(customAudioEl){
-    try{ customAudioEl.pause(); }catch{}
-  }
-  if(!musicNodes) return;
-  try{
-    clearTimeout(musicNodes.timer);
-    musicNodes.pad.stop(); musicNodes.lead.stop(); musicNodes.lfo.stop();
-  }catch{}
-  musicNodes=null;
-}
-
-function startProceduralMusic(){
-  ensureAudio();
-  if(!state.sett.music) return;
-  if(audio.state==="suspended") return;
-  if(musicNodes) return;
-
-  const tr = TRACKS[state.sett.track];
-
-  const pad = audio.createOscillator();
-  const lead = audio.createOscillator();
-  const filter = audio.createBiquadFilter();
-  const padG = audio.createGain();
-  const leadG= audio.createGain();
-
-  const lfo = audio.createOscillator();
-  const lfoG= audio.createGain();
-
-  filter.type="lowpass";
-  filter.frequency.value=1000;
-
-  pad.type = tr.wave;
-  lead.type = "sine";
-  padG.gain.value=0.14;
-  leadG.gain.value=0.09;
-
-  lfo.type="sine"; lfo.frequency.value = tr.lp;
-  lfoG.gain.value = 14;
-  lfo.connect(lfoG);
-  lfoG.connect(filter.frequency);
-
-  pad.connect(padG); lead.connect(leadG);
-  padG.connect(filter); leadG.connect(filter);
-  filter.connect(musicGain);
-
-  pad.start(); lead.start(); lfo.start();
-
-  const melody = [0,2,4,2,1,3,2,4];
-  let step=0;
-
-  function tick(){
-    if(!musicNodes || !state.sett.music || audio.state==="suspended") return;
-    const now=audio.currentTime;
-
-    const m = tr.mode[melody[step % melody.length] % tr.mode.length];
-    const f = tr.base * Math.pow(2, m/12);
-
-    pad.frequency.setTargetAtTime(tr.base, now, 0.08);
-    lead.frequency.setTargetAtTime(f * (step%4===0 ? 2 : 1), now, 0.06);
-
-    filter.Q.value = 0.6 + (step%8)*0.07;
-    step++;
-    musicNodes.timer = setTimeout(tick, tr.tempo);
-  }
-
-  musicNodes = { pad, lead, lfo, filter, timer:null };
-  musicNodes.timer = setTimeout(tick, 120);
-}
-
-function startCustomUrlMusic(url){
-  if(!url) return false;
-  // YouTube değil, direkt mp3/ogg olmalı
-  try{
-    if(!customAudioEl){
-      customAudioEl = new Audio();
-      customAudioEl.loop = true;
-      customAudioEl.preload = "auto";
-    }
-    customAudioEl.src = url;
-    customAudioEl.volume = state.sett.music ? 0.55 : 0;
-    customAudioEl.play().catch(()=>{});
-    return true;
-  }catch{
-    return false;
-  }
-}
-
-function startMusic(){
-  ensureAudio();
-  if(!state.sett.music) return;
-  if(audio.state==="suspended") return;
-
-  // custom URL varsa onu dene
-  if(state.sett.customUrl){
-    const ok = startCustomUrlMusic(state.sett.customUrl);
-    if(ok) return;
-  }
-  startProceduralMusic();
-}
-
-function refreshAudio(){
-  ensureAudio();
-  if(customAudioEl) customAudioEl.volume = state.sett.music ? 0.55 : 0;
-
-  musicGain.gain.value = state.sett.music ? 0.16 : 0;
-  if(!state.sett.music) stopMusic();
-  else { stopMusic(); startMusic(); }
-}
-
-function switchTrackFade(newTrackIndex){
-  ensureAudio();
-  const t = audio.currentTime;
-
-  // custom URL aktifse track geçişi değil, sadece procedural
-  state.sett.track = newTrackIndex;
-  save();
-
-  // eski gain'i fade out
-  const oldGain = musicGain;
-
-  // yeni gain
-  const newGain = audio.createGain();
-  newGain.gain.setValueAtTime(0.0001, t);
-  newGain.connect(master);
-  musicGain = newGain;
-
-  // procedural yeniden başlat
-  stopMusic();
-  startProceduralMusic();
-
-  // fade in
-  newGain.gain.exponentialRampToValueAtTime(state.sett.music ? 0.16 : 0.0001, t + 0.35);
-
-  // old fade out + disconnect
-  if(oldGain){
-    oldGain.gain.setValueAtTime(oldGain.gain.value || 0.0001, t);
-    oldGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-    setTimeout(()=>{ try{ oldGain.disconnect(); }catch{} }, 450);
-  }
-}
-
-/* ---------- UI HELPERS ---------- */
-function showOnly(id){
-  document.querySelectorAll(".ui").forEach(u=>u.classList.add("hidden"));
-  document.getElementById("hud").classList.add("hidden");
-  if(id!=="none") document.getElementById(id).classList.remove("hidden");
-}
-function toast(msg, ms=1200){
-  const el=document.getElementById("toast");
-  el.textContent=msg;
-  el.classList.add("show");
-  clearTimeout(el._t);
-  el._t=setTimeout(()=>el.classList.remove("show"), ms);
-}
-
-/* ---------- DAILY + QUESTS ---------- */
-function isSameDay(a,b){
-  const da=new Date(a), db=new Date(b);
-  return da.getFullYear()===db.getFullYear() && da.getMonth()===db.getMonth() && da.getDate()===db.getDate();
-}
-function canClaimDaily(){
-  const now=Date.now();
-  return !state.daily.lastClaim || !isSameDay(state.daily.lastClaim, now);
-}
-function claimDaily(){
-  if(!canClaimDaily()){
-    toast("Günlük ödül zaten alındı 😄", 1100);
-    playSfx(220,"square",0.10,0.10);
-    return;
-  }
-  const now=Date.now();
-  const yesterday = now - 24*60*60*1000;
-  if(state.daily.lastClaim && isSameDay(state.daily.lastClaim, yesterday)) state.daily.streak = Math.min(7, (state.daily.streak||0)+1);
-  else state.daily.streak = 1;
-
-  const reward = 80 + (state.daily.streak-1)*25;
-  state.coins += reward;
-  state.daily.lastClaim = now;
-  save();
-
-  toast(`Günlük ödül +${reward} 💰 (Seri: ${state.daily.streak}/7)`, 1500);
-  playSfx(980,"triangle",0.10,0.12);
-  updateMenuStats();
-}
-
-function dayKey(){
-  const d=new Date();
-  return d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
-}
-function resetDailyQuestsIfNeeded(){
-  const dk = dayKey();
-  if(state.quests.day !== dk){
-    state.quests.day = dk;
-    state.quests.q = [
-      { id:"hearts20", t:"20 kalp topla", cur:0, goal:20, done:false, rew:120 },
-      { id:"dodges8",  t:"8 engel kaç",   cur:0, goal:8,  done:false, rew:160 }
-    ];
-    save();
-  }
-}
-function addQuestProgress(id, inc=1){
-  resetDailyQuestsIfNeeded();
-  const q = state.quests.q.find(x=>x.id===id);
-  if(!q || q.done) return;
-  q.cur = Math.min(q.goal, q.cur + inc);
-  if(q.cur >= q.goal){
-    q.done = true;
-    state.coins += q.rew;
-    toast(`Görev tamam! +${q.rew} 💰`, 1400);
-    playSfx(1200,"triangle",0.10,0.12);
-    save();
-    updateMenuStats();
-  } else {
-    save();
-    updateMenuStats();
-  }
-}
-
-/* ---------- SHOP ---------- */
-function updateMenuStats(){
-  document.getElementById("mHigh").textContent = `${state.high}m`;
-  document.getElementById("mCoins").textContent = `${state.coins} 💰`;
-  document.getElementById("mSkin").textContent = SKINS[state.skin].n;
-  document.getElementById("dailyBadge").style.opacity = canClaimDaily() ? "1" : ".35";
-  document.getElementById("btnDaily").style.opacity = canClaimDaily() ? "1" : ".5";
-
-  resetDailyQuestsIfNeeded();
-  const qb = document.getElementById("questBox");
-  qb.innerHTML =
-    `<div style="font-weight:1000; margin-bottom:8px;">Günlük Görevler</div>` +
-    state.quests.q.map(q=>{
-      const done = q.done ? "✅" : `${q.cur}/${q.goal}`;
-      return `<div style="display:flex;justify-content:space-between;gap:10px;
-        background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);
-        padding:10px 12px;border-radius:14px;margin-bottom:8px;">
-        <div style="font-size:12px;opacity:.9">${q.t} <span style="opacity:.7">(+${q.rew}💰)</span></div>
-        <div style="font-weight:1000;color:${q.done ? "#39ff14":"#fff"}">${done}</div>
-      </div>`;
-    }).join("");
-}
-
-function renderShop(){
-  const list = document.getElementById("shopList");
-  list.innerHTML="";
-  document.getElementById("shopWallet").textContent = `${state.coins} 💰`;
-
-  for(const id in SKINS){
-    const s=SKINS[id];
-    const owned = state.owned.includes(id);
-    const selected = state.skin===id;
-
-    const row=document.createElement("div");
-    row.className="card";
-
-    const left=document.createElement("div");
-    left.style.display="flex";
-    left.style.flexDirection="column";
-    left.style.gap="7px";
-
-    const name=document.createElement("div");
-    name.innerHTML = `<b style="color:${s.c1}">${s.n}</b> <span class="tag">${s.tag}</span>`;
-    const sub=document.createElement("div");
-    sub.style.fontSize="12px";
-    sub.style.opacity=".8";
-    sub.innerHTML = owned ? (selected ? "Seçili ✅" : "Sahipsin") : `Fiyat: <span class="price">${s.p} 💰</span>`;
-
-    const preview = document.createElement("div");
-    preview.style.display="flex";
-    preview.style.gap="8px";
-    preview.style.alignItems="center";
-    preview.innerHTML = `
-      <span style="width:18px;height:18px;border-radius:6px;background:${s.c1};display:inline-block;border:1px solid rgba(255,255,255,.18)"></span>
-      <span style="width:18px;height:18px;border-radius:6px;background:${s.c2};display:inline-block;border:1px solid rgba(255,255,255,.18)"></span>
-      <span style="font-size:11px;opacity:.75">Canan Preview</span>
-    `;
-
-    left.appendChild(name);
-    left.appendChild(sub);
-    left.appendChild(preview);
-
-    const btn=document.createElement("button");
-    btn.className="btn";
-    btn.style.width="120px";
-    btn.style.padding="10px 12px";
-    btn.style.margin="0";
-    btn.textContent = owned ? (selected ? "SEÇİLİ" : "SEÇ") : "SATIN AL";
-    btn.style.background = owned
-      ? (selected ? "rgba(255,255,255,.08)" : "linear-gradient(135deg, rgba(0,212,255,.95), rgba(0,212,255,.75))")
-      : "linear-gradient(135deg, rgba(255,215,0,.95), rgba(255,215,0,.70))";
-    btn.style.color = owned ? "#fff" : "#2a1e00";
-    btn.style.borderColor = "rgba(255,255,255,.14)";
-
-    btn.onclick = () => {
-      unlockAudio();
-      if(owned){
-        state.skin=id;
-        save();
-        playSfx(520,"sine",0.06,0.10);
-        toast(`Seçildi: ${s.n}`, 900);
-      }else{
-        if(state.coins < s.p){
-          playSfx(160,"square",0.10,0.10);
-          toast("Para yetmedi 💀", 900);
-          return;
-        }
-        state.coins -= s.p;
-        state.owned.push(id);
-        state.skin=id;
-        save();
-        playSfx(900,"triangle",0.08,0.12);
-        toast(`Satın alındı: ${s.n} ✨`, 1100);
-      }
-      renderShop();
-      updateMenuStats();
-    };
-
-    const fav = document.createElement("button");
-    fav.className="btn sec";
-    fav.style.width="56px";
-    fav.style.padding="10px 0";
-    fav.style.margin="0";
-    fav.textContent = (state.favSkin===id) ? "⭐" : "☆";
-    fav.onclick = () => {
-      unlockAudio();
-      state.favSkin = id;
-      save();
-      playSfx(860,"triangle",0.06,0.10);
-      toast(`Favori: ${s.n}`, 900);
-      renderShop();
-      updateMenuStats();
-    };
-
-    row.appendChild(left);
-    row.appendChild(btn);
-    row.appendChild(fav);
-    list.appendChild(row);
-  }
-}
-
-/* ---------- GAME CORE (NO JUMP/SLIDE, SINGLE OBSTACLE) ---------- */
-const laneCount=3;
-function laneX(l){
-  const roadW = W*0.74;
-  const start = (W-roadW)/2;
-  return start + (l + 0.5) * (roadW/laneCount);
-}
-function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
-function collideRect(ax,ay,aw,ah,bx,by,bw,bh){
-  return ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by;
-}
-function playerRect(){
-  const w=52, h=78;
-  return { x:player.x - w/2, y:player.y - h, w, h };
-}
-
-const player = {
-  lane:1,
-  x:0,
-  y:0,
-  glow:0
-};
-
-const fx = { trails: [], sparks: [] };
-function spawnTrail(){
-  fx.trails.push({ x: player.x, y: player.y-35, a: 0.75, r: 10 });
-}
-function spawnSpark(){
-  for(let i=0;i<10;i++){
-    fx.sparks.push({
-      x: player.x + (Math.random()*30-15),
-      y: player.y-60 + (Math.random()*30-15),
-      vx:(Math.random()*2-1)*60,
-      vy:(Math.random()*2-1)*60,
-      a:0.9
-    });
-  }
-}
-function drawFx(dt){
-  for(let i=fx.trails.length-1;i>=0;i--){
-    const t=fx.trails[i];
-    t.a -= dt*2.2;
-    t.r += dt*22;
-    if(t.a<=0){ fx.trails.splice(i,1); continue; }
-    ctx.globalAlpha = t.a;
-    ctx.strokeStyle = SKINS[state.skin].c1;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(t.x, t.y, t.r, 0, Math.PI*2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-
-  for(let i=fx.sparks.length-1;i>=0;i--){
-    const s=fx.sparks[i];
-    s.a -= dt*3;
-    s.x += s.vx*dt;
-    s.y += s.vy*dt;
-    if(s.a<=0){ fx.sparks.splice(i,1); continue; }
-    ctx.globalAlpha = s.a;
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(s.x, s.y, 2, 2);
-    ctx.globalAlpha = 1;
-  }
-}
-
+/* ================= STATE ================= */
 let run=null;
-let rafId=0;
-let lastT=0;
-let paused=false;
+const player={ lane:1, x:0, y:0 };
+const lanes=3;
 
-function resetRun(){
-  unlockAudio();
-  stopMusic(); startMusic();
+/* ================= AUDIO (HUZURLU) ================= */
+const audio = new (window.AudioContext||webkitAudioContext)();
+let musicGain=audio.createGain();
+musicGain.gain.value=.12;
+musicGain.connect(audio.destination);
 
-  paused=false;
-  run = {
+const pad=audio.createOscillator();
+pad.type="triangle";
+pad.frequency.value=110;
+pad.connect(musicGain);
+pad.start();
+
+/* ================= UI ================= */
+const toastEl=document.getElementById("toast");
+function toast(t){
+  toastEl.textContent=t;
+  toastEl.classList.add("show");
+  setTimeout(()=>toastEl.classList.remove("show"),900);
+}
+
+/* ================= GAME START ================= */
+function resetRun(zen=false){
+  run={
     active:true,
-    score:0,
-    coins:0,
-    speed: 280,
-    accel: 16,
-    spawnT: 0.0,
-    obstacle: null,
-    combo: 1,
-    heart: null,
-    heartT: 0.55,
-    difficulty: 1.0
+    hearts:0,
+    flow:0,
+    zen,
+    speed:260,
+    obstacle:null,
+    heart:null
   };
-
   player.lane=1;
-  player.x = laneX(player.lane);
-  player.y = H*0.90;
-
-  fx.trails.length=0;
-  fx.sparks.length=0;
-
-  showOnly("none");
+  player.x=W/2;
+  player.y=H*0.88;
+  document.getElementById("uiMenu").classList.add("hidden");
+  document.getElementById("uiOver").classList.add("hidden");
   document.getElementById("hud").classList.remove("hidden");
-  updateHud();
-
-  toast("Canan hazır. Başlıyoruz 💨", 1000);
-
-  lastT = performance.now();
-  cancelAnimationFrame(rafId);
-  rafId = requestAnimationFrame(loop);
+  loop();
 }
 
-function updateHud(){
-  document.getElementById("hudCoin").textContent = `💰 ${run ? run.coins : 0}`;
-  document.getElementById("hudScore").textContent = `${run ? Math.floor(run.score) : 0}m`;
-  document.getElementById("hudCombo").textContent = `🔥 x${run ? run.combo : 1}`;
+/* ================= SPAWN ================= */
+function laneX(l){
+  const rw=W*.7, start=(W-rw)/2;
+  return start+(l+.5)*(rw/lanes);
 }
-
-function pickLaneFair(lastLane){
-  let lane = (Math.random()*3)|0;
-  if(lastLane !== -1){
-    if(lane===lastLane && Math.random()<0.75) lane = (lane + 1 + ((Math.random()*2)|0)) % 3;
-    const extreme = (lastLane===0 && lane===2) || (lastLane===2 && lane===0);
-    if(extreme && Math.random()<0.75) lane = 1;
-  }
-  return lane;
-}
-
-function scheduleObstacle(){
-  const d = run.difficulty;
-  const min = clamp(0.70 - (d-1)*0.06, 0.52, 0.70);
-  const max = clamp(1.05 - (d-1)*0.08, 0.74, 1.05);
-  run.spawnT = min + Math.random()*(max-min);
-}
-
 function spawnObstacle(){
-  const lastLane = run.obstacle ? run.obstacle.lane : -1;
-  const lane = pickLaneFair(lastLane);
-  const variant = Math.random() < 0.5 ? "wall" : "laser";
-
-  run.obstacle = {
-    lane,
-    variant,
-    x: laneX(lane),
-    y: -80,
-    w: 78,
-    h: 36,
-    pulse: Math.random()*Math.PI*2,
-    passed: false
+  run.obstacle={
+    lane:Math.floor(Math.random()*3),
+    y:-40,w:80,h:30
+  };
+}
+function spawnHeart(){
+  run.heart={
+    lane:Math.floor(Math.random()*3),
+    y:-20,r:16
   };
 }
 
-function spawnHeart(dt){
-  run.heartT -= dt;
-  if(run.heartT > 0) return;
+/* ================= LOOP ================= */
+function loop(){
+  if(!run||!run.active) return;
 
-  let lane = (Math.random()*3)|0;
-  if(run.obstacle && run.obstacle.lane===lane && run.obstacle.y < 220){
-    lane = (lane + 1 + ((Math.random()*2)|0)) % 3;
-  }
+  ctx.clearRect(0,0,W,H);
 
-  run.heart = {
-    lane,
-    x: laneX(lane),
-    y: -30,
-    r: 18
-  };
-
-  const d = run.difficulty;
-  const base = 0.55;
-  const next = clamp(base - (d-1)*0.03, 0.38, base);
-  run.heartT = next + Math.random()*0.10;
-}
-
-function gameOver(){
-  run.active=false;
-  stopMusic();
-  playSfx(160,"sawtooth",0.18,0.12);
-
-  const final = Math.floor(run.score);
-  if(final > state.high) state.high = final;
-
-  state.coins += run.coins;
-  save();
-
-  document.getElementById("overStats").innerHTML = `
-    <div class="grid2">
-      <div class="stat"><div class="k">SKOR</div><div class="v">${final}m</div></div>
-      <div class="stat"><div class="k">TOPLANAN</div><div class="v">${run.coins} 💰</div></div>
-    </div>
-    <div class="grid2" style="margin-top:10px;">
-      <div class="stat"><div class="k">REKOR</div><div class="v">${state.high}m</div></div>
-      <div class="stat"><div class="k">COMBO</div><div class="v">x${run.combo}</div></div>
-    </div>
-  `;
-  showOnly("uiOver");
-  updateMenuStats();
-}
-
-function drawBackground(dt){
-  ctx.fillStyle="#060814";
+  // background
+  ctx.fillStyle="#050814";
   ctx.fillRect(0,0,W,H);
 
-  const g1 = ctx.createRadialGradient(W*0.22, H*0.15, 20, W*0.22, H*0.15, Math.max(W,H)*0.7);
-  g1.addColorStop(0, "rgba(0,212,255,.18)");
-  g1.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle=g1; ctx.fillRect(0,0,W,H);
+  // speed & flow
+  run.flow=Math.min(100, run.flow+0.02);
+  pad.frequency.value=110+run.flow*0.3;
 
-  const g2 = ctx.createRadialGradient(W*0.82, H*0.22, 20, W*0.82, H*0.22, Math.max(W,H)*0.7);
-  g2.addColorStop(0, "rgba(255,47,142,.16)");
-  g2.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle=g2; ctx.fillRect(0,0,W,H);
+  // spawn
+  if(!run.obstacle && Math.random()<0.02) spawnObstacle();
+  if(!run.heart && Math.random()<0.03) spawnHeart();
 
-  for(const s of stars){
-    s.y += s.v * (run ? (run.speed*0.002) : 0.35);
-    if(s.y > H+6){ s.y=-6; s.x=Math.random()*W; }
-    ctx.globalAlpha = 0.12 + s.s*0.55;
-    ctx.fillStyle="#fff";
-    ctx.fillRect(s.x, s.y, 2, 2);
-  }
-  ctx.globalAlpha=1;
-
-  for(const c of clouds){
-    c.x -= c.v * (run ? (run.speed*dt*0.05) : 0.5);
-    if(c.x < -c.w-10){ c.x = W + 10; c.y = Math.random()*H*0.65; }
-    ctx.globalAlpha = c.a;
-    ctx.fillStyle="#fff";
-    ctx.beginPath();
-    ctx.ellipse(c.x, c.y, c.w, c.h, 0, 0, Math.PI*2);
-    ctx.fill();
-  }
-  ctx.globalAlpha=1;
-
-  const roadW=W*0.74;
-  const x0=(W-roadW)/2;
-  const y0=H*0.10;
-  ctx.fillStyle="rgba(255,255,255,0.06)";
-  ctx.fillRect(x0, y0, roadW, H-y0);
-
-  ctx.strokeStyle="rgba(255,255,255,0.10)";
-  ctx.lineWidth=2;
-  ctx.setLineDash([10,10]);
-  for(let i=1;i<laneCount;i++){
-    const lx = x0 + i*(roadW/laneCount);
-    ctx.beginPath();
-    ctx.moveTo(lx, y0);
-    ctx.lineTo(lx, H);
-    ctx.stroke();
-  }
-  ctx.setLineDash([]);
-}
-
-function drawHeart(x,y,r,color){
-  ctx.fillStyle=color;
-  ctx.beginPath();
-  const top = y - r*0.15;
-  ctx.moveTo(x, top + r*0.65);
-  ctx.bezierCurveTo(x - r, top, x - r*0.95, top - r*0.55, x, top - r*0.10);
-  ctx.bezierCurveTo(x + r*0.95, top - r*0.55, x + r, top, x, top + r*0.65);
-  ctx.closePath();
-  ctx.fill();
-  ctx.globalAlpha=0.22;
-  ctx.fillStyle="#fff";
-  ctx.beginPath();
-  ctx.arc(x-r*0.35, y-r*0.65, r*0.22, 0, Math.PI*2);
-  ctx.fill();
-  ctx.globalAlpha=1;
-}
-
-function drawObstacle(o, t){
-  const skin = SKINS[state.skin];
-  const isLaser = o.variant === "laser";
-  const pulse = 0.5 + 0.5*Math.sin(t*2 + o.pulse);
-
-  ctx.save();
-  ctx.translate(o.x, o.y);
-
-  // glow
-  ctx.globalAlpha = 0.18 + pulse*0.14;
-  ctx.fillStyle = isLaser ? "rgba(255,47,142,.65)" : skin.c1;
-  ctx.roundRect(-o.w/2 - 10, -o.h/2 - 8, o.w+20, o.h+16, 14);
-  ctx.fill();
-  ctx.globalAlpha = 1;
-
-  // body
-  ctx.fillStyle = isLaser ? "rgba(255,47,142,.14)" : "rgba(255,255,255,.08)";
-  ctx.roundRect(-o.w/2, -o.h/2, o.w, o.h, 12);
-  ctx.fill();
-
-  // stripes
-  if(isLaser){
-    ctx.globalAlpha = 0.9;
-    ctx.strokeStyle = "rgba(255,47,142,.95)";
-    ctx.lineWidth = 4;
-    for(let i=-2;i<=2;i++){
-      ctx.beginPath();
-      ctx.moveTo(-o.w/2 + 10, i*6);
-      ctx.lineTo(o.w/2 - 10, i*6);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-  } else {
-    ctx.globalAlpha = 0.7;
-    ctx.strokeStyle = skin.c2;
-    ctx.lineWidth = 3;
-    for(let i=-2;i<=2;i++){
-      ctx.beginPath();
-      ctx.moveTo(-o.w/2 + 10, i*6);
-      ctx.lineTo(o.w/2 - 10, i*6);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  // icon
-  ctx.fillStyle = "rgba(0,0,0,.35)";
-  ctx.beginPath();
-  ctx.arc(0, 0, 10, 0, Math.PI*2);
-  ctx.fill();
-  ctx.fillStyle = "#fff";
-  ctx.font = "900 12px system-ui";
-  ctx.textAlign="center"; ctx.textBaseline="middle";
-  ctx.fillText(isLaser ? "≋" : "!", 0, 1);
-
-  ctx.restore();
-}
-
-function drawCanan(){
-  const skin = SKINS[state.skin];
-  player.x += (laneX(player.lane) - player.x) * 0.28;
-
-  const x = player.x;
-  const y = player.y;
-  const bodyW=56, bodyH=78;
-
-  // shadow
-  ctx.globalAlpha=0.18;
-  ctx.fillStyle="#fff";
-  ctx.beginPath();
-  ctx.ellipse(x, y+12, 28, 11, 0, 0, Math.PI*2);
-  ctx.fill();
-  ctx.globalAlpha=1;
-
-  // glow ring
-  ctx.globalAlpha = 0.10 + (player.glow*0.14);
-  ctx.strokeStyle = skin.c1;
-  ctx.lineWidth=4;
-  ctx.beginPath();
-  ctx.arc(x, y-bodyH*0.45, 54, 0, Math.PI*2);
-  ctx.stroke();
-  ctx.globalAlpha=1;
-
-  // hair
-  ctx.fillStyle = "rgba(0,0,0,.28)";
-  ctx.roundRect(x-bodyW/2-2, y-bodyH-10, bodyW+4, 22, 12);
-  ctx.fill();
-
-  // body gradient
-  const grd = ctx.createLinearGradient(x-bodyW/2, y-bodyH, x+bodyW/2, y);
-  grd.addColorStop(0, skin.c1);
-  grd.addColorStop(1, skin.c2);
-  ctx.fillStyle = grd;
-  ctx.roundRect(x-bodyW/2, y-bodyH, bodyW, bodyH, 18);
-  ctx.fill();
-
-  // inner
-  ctx.fillStyle="rgba(0,0,0,.18)";
-  ctx.roundRect(x-bodyW/2+8, y-bodyH+12, bodyW-16, bodyH-24, 14);
-  ctx.fill();
-
-  // visor
-  ctx.fillStyle="rgba(0,0,0,.38)";
-  ctx.roundRect(x-bodyW/2+10, y-bodyH+14, bodyW-20, 18, 10);
-  ctx.fill();
-
-  // eyes
-  ctx.fillStyle="rgba(255,255,255,.95)";
-  ctx.beginPath();
-  ctx.arc(x-10, y-bodyH+23, 3.2, 0, Math.PI*2);
-  ctx.arc(x+10, y-bodyH+23, 3.2, 0, Math.PI*2);
-  ctx.fill();
-
-  // name tag
-  ctx.globalAlpha=.85;
-  ctx.fillStyle="rgba(255,255,255,.10)";
-  ctx.roundRect(x-bodyW/2+12, y-bodyH+40, bodyW-24, 14, 8);
-  ctx.fill();
-  ctx.globalAlpha=1;
-  ctx.fillStyle="#fff";
-  ctx.font="900 10px system-ui";
-  ctx.textAlign="center"; ctx.textBaseline="middle";
-  ctx.fillText("CANAN", x, y-bodyH+47);
-
-  // shoes
-  ctx.fillStyle="rgba(0,0,0,.25)";
-  ctx.roundRect(x-bodyW/2+6, y-12, 18, 10, 6);
-  ctx.roundRect(x+bodyW/2-24, y-12, 18, 10, 6);
-  ctx.fill();
-}
-
-function togglePause(){
-  if(!run?.active) return;
-  paused = !paused;
-  toast(paused ? "Duraklatıldı ⏸" : "Devam ▶️", 900);
-  playSfx(paused ? 240 : 520, "square", 0.10, 0.10);
-}
-
-function loop(now){
-  if(!run || !run.active) return;
-  let dt = (now - lastT)/1000;
-  lastT = now;
-  dt = Math.min(0.033, Math.max(0, dt));
-
-  if(paused){
-    drawBackground(0);
-    if(run.obstacle) drawObstacle(run.obstacle, now/1000);
-    if(run.heart) drawHeart(run.heart.x, run.heart.y, run.heart.r, "#ff4fa3");
-    drawCanan();
-    drawFx(0.016);
-    rafId = requestAnimationFrame(loop);
-    return;
-  }
-
-  // difficulty (no levels)
-  run.score += (run.speed*dt)/8;
-  run.difficulty = 1 + Math.min(4, run.score/600);
-  run.speed = clamp(run.speed + run.accel*dt*(0.35 + run.difficulty*0.08), 280, 520);
-
-  // spawn obstacle
-  run.spawnT -= dt;
-  if(!run.obstacle && run.spawnT <= 0){
-    spawnObstacle();
-    scheduleObstacle();
-  }
-
-  // spawn heart
-  spawnHeart(dt);
-
-  // move objects
-  const v = run.speed;
+  // move
   if(run.obstacle){
-    run.obstacle.y += v*dt;
-    if(run.obstacle.y > H+100) run.obstacle = null;
+    run.obstacle.y+=run.speed/60;
+    if(run.obstacle.y>H+40) run.obstacle=null;
   }
   if(run.heart){
-    run.heart.y += (v*dt) * 0.95;
-    if(run.heart.y > H+60){
-      run.heart = null;
-    }
+    run.heart.y+=run.speed/70;
+    if(run.heart.y>H+40) run.heart=null;
   }
 
-  // DODGE + COMBO + NEAR MISS
-  if(run.obstacle && !run.obstacle.passed && run.obstacle.y > player.y){
-    run.obstacle.passed = true;
-    run.combo = Math.min(9, run.combo + 1);
-    addQuestProgress("dodges8", 1);
-
-    toast(`Kaçış! 🔥 x${run.combo}`, 650);
-    playSfx(720, "triangle", 0.07, 0.10);
-
-    // near-miss: aynı lane ve çok yakın geçtiyse
-    const pr = playerRect();
-    const o = run.obstacle;
-    const ox = o.x - o.w/2;
-    const oy = o.y - o.h/2;
-    const near = (o.lane === player.lane) && Math.abs((oy + o.h) - pr.y) < 18;
-    if(near){
-      const bonus = 2 + Math.floor(run.combo/2);
-      run.coins += bonus;
-      toast(`Near-miss +${bonus} 💰`, 750);
-      playSfx(980, "square", 0.06, 0.10);
-    }
-  }
-
-  // collisions
-  const pr = playerRect();
-
-  // heart collect (combo artmıyor!)
-  if(run.heart){
-    const cx = run.heart.x, cy = run.heart.y, r = run.heart.r;
-    const hit = (cx > pr.x-r && cx < pr.x+pr.w+r && cy > pr.y-r && cy < pr.y+pr.h+r);
-    if(hit){
-      run.coins += run.combo; // combo sadece çarpan
-      addQuestProgress("hearts20", 1);
-
-      playSfx(1050,"triangle",0.08,0.13);
-      player.glow = 1;
-      spawnSpark();
-      run.heart = null;
-    }
-  }
-
-  // obstacle collision
+  // draw obstacle
   if(run.obstacle){
     const o=run.obstacle;
-    const ox = o.x - o.w/2;
-    const oy = o.y - o.h/2;
-    if(collideRect(pr.x, pr.y, pr.w, pr.h, ox, oy, o.w, o.h)){
+    const x=laneX(o.lane);
+    ctx.fillStyle="rgba(255,80,120,.6)";
+    ctx.fillRect(x-o.w/2,o.y,o.w,o.h);
+
+    // collision
+    if(!run.zen &&
+       Math.abs(x-player.x)<40 &&
+       Math.abs(o.y-player.y)<30){
       gameOver();
       return;
     }
+
+    // dodge -> flow
+    if(o.y>player.y && !o.passed){
+      o.passed=true;
+      run.flow=Math.min(100, run.flow+8);
+    }
   }
 
-  player.glow = Math.max(0, player.glow - dt*2);
+  // draw heart (FIXED HITBOX)
+  if(run.heart){
+    const h=run.heart;
+    const x=laneX(h.lane);
+    ctx.fillStyle=varColor(run.flow);
+    ctx.beginPath();
+    ctx.arc(x,h.y,h.r,0,7);
+    ctx.fill();
 
-  // draw
-  drawBackground(dt);
-  if(run.obstacle) drawObstacle(run.obstacle, now/1000);
-  if(run.heart) drawHeart(run.heart.x, run.heart.y, run.heart.r, "#ff4fa3");
-  drawCanan();
-  drawFx(dt);
+    if(Math.abs(x-player.x)<30 &&
+       Math.abs(h.y-player.y)<30){
+      run.hearts++;
+      run.flow=Math.min(100, run.flow+5);
+      toast("+1 💖");
+      run.heart=null;
+    }
+  }
 
-  updateHud();
-  rafId = requestAnimationFrame(loop);
+  // player
+  player.x+= (laneX(player.lane)-player.x)*.25;
+  ctx.fillStyle=varColor(run.flow);
+  ctx.fillRect(player.x-25,player.y-60,50,60);
+
+  // HUD
+  document.getElementById("hudHeart").textContent=run.hearts;
+  document.getElementById("hudFlow").textContent=Math.floor(run.flow)+"%";
+
+  requestAnimationFrame(loop);
 }
 
-/* ---------- CONTROLS (only left/right) ---------- */
-function control(dir){
-  if(!run?.active) return;
-  if(dir==="L" && player.lane>0){ player.lane--; spawnTrail(); playSfx(360,"sine",0.05,0.10); }
-  if(dir==="R" && player.lane<2){ player.lane++; spawnTrail(); playSfx(420,"sine",0.05,0.10); }
-}
-window.addEventListener("keydown", e=>{
-  if(e.key==="ArrowLeft") control("L");
-  if(e.key==="ArrowRight") control("R");
-  if(e.key==="Escape") togglePause();
-});
-
-let tx=0, ty=0;
-canvas.addEventListener("pointerdown", e=>{
-  tx=e.clientX; ty=e.clientY;
-  unlockAudio(); startMusic();
-}, {passive:true});
-canvas.addEventListener("pointerup", e=>{
-  const dx=e.clientX-tx, dy=e.clientY-ty;
-  if(Math.abs(dx) > Math.abs(dy)){
-    if(Math.abs(dx) > 18) control(dx>0 ? "R":"L");
-  }else{
-    // dikey swipe = pause
-    if(Math.abs(dy) > 22) togglePause();
-  }
-}, {passive:true});
-
-/* ---------- SETTINGS / PATCH / MENU ---------- */
-function updateSettingsTexts(){
-  document.getElementById("togMusic").textContent = "MÜZİK: " + (state.sett.music ? "AÇIK" : "KAPALI");
-  document.getElementById("togSfx").textContent = "SFX: " + (state.sett.sfx ? "AÇIK" : "KAPALI");
-  document.getElementById("btnNextTrack").textContent = "MÜZİK: " + TRACKS[state.sett.track].name;
-  document.getElementById("musicUrl").value = state.sett.customUrl || "";
+/* ================= GAME OVER ================= */
+function gameOver(){
+  run.active=false;
+  document.getElementById("uiOver").classList.remove("hidden");
+  document.getElementById("overText").innerHTML=
+    `Toplanan Kalp: 💖 ${run.hearts}<br>Flow: ${Math.floor(run.flow)}%`;
 }
 
-document.getElementById("btnStart").onclick = resetRun;
-document.getElementById("btnRetry").onclick = resetRun;
-document.getElementById("btnMenu").onclick = () => location.reload();
+/* ================= COLOR BY FLOW ================= */
+function varColor(f){
+  return `hsl(${180+f},80%,60%)`;
+}
 
-document.getElementById("btnDaily").onclick = () => { unlockAudio(); claimDaily(); };
-document.getElementById("btnShop").onclick = () => { showOnly("uiShop"); renderShop(); };
-document.getElementById("btnSettings").onclick = () => { showOnly("uiSettings"); updateSettingsTexts(); };
-document.getElementById("btnPatch").onclick = () => showOnly("uiPatch");
-
-document.getElementById("btnBackShop").onclick = () => showOnly("uiMenu");
-document.getElementById("btnBackSettings").onclick = () => showOnly("uiMenu");
-document.getElementById("btnBackPatch").onclick = () => showOnly("uiMenu");
-
-document.getElementById("togMusic").onclick = function(){
-  unlockAudio();
-  state.sett.music = !state.sett.music;
-  save();
-  refreshAudio();
-  updateSettingsTexts();
+/* ================= INPUT ================= */
+window.onkeydown=e=>{
+  if(e.key==="ArrowLeft"&&player.lane>0)player.lane--;
+  if(e.key==="ArrowRight"&&player.lane<2)player.lane++;
 };
 
-document.getElementById("togSfx").onclick = function(){
-  unlockAudio();
-  state.sett.sfx = !state.sett.sfx;
-  save();
-  playSfx(520,"sine",0.06,0.10);
-  updateSettingsTexts();
-};
-
-document.getElementById("btnNextTrack").onclick = function(){
-  unlockAudio();
-  // custom URL varsa kapat ve procedural’a dön
-  if(state.sett.customUrl){
-    state.sett.customUrl = "";
-    save();
-    toast("Özel URL kapatıldı → Procedural 🎛️", 1100);
-  }
-  const next = (state.sett.track + 1) % TRACKS.length;
-  switchTrackFade(next);
-  toast("Müzik değişti 🎧", 900);
-  playSfx(760,"triangle",0.08,0.10);
-  updateSettingsTexts();
-};
-
-document.getElementById("btnAudioUnlock").onclick = async () => {
-  await unlockAudio();
-  startMusic();
-  toast("Ses aktif ✅", 900);
-};
-
-document.getElementById("btnUseUrl").onclick = async () => {
-  await unlockAudio();
-  const url = document.getElementById("musicUrl").value.trim();
-  if(!url){
-    toast("URL boş 😅", 900);
-    return;
-  }
-  // YouTube linklerini kabul etme
-  if(/youtube\.com|youtu\.be/i.test(url)){
-    toast("YouTube linki olmaz. Direkt mp3/ogg lazım.", 1400);
-    playSfx(180,"square",0.12,0.10);
-    return;
-  }
-  state.sett.customUrl = url;
-  save();
-  stopMusic();
-  const ok = startCustomUrlMusic(url);
-  if(ok){
-    toast("Özel müzik aktif 🎵", 900);
-  }else{
-    toast("Bu URL çalmadı. Direkt mp3/ogg olmalı.", 1400);
+let sx=0;
+c.ontouchstart=e=>sx=e.touches[0].clientX;
+c.ontouchend=e=>{
+  const dx=e.changedTouches[0].clientX-sx;
+  if(Math.abs(dx)>30){
+    if(dx>0&&player.lane<2)player.lane++;
+    if(dx<0&&player.lane>0)player.lane--;
   }
 };
 
-document.getElementById("btnReset").onclick = () => {
-  if(confirm("Tüm veriler silinsin mi?")){
-    localStorage.removeItem(LS_KEY);
-    location.reload();
-  }
-};
-
-document.getElementById("hudPause").onclick = () => togglePause();
-
-/* ---------- INIT ---------- */
-(function init(){
-  resetDailyQuestsIfNeeded();
-  updateMenuStats();
-  updateSettingsTexts();
-  drawBackground(0);
-  drawCanan();
-
-  document.getElementById("audioHint").classList.add("show");
-})();
+/* ================= BUTTONS ================= */
+btnStart.onclick=()=>resetRun(false);
+btnZen.onclick=()=>resetRun(true);
 </script>
 </body>
 </html>
