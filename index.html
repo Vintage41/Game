@@ -3,69 +3,130 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Kalp Yolu: Robot Runner v5</title>
+  <title>Kalp Yolu - Efsane Güncelleme</title>
   <style>
     :root { color-scheme: dark; }
-    html, body { margin:0; height:100%; background:#05070a; font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; }
+    html, body { margin:0; height:100%; background:#070a12; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; overflow: hidden; }
     #wrap { height:100%; display:flex; align-items:center; justify-content:center; }
     canvas {
-      width: min(100vw, 500px);
-      height: min(100vh, 850px);
-      border-radius: 20px;
-      box-shadow: 0 20px 80px rgba(0,0,0,0.8);
-      background: #000;
+      width: min(100vw, 520px);
+      height: min(100vh, 900px);
+      border-radius: 18px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+      background: radial-gradient(1200px 900px at 50% 18%, #1a2a47 0%, #0b1020 55%, #070a12 100%);
       touch-action: none;
       display:block;
     }
-    .ui { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; color:#fff; text-align:center; z-index:10; }
-    .ui > div { pointer-events:auto; background:rgba(10,20,35,0.9); padding:40px; border-radius:30px; width:300px; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); }
-    h1 { margin:0 0 20px; font-size:32px; letter-spacing:4px; color: #00d4ff; text-shadow: 0 0 15px #00d4ff; }
-    button { 
-      display:block; width:100%; padding:16px; margin:12px 0; border:none; border-radius:15px; 
-      background:#00d4ff; color:#000; font-weight:bold; cursor:pointer; font-size:18px; transition: 0.3s;
+
+    /* SENİN ORİJİNAL UI TASARIMIN */
+    .ui { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:10; }
+    .ui-panel {
+      pointer-events:auto; background: rgba(15,22,38, 0.94);
+      padding:28px; border-radius:24px; width:310px; text-align:center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px); color:#fff;
     }
-    button:hover { filter: brightness(1.2); transform: translateY(-2px); }
-    .stats { font-size:16px; opacity:0.9; margin-bottom:25px; line-height:1.8; }
     .hidden { display:none !important; }
-    #powerup-ui { position:absolute; top:100px; right:20px; text-align:right; font-weight:bold; color:#00d4ff; text-shadow: 0 0 5px #000; }
+    h1 { margin:0 0 10px; font-size:26px; letter-spacing:3px; color:#00d4ff; text-transform:uppercase; }
+    .stats-line { font-size:14px; opacity:0.7; margin-bottom:20px; line-height:1.5; }
+    
+    button {
+      display:block; width:100%; padding:15px; margin:10px 0; border:none; border-radius:14px;
+      font-weight:bold; font-size:15px; cursor:pointer; transition: 0.2s; background:#00d4ff; color:#000;
+    }
+    button:active { transform: scale(0.96); }
+    .btn-secondary { background: rgba(255,255,255,0.1); color:#fff; }
+    .btn-accent { background: #ff007b; color:#fff; }
+
+    /* MARKET VE AYARLAR LİSTESİ */
+    .scroll-area { max-height: 300px; overflow-y: auto; margin: 15px 0; padding-right: 5px; }
+    .item-card { 
+      background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center; text-align: left;
+    }
+    .item-info b { display: block; font-size: 14px; }
+    .item-info span { font-size: 11px; opacity: 0.6; }
+    
+    #powerup-status { position: absolute; top: 120px; right: 20px; text-align: right; pointer-events: none; }
+    .p-tag { background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 8px; margin-bottom: 4px; font-size: 12px; font-weight: bold; color: #00d4ff; }
   </style>
 </head>
 <body>
+
 <div id="wrap"><canvas id="c"></canvas></div>
-<div id="powerup-ui"></div>
+
+<div id="powerup-status"></div>
 
 <div id="uiMenu" class="ui">
-  <div>
+  <div class="ui-panel">
     <h1>KALP YOLU</h1>
-    <div id="menuStats" class="stats"></div>
+    <div id="menuStats" class="stats-line"></div>
     <button id="btnStart">OYUNU BAŞLAT</button>
-    <button id="btnShop" style="background:#ff007b; color:white;">MARKET (YAKINDA)</button>
+    <button id="btnShop" class="btn-secondary">MARKET</button>
+    <button id="btnSettings" class="btn-secondary">AYARLAR</button>
+    <button id="btnPatch" class="btn-secondary">YAMA NOTLARI</button>
+  </div>
+</div>
+
+<div id="uiShop" class="ui hidden">
+  <div class="ui-panel">
+    <h1>MARKET</h1>
+    <div id="shopCoins" style="color:#ffd700; margin-bottom:10px; font-weight:bold;"></div>
+    <div class="scroll-area" id="shopList"></div>
+    <button id="btnBackShop" class="btn-secondary">GERİ DÖN</button>
+  </div>
+</div>
+
+<div id="uiSettings" class="ui hidden">
+  <div class="ui-panel">
+    <h1>AYARLAR</h1>
+    <button id="btnToggleMusic">MÜZİK: AÇIK</button>
+    <button id="btnToggleSfx">SES EFEKTLERİ: AÇIK</button>
+    <button id="btnResetData" style="background:#ff4444; color:white;">VERİLERİ SIFIRLA</button>
+    <button id="btnBackSettings" class="btn-secondary">GERİ DÖN</button>
   </div>
 </div>
 
 <div id="uiOver" class="ui hidden">
-  <div>
-    <h1 style="color:#ff4444;">GAME OVER</h1>
-    <div id="overStats" class="stats"></div>
-    <button id="btnRetry">YENİDEN DENE</button>
-    <button id="btnMenu">MENÜYE DÖN</button>
+  <div class="ui-panel">
+    <h1 style="color:#ff4444;">EYVAH!</h1>
+    <div id="overStats" class="stats-line"></div>
+    <button id="btnRetry">TEKRAR DENE</button>
+    <button id="btnBackMenu" class="btn-secondary">ANA MENÜ</button>
   </div>
 </div>
 
 <script>
-/** 1. AYARLAR VE VERİLER **/
+/** 1. VERİ VE SİSTEM YAPISI (ORİJİNAL) **/
 const SKINS = {
-  classic: { body: "#00d4ff", accent: "#ffffff" },
-  neon: { body: "#39ff14", accent: "#fff" },
-  sunset: { body: "#ff8c00", accent: "#ff007b" }
+  classic: { name: "Klasik", body: "#00d4ff", accent: "#ffffff", cost: 0 },
+  neon: { name: "Neon", body: "#39ff14", accent: "#ffffff", cost: 150 },
+  sunset: { name: "Sunset", body: "#ff8c00", accent: "#ff007b", cost: 300 },
+  noir: { name: "Noir", body: "#444444", accent: "#00ffff", cost: 500 }
 };
 
-let state = JSON.parse(localStorage.getItem("kalp_yolu_v5")) || { coins: 0, high: 0, skin: "classic" };
-function save() { localStorage.setItem("kalp_yolu_v5", JSON.stringify(state)); }
+const POWERS = {
+  shield: { name: "Kalkan", icon: "🛡️", desc: "Engellerden korur" },
+  magnet: { name: "Mıknatıs", icon: "🧲", desc: "Paraları çeker" },
+  boost: { name: "Hız", icon: "⚡", desc: "Ölümsüz hız" }
+};
 
-/** 2. SES SİSTEMİ **/
+const defaults = {
+  coins: 0, high: 0, 
+  selectedSkin: "classic", 
+  ownedSkins: ["classic"],
+  settings: { music: true, sfx: true }
+};
+
+let state = JSON.parse(localStorage.getItem("kalp_yolu_v5_full")) || JSON.parse(JSON.stringify(defaults));
+function save() { localStorage.setItem("kalp_yolu_v5_full", JSON.stringify(state)); }
+
+/** 2. GELİŞMİŞ SES MOTORU **/
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playSfx(f, type='sine', d=0.2, v=0.1) {
+let musicNode = null;
+
+function playSound(f, type='sine', d=0.2, v=0.1) {
+  if(!state.settings.sfx) return;
   const o = audioCtx.createOscillator();
   const g = audioCtx.createGain();
   o.type = type; o.frequency.setValueAtTime(f, audioCtx.currentTime);
@@ -75,246 +136,293 @@ function playSfx(f, type='sine', d=0.2, v=0.1) {
   o.start(); o.stop(audioCtx.currentTime + d);
 }
 
-const sfx = {
-  coin: () => playSfx(1000, 'sine', 0.1),
-  hit: () => playSfx(150, 'sawtooth', 0.5, 0.2),
-  jump: () => playSfx(400, 'triangle', 0.2),
-  power: () => playSfx(800, 'square', 0.3, 0.05)
-};
+function startMusic() {
+  if(!state.settings.music) return;
+  if(musicNode) stopMusic();
+  musicNode = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  const notes = [261.63, 293.66, 329.63, 349.23, 392.00];
+  musicNode.frequency.setValueAtTime(notes[Math.floor(Math.random()*notes.length)], audioCtx.currentTime);
+  musicNode.type = 'triangle'; g.gain.setValueAtTime(0.02, audioCtx.currentTime);
+  musicNode.connect(g); g.connect(audioCtx.destination);
+  musicNode.start();
+}
+function stopMusic() { if(musicNode) { try{musicNode.stop();}catch(e){} musicNode=null; } }
 
-/** 3. OYUN MOTORU **/
+/** 3. OYUN MOTORU VE GRAFİKLER **/
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
 let W, H, run = null;
 const particles = [];
 const trail = [];
-const stars = Array.from({length: 50}, () => ({x: Math.random(), y: Math.random(), s: Math.random()}));
 
-function resize() { W = canvas.width = canvas.offsetWidth; H = canvas.height = canvas.offsetHeight; }
+function resize() {
+  W = canvas.width = canvas.offsetWidth;
+  H = canvas.height = canvas.offsetHeight;
+}
 window.onresize = resize; resize();
 
-const player = { lane: 1, x: 0, jumpT: 0, slideT: 0, shield: 0, magnet: 0, boost: 0 };
+const player = { lane: 1, x: 0, jumpT: 0, slideT: 0, powers: { shield:0, magnet:0, boost:0 } };
 
 function resetRun() {
+  stopMusic(); startMusic();
   run = {
-    active: true, score: 0, coins: 0, speed: 0.15,
+    active: true, score: 0, coins: 0, speed: 0.16,
     objects: [], nextObjZ: 10, shake: 0
   };
   player.lane = 1; player.x = W/2;
-  player.shield = 0; player.magnet = 0; player.boost = 0;
+  player.powers = { shield:0, magnet:0, boost:0 };
   trail.length = 0;
 }
 
 function getPos(lane, z) {
   const p = 1 / (z + 1);
-  const x = W/2 + (lane - 1) * (W * 0.3) * p;
-  const y = H * 0.7 - (z * 15 * p);
+  const x = W/2 + (lane - 1) * (W * 0.35) * p;
+  const y = H * 0.75 - (z * 18 * p);
   return { x, y, s: p };
 }
 
-/** 4. ÇİZİM VE EFEKTLER **/
 function spawnParticle(x, y, color) {
-  for(let i=0; i<6; i++) particles.push({x, y, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, life:1, color});
+  for(let i=0; i<5; i++) particles.push({x, y, vx:(Math.random()-0.5)*8, vy:(Math.random()-0.5)*8, life:1, color});
 }
 
-function drawBackground() {
-  // Yıldızlar
-  ctx.fillStyle = "#fff";
-  stars.forEach(s => {
-    s.y += run.speed * 0.1; if(s.y > 1) s.y = 0;
-    ctx.globalAlpha = s.s;
-    ctx.beginPath(); ctx.arc(s.x * W, s.y * H, 1.5, 0, 7); ctx.fill();
-  });
-  ctx.globalAlpha = 1;
+/** 4. ÇİZİM FONKSİYONLARI **/
+function drawWorld() {
+  ctx.fillStyle = "#070a12"; ctx.fillRect(0,0,W,H);
+  
+  // Yol çizimi
+  ctx.fillStyle = "#111827";
+  ctx.beginPath();
+  ctx.moveTo(W*0.05, H); ctx.lineTo(W*0.4, H*0.4);
+  ctx.lineTo(W*0.6, H*0.4); ctx.lineTo(W*0.95, H);
+  ctx.fill();
 
-  // Neon Sütunlar (Derinlik hissi için)
-  for(let i=0; i<10; i++) {
-    const z = (i * 10 - (run.score % 10));
-    const pLeft = getPos(-0.5, z);
-    const pRight = getPos(2.5, z);
-    ctx.fillStyle = `hsla(${run.score % 360}, 70%, 50%, ${1 - z/50})`;
-    ctx.fillRect(pLeft.x - 2, pLeft.y - 100 * pLeft.s, 4, 100 * pLeft.s);
-    ctx.fillRect(pRight.x - 2, pRight.y - 100 * pRight.s, 4, 100 * pRight.s);
-  }
+  // Şerit çizgileri
+  ctx.strokeStyle = "rgba(255,255,255,0.05)";
+  ctx.lineWidth = 2;
+  [0.33, 0.66].forEach(f => {
+    ctx.beginPath(); ctx.moveTo(W*f, H); ctx.lineTo(W/2 + (f-0.5)*0.2*W, H*0.4); ctx.stroke();
+  });
 }
 
 function drawPlayer() {
-  const skin = SKINS[state.skin];
+  const skin = SKINS[state.selectedSkin];
   const targetX = getPos(player.lane, 0).x;
-  player.x += (targetX - player.x) * 0.2;
+  player.x += (targetX - player.x) * 0.25;
 
   let jumpY = 0;
-  if(player.jumpT > 0) { jumpY = -Math.sin((1 - player.jumpT/0.6) * Math.PI) * 100; player.jumpT -= 0.016; }
+  if(player.jumpT > 0) {
+    jumpY = -Math.sin((1 - player.jumpT/0.6) * Math.PI) * 110;
+    player.jumpT -= 0.016;
+  }
   if(player.slideT > 0) player.slideT -= 0.016;
 
-  // Trail (İz)
-  trail.push({x: player.x, y: H * 0.85 + jumpY});
-  if(trail.length > 10) trail.shift();
-  trail.forEach((t, i) => {
-    ctx.globalAlpha = i / 20;
-    ctx.fillStyle = player.boost > 0 ? `hsl(${Date.now()%360}, 100%, 50%)` : skin.body;
-    ctx.beginPath(); ctx.roundRect(t.x-15, t.y-30, 30, 40, 5); ctx.fill();
-  });
-  ctx.globalAlpha = 1;
-
-  // Robot
+  // Robot karakter tasarımı
   ctx.save();
-  ctx.translate(player.x, H * 0.85 + jumpY);
-  if(player.shake > 0) { ctx.translate((Math.random()-0.5)*10, 0); player.shake--; }
+  ctx.translate(player.x, H * 0.88 + jumpY);
+  if(run.shake > 0) { ctx.translate((Math.random()-0.5)*10, 0); run.shake--; }
 
-  const w = player.slideT > 0 ? 50 : 40;
-  const h = player.slideT > 0 ? 30 : 60;
-  
-  // Kalkan Efekti
-  if(player.shield > 0) {
-    ctx.strokeStyle = "#00d4ff"; ctx.lineWidth = 3; ctx.beginPath();
-    ctx.arc(0, -h/2, 50, 0, 7); ctx.stroke();
+  const w = player.slideT > 0 ? 55 : 45;
+  const h = player.slideT > 0 ? 35 : 65;
+
+  if(player.powers.shield > 0) {
+    ctx.strokeStyle = "#00d4ff"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(0, -h/2, 55, 0, 7); ctx.stroke();
   }
 
-  ctx.fillStyle = player.boost > 0 ? `hsl(${Date.now()%360}, 100%, 50%)` : skin.body;
-  ctx.beginPath(); ctx.roundRect(-w/2, -h, w, h, 10); ctx.fill();
+  ctx.fillStyle = player.powers.boost > 0 ? `hsl(${Date.now()%360}, 80%, 50%)` : skin.body;
+  ctx.beginPath(); ctx.roundRect(-w/2, -h, w, h, 12); ctx.fill();
   
-  // Göz/Vizör
-  ctx.fillStyle = "#000"; ctx.fillRect(-w/2+5, -h+10, w-10, 15);
-  ctx.fillStyle = skin.accent; ctx.fillRect(-w/2+10, -h+15, w-20, 3);
+  // Vizör
+  ctx.fillStyle = "#000"; ctx.fillRect(-w/2+6, -h+12, w-12, 18);
+  ctx.fillStyle = skin.accent; ctx.fillRect(-w/2+12, -h+18, w-24, 4);
   
   ctx.restore();
 }
 
-/** 5. ANA DÖNGÜ **/
+/** 5. ANA OYUN DÖNGÜSÜ **/
 function loop() {
   if(!run || !run.active) return;
-  
-  ctx.fillStyle = "#05070a"; ctx.fillRect(0,0,W,H);
-  drawBackground();
+
+  drawWorld();
 
   run.score += run.speed;
-  run.speed += 0.00005;
+  run.speed += 0.00004;
 
-  // Güçlendirici süreleri
-  if(player.shield > 0) player.shield -= 0.016;
-  if(player.magnet > 0) player.magnet -= 0.016;
-  if(player.boost > 0) { player.boost -= 0.016; run.speed += 0.002; }
+  // Güçlendirici Mantığı
+  let statusHTML = "";
+  for(let p in player.powers) {
+    if(player.powers[p] > 0) {
+      player.powers[p] -= 0.016;
+      statusHTML += `<div class="p-tag">${POWERS[p].icon} ${p.toUpperCase()}: ${player.powers[p].toFixed(1)}s</div>`;
+      if(p === "boost") run.speed += 0.005;
+    }
+  }
+  document.getElementById("powerup-status").innerHTML = statusHTML;
 
-  // UI Güncelleme
-  document.getElementById("powerup-ui").innerHTML = 
-    (player.shield > 0 ? `🛡️ KALKAN: ${player.shield.toFixed(1)}s<br>` : "") +
-    (player.magnet > 0 ? `🧲 MIKNATIS: ${player.magnet.toFixed(1)}s<br>` : "") +
-    (player.boost > 0 ? `⚡ BOOST: ${player.boost.toFixed(1)}s` : "");
-
-  // Nesne Üretimi
+  // Nesne Üretimi (Dengeli)
   run.nextObjZ -= run.speed;
   if(run.nextObjZ <= 0) {
     const lane = Math.floor(Math.random()*3);
     const r = Math.random();
     let type = "coin";
-    if(r < 0.3) type = "spike";
-    else if(r < 0.45) type = "bar";
-    else if(r < 0.5) type = ["shield","magnet","boost"][Math.floor(Math.random()*3)];
+    if(r < 0.25) type = "spike";
+    else if(r < 0.40) type = "bar";
+    else if(r < 0.46) type = Object.keys(POWERS)[Math.floor(Math.random()*3)];
     
     run.objects.push({type, lane, z: 50});
-    run.nextObjZ = 5 + Math.random()*10;
+    run.nextObjZ = 6 + Math.random()*8;
   }
 
-  // Hareket ve Çarpışma
+  // Nesne Güncelleme
   run.objects.forEach((obj, i) => {
     obj.z -= run.speed;
     
-    // Mıknatıs etkisi
-    if(player.magnet > 0 && obj.type === "coin" && obj.z < 15) {
-      obj.lane += (player.lane - obj.lane) * 0.1;
+    // Mıknatıs
+    if(player.powers.magnet > 0 && obj.type === "coin" && obj.z < 15) {
+      obj.lane += (player.lane - obj.lane) * 0.15;
     }
 
     const p = getPos(obj.lane, obj.z);
-    
-    // Çizim
+    if(obj.z < 0 || obj.z > 50) return;
+
+    // Nesne Çizimi
     if(obj.type === "coin") {
       ctx.fillStyle = "#ffd700"; ctx.beginPath(); ctx.arc(p.x, p.y-20, 15*p.s, 0, 7); ctx.fill();
     } else if(obj.type === "spike") {
-      ctx.fillStyle = "#ff4444"; ctx.beginPath(); 
-      ctx.moveTo(p.x-20*p.s, p.y); ctx.lineTo(p.x, p.y-50*p.s); ctx.lineTo(p.x+20*p.s, p.y); ctx.fill();
+      ctx.fillStyle = "#ff4444"; ctx.beginPath(); ctx.moveTo(p.x-25*p.s, p.y); ctx.lineTo(p.x, p.y-55*p.s); ctx.lineTo(p.x+25*p.s, p.y); ctx.fill();
     } else if(obj.type === "bar") {
-      ctx.fillStyle = "#ffaa00"; ctx.fillRect(p.x-40*p.s, p.y-80*p.s, 80*p.s, 15*p.s);
-    } else { // Güçlendiriciler
-      ctx.fillStyle = "#00d4ff"; ctx.font = "20px Arial"; ctx.fillText(obj.type === "shield" ? "🛡️" : obj.type === "magnet" ? "🧲" : "⚡", p.x-10, p.y-20);
+      ctx.fillStyle = "#ffaa00"; ctx.fillRect(p.x-45*p.s, p.y-90*p.s, 90*p.s, 15*p.s);
+    } else if(POWERS[obj.type]) {
+      ctx.fillStyle = "#fff"; ctx.font = `${20*p.s}px Arial`; ctx.fillText(POWERS[obj.type].icon, p.x-10, p.y-25);
     }
 
-    // Çarpışma
-    if(obj.z > 0 && obj.z < 1.5 && Math.abs(obj.lane - player.lane) < 0.5) {
+    // Çarpışma Testi
+    if(obj.z > 0 && obj.z < 1.4 && Math.abs(obj.lane - player.lane) < 0.4) {
       if(obj.type === "coin") {
-        run.coins++; state.coins++; sfx.coin(); spawnParticle(p.x, p.y-20, "#ffd700"); run.objects.splice(i,1);
-      } else if(["shield","magnet","boost"].includes(obj.type)) {
-        player[obj.type] = 10; sfx.power(); run.objects.splice(i,1);
-      } else if(player.boost <= 0) { // Engel çarpışması
-        if(obj.type === "spike" && player.jumpT <= 0) {
-          if(player.shield > 0) { player.shield = 0; run.objects.splice(i,1); run.shake=10; } 
-          else gameOver();
-        } else if(obj.type === "bar" && player.slideT <= 0) {
-          if(player.shield > 0) { player.shield = 0; run.objects.splice(i,1); run.shake=10; }
+        run.coins++; state.coins++; playSound(800, 'sine', 0.1); spawnParticle(p.x, p.y-20, "#ffd700"); run.objects.splice(i,1);
+      } else if(POWERS[obj.type]) {
+        player.powers[obj.type] = 8; playSound(600, 'square', 0.3); run.objects.splice(i,1);
+      } else if(player.powers.boost <= 0) {
+        if((obj.type === "spike" && player.jumpT <= 0) || (obj.type === "bar" && player.slideT <= 0)) {
+          if(player.powers.shield > 0) { player.powers.shield = 0; run.shake = 10; run.objects.splice(i,1); }
           else gameOver();
         }
       }
     }
   });
 
-  // Parçacıkları Güncelle
+  // Parçacıklar
   particles.forEach((p, i) => {
     p.x += p.vx; p.y += p.vy; p.life -= 0.02;
-    ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
-    ctx.fillRect(p.x, p.y, 4, 4);
+    ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 4, 4);
     if(p.life <= 0) particles.splice(i,1);
   });
   ctx.globalAlpha = 1;
 
-  run.objects = run.objects.filter(o => o.z > -2);
+  run.objects = run.objects.filter(o => o.z > -1);
   drawPlayer();
   
-  ctx.fillStyle = "#fff"; ctx.font = "bold 24px Arial";
-  ctx.fillText(`${Math.floor(run.score)}m`, W - 80, 40);
+  // Skor
+  ctx.fillStyle = "#fff"; ctx.font = "bold 20px Arial";
+  ctx.fillText(`${Math.floor(run.score)}m`, W-80, 40);
   ctx.fillStyle = "#ffd700"; ctx.fillText(`💰 ${run.coins}`, 20, 40);
 
   requestAnimationFrame(loop);
 }
 
 function gameOver() {
-  run.active = false; sfx.hit();
+  run.active = false; stopMusic(); playSound(100, 'sawtooth', 0.5, 0.3);
   if(run.score > state.high) state.high = Math.floor(run.score);
   save();
   document.getElementById("overStats").innerHTML = `Skor: ${Math.floor(run.score)}m<br>Para: ${run.coins}<br>Rekor: ${state.high}m`;
   document.getElementById("uiOver").classList.remove("hidden");
 }
 
-/** 6. KONTROLLER **/
-const handleInput = (dir) => {
+/** 6. UI VE KONTROLLER (ORİJİNAL MANTIK) **/
+function refreshUI() {
+  document.getElementById("menuStats").innerHTML = `Rekor: ${state.high}m<br>Cüzdan: ${state.coins} Para`;
+  document.getElementById("btnToggleMusic").innerHTML = `MÜZİK: ${state.settings.music ? "AÇIK" : "KAPALI"}`;
+  document.getElementById("btnToggleSfx").innerHTML = `EFEKTLER: ${state.settings.sfx ? "AÇIK" : "KAPALI"}`;
+}
+
+function renderShop() {
+  const list = document.getElementById("shopList");
+  list.innerHTML = "";
+  document.getElementById("shopCoins").innerText = "Bakiye: " + state.coins + " Para";
+  
+  for(let id in SKINS) {
+    const s = SKINS[id];
+    const isOwned = state.ownedSkins.includes(id);
+    const isSelected = state.selectedSkin === id;
+    
+    const div = document.createElement("div");
+    div.className = "item-card";
+    div.innerHTML = `
+      <div class="item-info">
+        <b style="color:${s.body}">${s.name} ${isSelected ? "(Seçili)" : ""}</b>
+        <span>${isOwned ? "Sahipsin" : s.cost + " Para"}</span>
+      </div>
+      <button style="width:80px; padding:8px; margin:0; font-size:12px;" 
+        onclick="buySkin('${id}')">${isOwned ? (isSelected ? "Seçili" : "Seç") : "Al"}</button>
+    `;
+    list.appendChild(div);
+  }
+}
+
+window.buySkin = (id) => {
+  if(state.ownedSkins.includes(id)) {
+    state.selectedSkin = id;
+  } else if(state.coins >= SKINS[id].cost) {
+    state.coins -= SKINS[id].cost;
+    state.ownedSkins.push(id);
+    state.selectedSkin = id;
+    playSound(400, 'sine', 0.2);
+  } else {
+    alert("Yetersiz para!");
+  }
+  save(); renderShop(); refreshUI();
+};
+
+// Kontroller
+const move = (dir) => {
   if(!run?.active) return;
   if(dir === "left" && player.lane > 0) player.lane--;
   if(dir === "right" && player.lane < 2) player.lane++;
-  if(dir === "up" && player.jumpT <= 0) { player.jumpT = 0.6; sfx.jump(); }
+  if(dir === "up" && player.jumpT <= 0) { player.jumpT = 0.6; playSound(400, 'triangle', 0.2); }
   if(dir === "down") player.slideT = 0.6;
 };
 
-window.onkeydown = (e) => {
-  if(e.key === "ArrowLeft") handleInput("left");
-  if(e.key === "ArrowRight") handleInput("right");
-  if(e.key === "ArrowUp") handleInput("up");
-  if(e.key === "ArrowDown") handleInput("down");
+window.onkeydown = e => {
+  if(e.key === "ArrowLeft") move("left");
+  if(e.key === "ArrowRight") move("right");
+  if(e.key === "ArrowUp") move("up");
+  if(e.key === "ArrowDown") move("down");
 };
 
-// Dokunmatik (Swipe)
-let touchY = 0, touchX = 0;
-canvas.ontouchstart = e => { touchY = e.touches[0].clientY; touchX = e.touches[0].clientX; };
+// Touch/Swipe
+let tx, ty;
+canvas.ontouchstart = e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; };
 canvas.ontouchend = e => {
-  const dy = e.changedTouches[0].clientY - touchY;
-  const dx = e.changedTouches[0].clientX - touchX;
-  if(Math.abs(dx) > Math.abs(dy)) handleInput(dx > 0 ? "right" : "left");
-  else handleInput(dy > 0 ? "down" : "up");
+  const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+  if(Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? "right" : "left");
+  else move(dy > 0 ? "down" : "up");
 };
 
+// Buton Atamaları
 document.getElementById("btnStart").onclick = () => { document.getElementById("uiMenu").classList.add("hidden"); resetRun(); loop(); };
+document.getElementById("btnShop").onclick = () => { document.getElementById("uiMenu").classList.add("hidden"); document.getElementById("uiShop").classList.remove("hidden"); renderShop(); };
+document.getElementById("btnBackShop").onclick = () => { document.getElementById("uiShop").classList.add("hidden"); document.getElementById("uiMenu").classList.remove("hidden"); refreshUI(); };
+document.getElementById("btnSettings").onclick = () => { document.getElementById("uiMenu").classList.add("hidden"); document.getElementById("uiSettings").classList.remove("hidden"); };
+document.getElementById("btnBackSettings").onclick = () => { document.getElementById("uiSettings").classList.add("hidden"); document.getElementById("uiMenu").classList.remove("hidden"); refreshUI(); };
+document.getElementById("btnToggleMusic").onclick = () => { state.settings.music = !state.settings.music; save(); refreshUI(); };
+document.getElementById("btnToggleSfx").onclick = () => { state.settings.sfx = !state.settings.sfx; save(); refreshUI(); };
 document.getElementById("btnRetry").onclick = () => { document.getElementById("uiOver").classList.add("hidden"); resetRun(); loop(); };
-document.getElementById("btnMenu").onclick = () => { location.reload(); };
+document.getElementById("btnBackMenu").onclick = () => { location.reload(); };
+document.getElementById("btnResetData").onclick = () => { if(confirm("Tüm veriler silinecek?")) { state = JSON.parse(JSON.stringify(defaults)); save(); location.reload(); } };
+document.getElementById("btnPatch").onclick = () => alert("Yama v5.0:\n- Robot Karakter eklendi\n- Güçlendiriciler eklendi\n- Market Sistemi aktif\n- Performans iyileştirildi");
 
-document.getElementById("menuStats").innerHTML = `Rekor: ${state.high}m<br>Toplam Para: ${state.coins}`;
+refreshUI();
 </script>
 </body>
 </html>
