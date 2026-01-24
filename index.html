@@ -3,1443 +3,316 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Kalp Yolu (v3)</title>
+  <title>Kalp Yolu - Robot Runner v4</title>
   <style>
     :root { color-scheme: dark; }
-    html, body { margin:0; height:100%; background:#070a12; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    html, body { margin:0; height:100%; background:#05070a; font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; }
     #wrap { height:100%; display:flex; align-items:center; justify-content:center; }
     canvas {
-      width: min(100vw, 520px);
-      height: min(100vh, 900px);
-      border-radius: 18px;
-      box-shadow: 0 18px 60px rgba(0,0,0,.45);
-      background: radial-gradient(1200px 900px at 50% 18%, #1a2a47 0%, #0b1020 55%, #070a12 100%);
+      width: min(100vw, 500px);
+      height: min(100vh, 850px);
+      border-radius: 20px;
+      box-shadow: 0 20px 80px rgba(0,0,0,0.6);
+      background: radial-gradient(circle at 50% 20%, #1a2a47 0%, #05070a 100%);
       touch-action: none;
-      -webkit-tap-highlight-color: transparent;
       display:block;
     }
-
-    .ui { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
-    .panel { width:min(520px, 100vw); padding:18px; box-sizing:border-box; pointer-events:auto; }
-    .card {
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 18px;
-      padding: 16px;
-      backdrop-filter: blur(10px);
-      position: relative;
+    .ui { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; color:#fff; text-align:center; }
+    .ui > div { pointer-events:auto; background:rgba(10,15,25,0.95); padding:30px; border-radius:25px; width:280px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+    h1 { margin:0 0 15px; font-size:28px; letter-spacing:2px; color: #00d4ff; }
+    button { 
+      display:block; width:100%; padding:14px; margin:10px 0; border:none; border-radius:12px; 
+      background:#00d4ff; color:#000; font-weight:bold; cursor:pointer; font-size:16px; transition: 0.2s;
     }
-    h1,h2 { margin:0 0 10px; letter-spacing:.2px; }
-    h1 { font-size:24px; }
-    h2 { font-size:18px; opacity:.95; }
-    p { margin:8px 0; opacity:.85; line-height:1.35; }
-    .tiny { font-size:12px; opacity:.75; }
-    .row { display:flex; gap:10px; flex-wrap:wrap; }
-    .btn {
-      flex: 1 1 auto;
-      padding: 12px 14px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.08);
-      color:#fff;
-      font-weight:800;
-      cursor:pointer;
-      user-select:none;
-    }
-    .btn:active { transform: translateY(1px); }
-    .btn.primary { background: rgba(255,255,255,.14); }
-    .btn.good { background: rgba(120,255,180,.14); border-color: rgba(120,255,180,.30); }
-    .btn.danger { background: rgba(255,80,120,.18); border-color: rgba(255,80,120,.35); }
-    .badge {
-      display:inline-flex; align-items:center; gap:6px;
-      padding:6px 10px; border-radius:999px;
-      background: rgba(255,255,255,.07);
-      border:1px solid rgba(255,255,255,.10);
-      font-weight:900;
-    }
-    .statline { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; opacity:.9; }
-
-    .switch {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:10px 12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.05);
-      margin:10px 0;
-    }
-    .toggle {
-      width:52px; height:30px; border-radius:999px;
-      background: rgba(255,255,255,.14);
-      border:1px solid rgba(255,255,255,.18);
-      position:relative;
-      cursor:pointer;
-    }
-    .knob {
-      width:24px; height:24px; border-radius:50%;
-      background: rgba(255,255,255,.92);
-      position:absolute; top:2px; left:2px;
-      transition: left .18s ease;
-    }
-    .toggle.on { background: rgba(120,255,180,.18); border-color: rgba(120,255,180,.30); }
-    .toggle.on .knob { left:26px; }
-
-    .grid { display:grid; grid-template-columns: 1fr; gap:10px; margin-top:10px; }
-    .item {
-      display:flex; justify-content:space-between; align-items:center; gap:12px;
-      padding:12px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.05);
-    }
-    .item b { display:block; }
-    .item small { display:block; opacity:.75; margin-top:2px; line-height:1.25; }
-    .pill {
-      padding:6px 10px; border-radius:999px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      font-weight:900;
-      white-space:nowrap;
-    }
+    button:active { transform: scale(0.95); }
+    .stats { font-size:14px; opacity:0.8; margin-bottom:20px; line-height:1.6; }
     .hidden { display:none !important; }
-
-    .xbtn{
-      position:absolute; top:10px; right:10px;
-      width:38px; height:38px; border-radius:12px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      color:#fff; font-weight:900;
-      cursor:pointer;
-    }
-
-    .scroll {
-      max-height: 55vh;
-      overflow:auto;
-      padding-right: 6px;
-    }
-    .ver {
-      padding:10px 12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.05);
-      margin:10px 0;
-    }
-    .ver b { display:block; margin-bottom:4px; }
-    .ver ul { margin: 8px 0 0 18px; padding:0; opacity:.85; }
   </style>
 </head>
 <body>
-<div id="wrap">
-  <canvas id="c"></canvas>
-</div>
+<div id="wrap"><canvas id="c"></canvas></div>
 
-<!-- MENU -->
-<div class="ui" id="uiMenu">
-  <div class="panel">
-    <div class="card">
-      <h1>🪙 Kalp Yolu <span class="pill">v3</span></h1>
-      <div class="statline">
-        <span class="badge">🪙 Para: <span id="mCoins">0</span></span>
-        <span class="badge">🏆 Rekor: <span id="mHigh">0</span></span>
-      </div>
-      <p class="tiny">3 şerit • Sonsuz koşu • Kaydır: sağ/sol • ⬆ zıpla • ⬇ eğil (mobilde yukarı/aşağı kaydır)</p>
-      <div class="row" style="margin-top:10px">
-        <button class="btn primary" id="btnPlay">Oyna</button>
-        <button class="btn" id="btnShop">Market</button>
-        <button class="btn" id="btnSettings">Ayarlar</button>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <button class="btn" id="btnPatch">Yama Notları</button>
-        <button class="btn danger" id="btnReset">Sıfırla</button>
-      </div>
-    </div>
+<div id="uiMenu" class="ui">
+  <div>
+    <h1>KALP YOLU</h1>
+    <div id="menuStats" class="stats"></div>
+    <button id="btnStart">OYUNA BAŞLA</button>
+    <button id="btnShop" style="background:#ff007b; color:white;">MARKET</button>
   </div>
 </div>
 
-<!-- SETTINGS -->
-<div class="ui hidden" id="uiSettings">
-  <div class="panel">
-    <div class="card">
-      <button class="xbtn" id="xSettings">✕</button>
-      <h2>⚙️ Ayarlar</h2>
-
-      <div class="switch">
-        <div>
-          <b>🎵 Müzik</b>
-          <div class="tiny">Menü + oyun arka plan</div>
-        </div>
-        <div class="toggle" id="togMusic"><div class="knob"></div></div>
-      </div>
-
-      <div class="switch">
-        <div>
-          <b>🔊 Ses Efekti</b>
-          <div class="tiny">Para toplama / çarpma / buton</div>
-        </div>
-        <div class="toggle" id="togSfx"><div class="knob"></div></div>
-      </div>
-
-      <div class="switch">
-        <div>
-          <b>🎼 Müzik Seç</b>
-          <div class="tiny">Track 1/2/3 veya Random</div>
-        </div>
-        <select id="musicSelect" class="btn" style="flex:0 0 auto; padding:10px 12px; font-weight:900;">
-          <option value="random">Random</option>
-          <option value="t1">Track 1</option>
-          <option value="t2">Track 2</option>
-          <option value="t3">Track 3</option>
-        </select>
-      </div>
-
-      <div class="row" style="margin-top:10px">
-        <button class="btn" id="btnBackFromSettings">Geri</button>
-        <button class="btn good" id="btnAudioUnlock">Sesi Başlat</button>
-      </div>
-
-      <p class="tiny" style="margin-top:10px">
-        iOS Safari ses için ilk dokunuş ister. “Sesi Başlat” bunu garanti eder.
-      </p>
-    </div>
-  </div>
-</div>
-
-<!-- SHOP -->
-<div class="ui hidden" id="uiShop">
-  <div class="panel">
-    <div class="card">
-      <button class="xbtn" id="xShop">✕</button>
-      <h2>🛒 Market</h2>
-      <div class="statline">
-        <span class="badge">🪙 Para: <span id="sCoins">0</span></span>
-        <span class="badge">🎨 Skin: <span id="sSkin">Klasik</span></span>
-        <span class="badge">✨ Güç: <span id="sPower">Yok</span></span>
-      </div>
-
-      <div class="grid" id="shopGrid"></div>
-
-      <div class="row" style="margin-top:10px">
-        <button class="btn" id="btnBackFromShop">Geri</button>
-      </div>
-
-      <p class="tiny" style="margin-top:10px">
-        Skin sadece görünüm. Güçler hafif bonus verir (oyunu kırmaz).
-      </p>
-    </div>
-  </div>
-</div>
-
-<!-- PATCH NOTES -->
-<div class="ui hidden" id="uiPatch">
-  <div class="panel">
-    <div class="card">
-      <button class="xbtn" id="xPatch">✕</button>
-      <h2>🧩 Yama Notları</h2>
-      <div class="scroll">
-        <div class="ver">
-          <b>v1</b>
-          <ul>
-            <li>3 şerit runner temeli</li>
-            <li>Skor + rekor kaydı</li>
-          </ul>
-        </div>
-        <div class="ver">
-          <b>v2</b>
-          <ul>
-            <li>Menü + Ayarlar (Müzik/SFX aç-kapa)</li>
-            <li>Para sistemi ve market</li>
-            <li>Perspektif yol hissi</li>
-          </ul>
-        </div>
-        <div class="ver">
-          <b>v3 (şu an)</b>
-          <ul>
-            <li>Altın para (coin) + diken engel (spike)</li>
-            <li>Zıplama + eğilme + engeller</li>
-            <li>Kamera/perspektif runner’a göre ayarlandı</li>
-            <li>Spawn düzeni düzeltildi (arka arkaya kötü dizilim azaldı)</li>
-            <li>Hızlanma yumuşatıldı + üst limit</li>
-            <li>3 farklı müzik + Random seçeneği</li>
-            <li>Karakter görsel rewörk</li>
-            <li>Market X/Çıkış butonu eklendi</li>
-          </ul>
-        </div>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <button class="btn" id="btnBackFromPatch">Geri</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- GAME OVER -->
-<div class="ui hidden" id="uiGameOver">
-  <div class="panel">
-    <div class="card">
-      <h2>Oyun Bitti</h2>
-      <div class="statline">
-        <span class="badge">⭐ Skor: <span id="goScore">0</span></span>
-        <span class="badge">🪙 Kazanç: +<span id="goEarn">0</span></span>
-        <span class="badge">🏆 Rekor: <span id="goHigh">0</span></span>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <button class="btn primary" id="btnRetry">Tekrar</button>
-        <button class="btn" id="btnMenu">Menü</button>
-      </div>
-    </div>
+<div id="uiOver" class="ui hidden">
+  <div>
+    <h1 style="color:#ff4444;">EYVAH!</h1>
+    <div id="overStats" class="stats"></div>
+    <button id="btnRetry">TEKRAR DENE</button>
+    <button id="btnMenu">ANA MENÜ</button>
   </div>
 </div>
 
 <script>
-(() => {
-  // =========================
-  // SAVE / STATE
-  // =========================
-  const LS_KEY = "kalpYolu_v3";
-  const deepClone = (o) => JSON.parse(JSON.stringify(o));
+/** AYARLAR VE SKINLER **/
+const SKINS = {
+  classic: { name: "Klasik", body: "#00d4ff", accent: "#ffffff", cost: 0 },
+  neon: { name: "Neon", body: "#39ff14", accent: "#000000", cost: 100 },
+  sunset: { name: "Sunset", body: "#ff8c00", accent: "#ff007b", cost: 250 },
+  noir: { name: "Noir", body: "#444444", accent: "#00ffff", cost: 500 }
+};
 
-  const defaults = {
-    coins: 0,
-    highScore: 0,
-    settings: { music: true, sfx: true, musicMode: "random" },
-    ownedSkins: { classic: true },
-    selectedSkin: "classic",
-    powerLevel: { magnet: 0, shield: 0, bonus: 0 }, // 0 locked
-    selectedPower: "none"
+const defaults = { coins: 0, high: 0, selectedSkin: "classic", owned: ["classic"] };
+let state = JSON.parse(localStorage.getItem("kalp_yolu_v4")) || JSON.clone?.(defaults) || {...defaults};
+function save() { localStorage.setItem("kalp_yolu_v4", JSON.stringify(state)); }
+
+/** SES MOTORU (Düzeltildi) **/
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let musicNode = null;
+
+function playSound(freq, type, duration, vol=0.1) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + duration);
+}
+
+const sfx = {
+  coin: () => playSound(880, 'sine', 0.2),
+  hit: () => playSound(100, 'sawtooth', 0.4, 0.2),
+  jump: () => playSound(440, 'triangle', 0.3)
+};
+
+function startMusic() {
+  if (musicNode) stopMusic();
+  const notes = [261.63, 329.63, 392.00, 523.25];
+  const randomNote = notes[Math.floor(Math.random() * notes.length)];
+  
+  musicNode = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  musicNode.type = 'triangle';
+  musicNode.frequency.setValueAtTime(randomNote, audioCtx.currentTime);
+  g.gain.setValueAtTime(0.02, audioCtx.currentTime);
+  musicNode.connect(g); g.connect(audioCtx.destination);
+  musicNode.start();
+}
+
+function stopMusic() { 
+  if(musicNode) { try { musicNode.stop(); } catch(e){} musicNode = null; } 
+}
+
+/** OYUN MANTIĞI **/
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+let W, H;
+function resize() {
+  W = canvas.width = canvas.offsetWidth;
+  H = canvas.height = canvas.offsetHeight;
+}
+window.onresize = resize; resize();
+
+let run = null;
+const player = { lane: 1, x: 0, baseY: 0, jumpT: 0, slideT: 0 };
+
+function resetRun() {
+  stopMusic();
+  startMusic();
+  run = {
+    active: true, score: 0, coins: 0, speed: 0.15,
+    objects: [], // hem engeller hem paralar burada
+    nextObsZ: 20, nextCoinZ: 10,
+    lastObsLane: 1
   };
+  player.lane = 1;
+  player.x = W/2;
+}
 
-  let state = load();
-  function load() {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (!raw) return deepClone(defaults);
-      const p = JSON.parse(raw);
-      const s = deepClone(defaults);
+/** ÇİZİM FONKSİYONLARI **/
+function getPos(lane, z) {
+  const roadW = W * 0.8;
+  const perspective = 1 / (z + 1);
+  const x = W/2 + (lane - 1) * (roadW/3) * (W/500) * (1 / (z*0.5 + 1));
+  const y = H * 0.75 - (z * 20); // perspektif derinliği
+  return { x, y, scale: perspective };
+}
 
-      if (typeof p.coins === "number") s.coins = p.coins;
-      if (typeof p.highScore === "number") s.highScore = p.highScore;
+// Robot karakter tasarımı (Geliştirildi)
+function drawPlayer() {
+  const skin = SKINS[state.selectedSkin] || SKINS.classic;
+  const targetX = getPos(player.lane, 0).x;
+  player.x += (targetX - player.x) * 0.2;
 
-      if (p.settings) {
-        s.settings.music = !!p.settings.music;
-        s.settings.sfx = !!p.settings.sfx;
-        if (typeof p.settings.musicMode === "string") s.settings.musicMode = p.settings.musicMode;
-      }
-
-      if (p.ownedSkins) s.ownedSkins = { ...s.ownedSkins, ...p.ownedSkins };
-      if (typeof p.selectedSkin === "string") s.selectedSkin = p.selectedSkin;
-
-      if (p.powerLevel) s.powerLevel = { ...s.powerLevel, ...p.powerLevel };
-      if (typeof p.selectedPower === "string") s.selectedPower = p.selectedPower;
-
-      s.ownedSkins.classic = true;
-      if (!s.selectedSkin) s.selectedSkin = "classic";
-      if (!s.settings.musicMode) s.settings.musicMode = "random";
-
-      // if selectedPower locked, fallback
-      if (s.selectedPower !== "none") {
-        const lv = s.powerLevel[s.selectedPower] || 0;
-        if (lv <= 0) s.selectedPower = "none";
-      }
-      return s;
-    } catch {
-      return deepClone(defaults);
-    }
+  let jumpY = 0;
+  if (player.jumpT > 0) {
+    jumpY = -Math.sin((1 - player.jumpT/0.6) * Math.PI) * 80;
+    player.jumpT -= 0.02;
   }
-  function save() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+  if (player.slideT > 0) player.slideT -= 0.02;
 
-  // =========================
-  // UI refs
-  // =========================
-  const uiMenu = document.getElementById("uiMenu");
-  const uiSettings = document.getElementById("uiSettings");
-  const uiShop = document.getElementById("uiShop");
-  const uiPatch = document.getElementById("uiPatch");
-  const uiGameOver = document.getElementById("uiGameOver");
+  const py = H * 0.85 + jumpY;
+  
+  ctx.save();
+  ctx.translate(player.x, py);
+  
+  // Robot Gövdesi
+  ctx.fillStyle = skin.body;
+  const w = player.slideT > 0 ? 50 : 40;
+  const h = player.slideT > 0 ? 30 : 60;
+  
+  // Ana metalik şasi
+  ctx.beginPath();
+  ctx.roundRect(-w/2, -h, w, h, 10);
+  ctx.fill();
+  
+  // Vizör (Gözler)
+  ctx.fillStyle = "#000";
+  ctx.fillRect(-w/2 + 5, -h + 10, w - 10, 15);
+  ctx.fillStyle = skin.accent;
+  ctx.fillRect(-w/2 + 10, -h + 15, w - 20, 5); // Parlayan vizör çizgisi
+  
+  // Enerji Çekirdeği
+  ctx.beginPath();
+  ctx.arc(0, -h/2 + 5, 5, 0, Math.PI*2);
+  ctx.fillStyle = skin.accent;
+  ctx.fill();
+  
+  ctx.restore();
+}
 
-  const mCoins = document.getElementById("mCoins");
-  const mHigh = document.getElementById("mHigh");
-  const sCoins = document.getElementById("sCoins");
-  const sSkin = document.getElementById("sSkin");
-  const sPower = document.getElementById("sPower");
-  const shopGrid = document.getElementById("shopGrid");
+function drawWorld() {
+  ctx.clearRect(0,0,W,H);
+  
+  // Yol Çizimi
+  ctx.fillStyle = "#111";
+  ctx.beginPath();
+  ctx.moveTo(W*0.1, H);
+  ctx.lineTo(W*0.4, H*0.4);
+  ctx.lineTo(W*0.6, H*0.4);
+  ctx.lineTo(W*0.9, H);
+  ctx.fill();
 
-  const goScore = document.getElementById("goScore");
-  const goEarn = document.getElementById("goEarn");
-  const goHigh = document.getElementById("goHigh");
+  // Nesneleri Çiz (Para ve Engeller)
+  run.objects.forEach((obj, i) => {
+    const p = getPos(obj.lane, obj.z);
+    if (obj.z < 0 || obj.z > 50) return;
 
-  const togMusic = document.getElementById("togMusic");
-  const togSfx = document.getElementById("togSfx");
-  const musicSelect = document.getElementById("musicSelect");
-
-  function show(el){ el.classList.remove("hidden"); }
-  function hide(el){ el.classList.add("hidden"); }
-  function showOnly(which) {
-    [uiMenu, uiSettings, uiShop, uiPatch, uiGameOver].forEach(hide);
-    show(which);
-  }
-
-  // =========================
-  // Canvas + DPI (mobile smooth)
-  // =========================
-  const canvas = document.getElementById("c");
-  const ctx = canvas.getContext("2d", { alpha:true, desynchronized:true });
-
-  const WORLD_W = 360;
-  const WORLD_H = 640;
-  let DPR = 1;
-
-  function resizeCanvas() {
-    const rect = canvas.getBoundingClientRect();
-    DPR = Math.min(2, Math.max(1, (window.devicePixelRatio || 1)));
-    canvas.width = Math.floor(rect.width * DPR);
-    canvas.height = Math.floor(rect.height * DPR);
-    ctx.setTransform(canvas.width / WORLD_W, 0, 0, canvas.height / WORLD_H, 0, 0);
-  }
-  window.addEventListener("resize", resizeCanvas, { passive:true });
-  resizeCanvas();
-
-  // =========================
-  // Audio (procedural multi-track)
-  // =========================
-  let audioCtx = null, masterGain = null, musicGain = null, musicNode = null;
-
-  function ensureAudio() {
-    if (audioCtx) return;
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    masterGain = audioCtx.createGain();
-    masterGain.gain.value = 0.9;
-    masterGain.connect(audioCtx.destination);
-
-    musicGain = audioCtx.createGain();
-    musicGain.gain.value = state.settings.music ? 0.18 : 0;
-    musicGain.connect(masterGain);
-  }
-
-  function resumeAudio() {
-    ensureAudio();
-    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
-  }
-
-  function playTone(freq, dur, type="sine", gain=0.14) {
-    if (!state.settings.sfx) return;
-    resumeAudio();
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = type;
-    o.frequency.value = freq;
-    o.connect(g);
-    g.connect(masterGain);
-
-    const t = audioCtx.currentTime;
-    g.gain.setValueAtTime(gain, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.start(t);
-    o.stop(t + dur);
-  }
-
-  const sfx = {
-    coin(){ playTone(980, 0.08, "triangle", 0.14); },
-    hit(){ playTone(160, 0.14, "square", 0.10); },
-    ui(){ playTone(520, 0.06, "sine", 0.10); },
-    buy(){ playTone(740, 0.07, "triangle", 0.12); setTimeout(()=>playTone(980,0.07,"triangle",0.10), 70); },
-    jump(){ playTone(620, 0.06, "sine", 0.10); },
-    slide(){ playTone(420, 0.06, "sine", 0.10); }
-  };
-
-  const TRACKS = {
-    t1: { tempo: 260, notes: [261.63, 329.63, 392.00, 523.25, 392.00, 329.63], filt: 900 },
-    t2: { tempo: 220, notes: [293.66, 349.23, 440.00, 587.33, 440.00, 349.23], filt: 780 },
-    t3: { tempo: 280, notes: [220.00, 277.18, 329.63, 440.00, 329.63, 277.18], filt: 650 }
-  };
-
-  function pickMusicMode() {
-    const m = state.settings.musicMode || "random";
-    if (m === "random") {
-      const keys = ["t1","t2","t3"];
-      return keys[(Math.random()*keys.length)|0];
-    }
-    return (TRACKS[m] ? m : "t1");
-  }
-
-  function startMusic() {
-    ensureAudio();
-    if (musicNode) return;
-    resumeAudio();
-
-    const mode = pickMusicMode();
-    const tr = TRACKS[mode];
-
-    const o = audioCtx.createOscillator();
-    const f = audioCtx.createBiquadFilter();
-    const g = audioCtx.createGain();
-
-    o.type = "sine";
-    f.type = "lowpass";
-    f.frequency.value = tr.filt;
-    g.gain.value = 0.0001;
-
-    o.connect(f); f.connect(g); g.connect(musicGain);
-
-    let i = 0;
-    const tick = () => {
-      if (!musicNode) return;
-      const t = audioCtx.currentTime;
-      o.frequency.setValueAtTime(tr.notes[i % tr.notes.length], t);
-      g.gain.cancelScheduledValues(t);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.20, t + 0.03);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-      i++;
-      musicNode._timer = setTimeout(tick, tr.tempo);
-    };
-
-    o.start();
-    musicNode = { osc:o, _timer:null };
-    tick();
-  }
-
-  function stopMusic() {
-    if (!musicNode) return;
-    clearTimeout(musicNode._timer);
-    try { musicNode.osc.stop(); } catch {}
-    musicNode = null;
-  }
-
-  function refreshAudioSettings() {
-    ensureAudio();
-    if (musicGain) musicGain.gain.value = state.settings.music ? 0.18 : 0;
-    if (state.settings.music) startMusic(); else stopMusic();
-  }
-
-  // =========================
-  // Paths (fast)
-  // =========================
-  const HEART_PATH = new Path2D(); // reused for logo only
-  HEART_PATH.moveTo(0, 12);
-  HEART_PATH.bezierCurveTo(-16, -2, -14, -18, 0, -8);
-  HEART_PATH.bezierCurveTo(14, -18, 16, -2, 0, 12);
-  HEART_PATH.closePath();
-
-  const COIN_PATH = new Path2D();
-  COIN_PATH.arc(0,0,14,0,Math.PI*2);
-
-  // =========================
-  // Visual configs (balanced)
-  // =========================
-  const SKINS = {
-    classic: { name:"Klasik", body:"#ffffff", accent:"#ffd166" },
-    neon:    { name:"Neon",   body:"#b6f3ff", accent:"#66ffd6" },
-    sunset:  { name:"Sunset", body:"#ffe2b3", accent:"#ff7aa8" },
-    noir:    { name:"Noir",   body:"#dedede", accent:"#8b8bff" },
-    mint:    { name:"Mint",   body:"#d8fff3", accent:"#3dffb6" },
-  };
-
-  const POWERS = {
-    none:   { name:"Yok", desc:"Güç kapalı.", base: 0,   max: 0 },
-    magnet: { name:"Mıknatıs", desc:"Yakındaki coinleri çeker.", base: 120, max: 3 },
-    shield: { name:"Kalkan", desc:"Bir çarpmayı affeder.", base: 140, max: 3 },
-    bonus:  { name:"Coin Bonus", desc:"Coin kazancı artar.", base: 160, max: 3 }
-  };
-
-  const SHOP = {
-    skins: [
-      { id:"classic", price: 0,   desc:"Default. Her zaman açık." },
-      { id:"neon",   price: 80,  desc:"Parlak, net görünür." },
-      { id:"sunset", price: 120, desc:"Yumuşak tonlar." },
-      { id:"noir",   price: 160, desc:"Kontrastlı minimal." },
-      { id:"mint",   price: 200, desc:"Ferahlık modu." },
-    ],
-    powers: [
-      { id:"none" }, { id:"magnet" }, { id:"shield" }, { id:"bonus" }
-    ]
-  };
-
-  function powerNextPrice(id) {
-    const p = POWERS[id];
-    const lv = state.powerLevel[id] || 0;
-    if (!p || p.max === 0) return 0;
-    return Math.round(p.base * (1 + lv*0.55));
-  }
-
-  // =========================
-  // Runner world (z-depth)
-  // =========================
-  const ROAD = {
-    yTop: 115,
-    yBottom: WORLD_H - 22,
-    wTop: 110,
-    wBottom: 320,
-    lanes: 3,
-    focal: 420 // perspective strength
-  };
-
-  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
-  function lerp(a,b,t){ return a + (b-a)*t; }
-
-  function depthT(z) {
-    // z: distance in front of player (0..)
-    // t: 0 at bottom (near), 1 at top (far)
-    const f = ROAD.focal;
-    const t = 1 - (f / (z + f));
-    return clamp(t, 0, 1);
-  }
-
-  function yAtZ(z) {
-    const t = depthT(z);
-    return lerp(ROAD.yBottom, ROAD.yTop, t);
-  }
-
-  function widthAtZ(z) {
-    const t = depthT(z);
-    return lerp(ROAD.wBottom, ROAD.wTop, t);
-  }
-
-  function laneXAtZ(lane, z) {
-    const w = widthAtZ(z);
-    const left = (WORLD_W - w)/2;
-    const laneW = w / ROAD.lanes;
-    return left + laneW*(lane + 0.5);
-  }
-
-  function scaleAtZ(z) {
-    // far smaller
-    const t = depthT(z);
-    return lerp(1.18, 0.55, t);
-  }
-
-  function drawRoad() {
-    ctx.save();
-    // trapezoid
-    const x1 = (WORLD_W - ROAD.wTop)/2, x2 = (WORLD_W + ROAD.wTop)/2;
-    const x3 = (WORLD_W + ROAD.wBottom)/2, x4 = (WORLD_W - ROAD.wBottom)/2;
-    ctx.beginPath();
-    ctx.moveTo(x1, ROAD.yTop);
-    ctx.lineTo(x2, ROAD.yTop);
-    ctx.lineTo(x3, ROAD.yBottom);
-    ctx.lineTo(x4, ROAD.yBottom);
-    ctx.closePath();
-    ctx.fillStyle = "rgba(255,255,255,0.04)";
-    ctx.fill();
-
-    // dashed lane lines
-    ctx.strokeStyle = "rgba(255,255,255,0.14)";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([8, 10]);
-    for (let i=1;i<ROAD.lanes;i++){
-      const ax = (WORLD_W - ROAD.wTop)/2 + (ROAD.wTop/ROAD.lanes)*i;
-      const bx = (WORLD_W - ROAD.wBottom)/2 + (ROAD.wBottom/ROAD.lanes)*i;
+    if (obj.type === "coin") {
+      ctx.fillStyle = "#ffd700";
       ctx.beginPath();
-      ctx.moveTo(ax, ROAD.yTop);
-      ctx.lineTo(bx, ROAD.yBottom);
-      ctx.stroke();
+      ctx.arc(p.x, p.y - 20, 10 * p.scale * 5, 0, Math.PI*2);
+      ctx.fill();
+    } else if (obj.type === "spike") {
+      ctx.fillStyle = "#ff4444";
+      ctx.beginPath();
+      ctx.moveTo(p.x - 20*p.scale*5, p.y);
+      ctx.lineTo(p.x, p.y - 40*p.scale*5);
+      ctx.lineTo(p.x + 20*p.scale*5, p.y);
+      ctx.fill();
+    } else if (obj.type === "bar") {
+      ctx.fillStyle = "#ffaa00";
+      ctx.fillRect(p.x - 30, p.y - 80, 60, 15); // Yüksek engel
     }
-    ctx.setLineDash([]);
+  });
+}
 
-    // horizon glow
-    const g = ctx.createRadialGradient(WORLD_W/2, ROAD.yTop, 20, WORLD_W/2, ROAD.yTop, 260);
-    g.addColorStop(0, "rgba(255,255,255,0.06)");
-    g.addColorStop(1, "rgba(255,255,255,0.00)");
-    ctx.fillStyle = g;
-    ctx.fillRect(0,0,WORLD_W,WORLD_H);
+function loop() {
+  if (!run || !run.active) return;
 
-    // vignette
-    const v = ctx.createLinearGradient(0,0,0,WORLD_H);
-    v.addColorStop(0, "rgba(0,0,0,0.00)");
-    v.addColorStop(1, "rgba(0,0,0,0.22)");
-    ctx.fillStyle = v;
-    ctx.fillRect(0,0,WORLD_W,WORLD_H);
-    ctx.restore();
+  run.score += run.speed;
+  run.speed += 0.00005;
+
+  // Nesne üretimi (Düzeltildi)
+  run.nextObsZ -= run.speed;
+  run.nextCoinZ -= run.speed;
+
+  if (run.nextObsZ <= 0) {
+    const lane = Math.floor(Math.random() * 3);
+    run.objects.push({ type: Math.random() > 0.5 ? "spike" : "bar", lane, z: 50 });
+    run.nextObsZ = 15 + Math.random() * 20; // Engeller arası mesafe
   }
 
-  // Player with jump/slide
-  const player = {
-    lane: 1,
-    x: laneXAtZ(1, 0),
-    z: 0,
-    baseY: ROAD.yBottom - 110,
-    y: ROAD.yBottom - 110,
-    w: 30,
-    h: 52,
-    invuln: 0,
-    jumpT: 0,   // remaining
-    slideT: 0,  // remaining
-    shield: 0
-  };
-
-  let run = {
-    running: false,
-    t: 0,
-    score: 0,
-    earned: 0,
-    lives: 3,
-    speed: 12.0,     // z units per sec
-    maxSpeed: 22.0,
-    accel: 0.35,     // smoother
-    objects: [],
-    // spawn control
-    nextCoinZ: 8,
-    nextObsZ: 14,
-    lastObsLane: -1,
-    lastCoinLane: -1
-  };
-
-  function bonusMult() {
-    if (state.selectedPower !== "bonus") return 1;
-    const lv = state.powerLevel.bonus || 0;
-    if (lv <= 0) return 1;
-    return 1 + 0.25*lv; // lv1=1.25 lv3=1.75
+  if (run.nextCoinZ <= 0) {
+    run.objects.push({ type: "coin", lane: Math.floor(Math.random() * 3), z: 50 });
+    run.nextCoinZ = 5 + Math.random() * 10;
   }
 
-  function magnetActiveRange() {
-    if (state.selectedPower !== "magnet") return 0;
-    const lv = state.powerLevel.magnet || 0;
-    if (lv <= 0) return 0;
-    return 1.3 + lv*0.6; // 1.9..3.1
-  }
-
-  function ensureShield() {
-    if (state.selectedPower === "shield" && (state.powerLevel.shield || 0) > 0) return 1;
-    return 0;
-  }
-
-  function resetRun() {
-    run.running = true;
-    run.t = 0;
-    run.score = 0;
-    run.earned = 0;
-    run.lives = 3;
-    run.speed = 12.0;
-    run.maxSpeed = 22.0;
-    run.accel = 0.35;
-    run.objects.length = 0;
-    run.nextCoinZ = 8;
-    run.nextObsZ = 14;
-    run.lastObsLane = -1;
-    run.lastCoinLane = -1;
-
-    player.lane = 1;
-    player.x = laneXAtZ(1, 0);
-    player.invuln = 0;
-    player.jumpT = 0;
-    player.slideT = 0;
-    player.shield = ensureShield();
-
-    [uiMenu, uiSettings, uiShop, uiPatch, uiGameOver].forEach(hide);
-    if (state.settings.music) startMusic();
-  }
-
-  function endGame() {
-    run.running = false;
-    const final = run.score|0;
-    if (final > state.highScore) state.highScore = final;
-    save();
-
-    goScore.textContent = final;
-    goEarn.textContent = run.earned|0;
-    goHigh.textContent = state.highScore|0;
-
-    showOnly(uiGameOver);
-    refreshStats();
-  }
-
-  // Spawn rules: prevent ugly sequences
-  function pickLaneAvoid(prevLane) {
-    let lane = (Math.random()*3)|0;
-    if (lane === prevLane) lane = (lane + 1 + ((Math.random()*2)|0)) % 3;
-    return lane;
-  }
-
-  function spawnCoinRow(z) {
-    // 1-2 coins in a short line, avoid same lane spam
-    const lane = pickLaneAvoid(run.lastCoinLane);
-    run.lastCoinLane = lane;
-
-    run.objects.push({ kind:"coin", lane, z, taken:false });
-    if (Math.random() < 0.35) {
-      // second coin same lane but slightly behind
-      run.objects.push({ kind:"coin", lane, z: z + 1.1, taken:false });
-    } else if (Math.random() < 0.35) {
-      // second coin adjacent lane
-      const lane2 = clamp(lane + (Math.random()<0.5 ? -1 : 1), 0, 2);
-      run.objects.push({ kind:"coin", lane: lane2, z: z + 1.0, taken:false });
+  // Hareket ve Çarpışma
+  run.objects.forEach((obj, i) => {
+    obj.z -= run.speed;
+    
+    // Çarpışma Kontrolü (Z yaklaştığında)
+    if (obj.z > 0 && obj.z < 1.5 && obj.lane === player.lane) {
+      if (obj.type === "coin") {
+        run.coins++;
+        state.coins++;
+        sfx.coin();
+        run.objects.splice(i, 1);
+      } else if (obj.type === "spike" && player.jumpT <= 0) {
+        gameOver();
+      } else if (obj.type === "bar" && player.slideT <= 0) {
+        gameOver();
+      }
     }
-  }
-
-  function spawnObstacle(z) {
-    // obstacle types:
-    // spike = must jump (ground)
-    // bar = must slide (high bar)
-    const lane = pickLaneAvoid(run.lastObsLane);
-    run.lastObsLane = lane;
-
-    // also try not to put obstacle exactly where coin lane just created very near
-    // (simple rule: if same lane as last coin, shift)
-    if (lane === run.lastCoinLane && Math.random() < 0.70) {
-      const alt = (lane + (Math.random()<0.5 ? 1 : 2)) % 3;
-      run.lastObsLane = alt;
-      run.objects.push({ kind: (Math.random()<0.55 ? "spike":"bar"), lane: alt, z, hit:false });
-      return;
-    }
-
-    run.objects.push({ kind: (Math.random()<0.55 ? "spike":"bar"), lane, z, hit:false });
-  }
-
-  // =========================
-  // Input (swipe + keys)
-  // =========================
-  function resumeAudioOnInput() {
-    resumeAudio();
-    if (state.settings.music) startMusic();
-  }
-
-  function moveLane(dir) {
-    if (!run.running) return;
-    player.lane = clamp(player.lane + dir, 0, 2);
-    sfx.ui();
-  }
-
-  function jump() {
-    if (!run.running) return;
-    if (player.jumpT > 0) return;
-    // if sliding, cancel slide
-    player.slideT = 0;
-    player.jumpT = 0.55; // seconds
-    sfx.jump();
-  }
-
-  function slide() {
-    if (!run.running) return;
-    if (player.slideT > 0) return;
-    // if jumping, ignore
-    if (player.jumpT > 0) return;
-    player.slideT = 0.60;
-    sfx.slide();
-  }
-
-  let touchX=0, touchY=0, touching=false;
-  canvas.addEventListener("pointerdown", (e) => {
-    touching = true;
-    touchX = e.clientX;
-    touchY = e.clientY;
-    resumeAudioOnInput();
-  }, { passive:true });
-
-  canvas.addEventListener("pointermove", (e) => {
-    if (!touching) return;
-    const dx = e.clientX - touchX;
-    const dy = e.clientY - touchY;
-
-    // prioritize vertical if clearly vertical
-    if (Math.abs(dy) > 34 && Math.abs(dy) > Math.abs(dx)*1.1) {
-      if (dy < 0) jump();
-      else slide();
-      touching = false;
-      return;
-    }
-
-    if (Math.abs(dx) > 32 && Math.abs(dx) > Math.abs(dy)) {
-      moveLane(dx>0 ? +1 : -1);
-      touching = false;
-    }
-  }, { passive:true });
-
-  canvas.addEventListener("pointerup", () => { touching=false; }, { passive:true });
-
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowLeft") moveLane(-1);
-    if (e.key === "ArrowRight") moveLane(+1);
-    if (e.key === "ArrowUp") jump();
-    if (e.key === "ArrowDown") slide();
   });
 
-  // =========================
-  // Draw entities
-  // =========================
-  function drawHUD() {
-    ctx.save();
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
-    ctx.font = "900 14px system-ui";
-    ctx.textAlign = "left";
-    ctx.fillText(`Skor: ${run.score|0}`, 12, 22);
-    ctx.fillText(`🪙 ${state.coins|0}`, 12, 40);
-
-    ctx.textAlign = "right";
-    const sh = player.shield > 0 ? ` 🛡️` : "";
-    ctx.fillText(`Can: ${run.lives}${sh}`, WORLD_W-12, 22);
-    ctx.fillText(`Rekor: ${state.highScore|0}`, WORLD_W-12, 40);
-    ctx.restore();
-  }
-
-  function drawPlayer() {
-    const skin = SKINS[state.selectedSkin] || SKINS.classic;
-
-    const targetX = laneXAtZ(player.lane, 0);
-    player.x += (targetX - player.x) * 0.28;
-
-    // jump curve
-    let jumpY = 0;
-    if (player.jumpT > 0) {
-      const u = 1 - (player.jumpT / 0.55);
-      // parabola-ish
-      const h = Math.sin(u * Math.PI) * 58;
-      jumpY = -h;
-    }
-
-    const baseY = player.baseY;
-    player.y = baseY + jumpY;
-
-    // slide changes height
-    const sliding = player.slideT > 0;
-
-    const w = 34;
-    const h = sliding ? 34 : 54;
-
-    // aura
-    ctx.save();
-    ctx.globalAlpha = 0.18 + 0.10*Math.max(0, Math.sin(run.t*6));
-    ctx.fillStyle = skin.accent;
-    ctx.beginPath();
-    ctx.ellipse(player.x, baseY + 48, 32, 14, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    // body
-    ctx.globalAlpha = player.invuln>0 ? 0.55 : 1;
-    ctx.fillStyle = skin.body;
-    roundRect(player.x - w/2, player.y - h/2, w, h, 12);
-    ctx.fill();
-
-    // visor / detail
-    ctx.globalAlpha = 0.85;
-    ctx.fillStyle = "rgba(10,14,26,0.45)";
-    roundRect(player.x - w*0.34, player.y - h*0.10, w*0.68, h*0.22, 8);
-    ctx.fill();
-
-    // logo
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = skin.accent;
-    ctx.save();
-    ctx.translate(player.x, player.y + (sliding ? 2 : 6));
-    ctx.scale(0.38, 0.38);
-    ctx.fill(HEART_PATH);
-    ctx.restore();
-
-    if (player.shield > 0) {
-      ctx.globalAlpha = 0.28;
-      ctx.strokeStyle = "rgba(120,255,180,0.9)";
-      ctx.lineWidth = 2.2;
-      ctx.beginPath();
-      ctx.ellipse(player.x, player.y, 24, 18, 0, 0, Math.PI*2);
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  }
-
-  function drawCoin(obj) {
-    const y = yAtZ(obj.z);
-    const x = laneXAtZ(obj.lane, obj.z);
-    const sc = scaleAtZ(obj.z);
-
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(sc, sc);
-
-    // coin body
-    ctx.fillStyle = "rgba(255,209,102,0.95)";
-    ctx.fill(COIN_PATH);
-
-    // inner ring
-    ctx.globalAlpha = 0.25;
-    ctx.strokeStyle = "rgba(255,255,255,0.9)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(0,0,9,0,Math.PI*2);
-    ctx.stroke();
-
-    // highlight
-    ctx.globalAlpha = 0.22;
-    ctx.fillStyle = "#fff";
-    ctx.beginPath();
-    ctx.arc(-5,-5,4,0,Math.PI*2);
-    ctx.fill();
-
-    ctx.restore();
-  }
-
-  function drawSpike(obj) {
-    const y = yAtZ(obj.z);
-    const x = laneXAtZ(obj.lane, obj.z);
-    const sc = scaleAtZ(obj.z);
-
-    ctx.save();
-    ctx.translate(x, y + 10*sc);
-    ctx.scale(sc, sc);
-
-    // base plate
-    ctx.globalAlpha = 0.22;
-    ctx.fillStyle = "rgba(255,255,255,0.40)";
-    ctx.beginPath();
-    ctx.ellipse(0, 10, 18, 6, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    ctx.globalAlpha = 1;
-    // spikes
-    ctx.fillStyle = "rgba(255,80,120,0.95)";
-    for (let i=-1;i<=1;i++){
-      ctx.beginPath();
-      ctx.moveTo(i*10, 14);
-      ctx.lineTo(i*10 + 6, 14);
-      ctx.lineTo(i*10 + 3, -8);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    // dark edge
-    ctx.strokeStyle = "rgba(10,5,12,0.45)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-14, 14);
-    ctx.lineTo(14, 14);
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  function drawBar(obj) {
-    const y = yAtZ(obj.z);
-    const x = laneXAtZ(obj.lane, obj.z);
-    const sc = scaleAtZ(obj.z);
-
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(sc, sc);
-
-    // frame
-    ctx.fillStyle = "rgba(255,80,120,0.92)";
-    roundRect(-18, -18, 36, 18, 6);
-    ctx.fill();
-
-    // support legs
-    ctx.globalAlpha = 0.75;
-    ctx.fillStyle = "rgba(255,255,255,0.35)";
-    roundRect(-16, -18, 6, 34, 4);
-    roundRect(10, -18, 6, 34, 4);
-    ctx.fill();
-
-    ctx.restore();
-  }
-
-  function roundRect(x,y,w,h,r){
-    ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.arcTo(x+w, y, x+w, y+h, r);
-    ctx.arcTo(x+w, y+h, x, y+h, r);
-    ctx.arcTo(x, y+h, x, y, r);
-    ctx.arcTo(x, y, x+w, y, r);
-    ctx.closePath();
-  }
-
-  // =========================
-  // Collision
-  // =========================
-  function playerHitbox() {
-    const sliding = player.slideT > 0;
-    const w = 34;
-    const h = sliding ? 32 : 54;
-    return { x: player.x - w/2, y: player.y - h/2, w, h, sliding, jumping: player.jumpT > 0 };
-  }
-
-  function circleRect(cx, cy, r, rc) {
-    const nx = Math.max(rc.x, Math.min(cx, rc.x+rc.w));
-    const ny = Math.max(rc.y, Math.min(cy, rc.y+rc.h));
-    const dx = cx - nx, dy = cy - ny;
-    return dx*dx + dy*dy <= r*r;
-  }
-
-  // =========================
-  // Shop render
-  // =========================
-  function renderShop() {
-    shopGrid.innerHTML = "";
-
-    // section: skins
-    const head1 = document.createElement("div");
-    head1.className = "item";
-    head1.innerHTML = `<div><b>🎨 Skinler</b><small>Görünüm değiştirir (pay-to-win değil)</small></div><div class="pill">🪙 ${state.coins|0}</div>`;
-    shopGrid.appendChild(head1);
-
-    for (const it of SHOP.skins) {
-      const owned = !!state.ownedSkins[it.id];
-      const selected = state.selectedSkin === it.id;
-
-      const row = document.createElement("div");
-      row.className = "item";
-
-      const left = document.createElement("div");
-      left.innerHTML = `<b>${SKINS[it.id].name} ${owned ? `<span class="pill">Sahip</span>` : ``} ${selected ? `<span class="pill">Seçili</span>` : ``}</b><small>${it.desc}</small>`;
-
-      const right = document.createElement("div");
-      right.style.display = "flex";
-      right.style.gap = "8px";
-      right.style.alignItems = "center";
-
-      const price = document.createElement("span");
-      price.className = "pill";
-      price.textContent = it.price === 0 ? "Ücretsiz" : `🪙 ${it.price}`;
-
-      const btn = document.createElement("button");
-      btn.className = "btn";
-      btn.style.flex = "0 0 auto";
-      btn.textContent = owned ? (selected ? "Seçili" : "Seç") : "Satın Al";
-      btn.disabled = owned && selected;
-
-      btn.onclick = () => {
-        resumeAudioOnInput();
-        if (!state.ownedSkins[it.id]) {
-          if (state.coins < it.price) { sfx.hit(); return; }
-          state.coins -= it.price;
-          state.ownedSkins[it.id] = true;
-          sfx.buy();
-        } else {
-          sfx.ui();
-        }
-        state.selectedSkin = it.id;
-        save();
-        refreshStats();
-        renderShop();
-      };
-
-      right.appendChild(price);
-      right.appendChild(btn);
-      row.appendChild(left);
-      row.appendChild(right);
-      shopGrid.appendChild(row);
-    }
-
-    // section: powers
-    const head2 = document.createElement("div");
-    head2.className = "item";
-    head2.innerHTML = `<div><b>✨ Güçler</b><small>Hafif bonus (dengeli)</small></div><div class="pill">Seçili: ${state.selectedPower === "none" ? "Yok" : POWERS[state.selectedPower].name}</div>`;
-    shopGrid.appendChild(head2);
-
-    for (const it of SHOP.powers) {
-      const id = it.id;
-      const p = POWERS[id] || null;
-
-      const row = document.createElement("div");
-      row.className = "item";
-
-      if (id === "none") {
-        row.innerHTML = `
-          <div><b>Yok <span class="pill">Ücretsiz</span> ${state.selectedPower==="none" ? `<span class="pill">Seçili</span>`:""}</b><small>Güç kapalı.</small></div>
-          <div style="display:flex; gap:8px; align-items:center">
-            <button class="btn" id="btnSelNone" style="flex:0 0 auto">${state.selectedPower==="none" ? "Seçili":"Seç"}</button>
-          </div>
-        `;
-        row.querySelector("#btnSelNone").disabled = (state.selectedPower==="none");
-        row.querySelector("#btnSelNone").onclick = () => {
-          sfx.ui();
-          state.selectedPower = "none";
-          save();
-          refreshStats();
-          renderShop();
-        };
-        shopGrid.appendChild(row);
-        continue;
-      }
-
-      const lv = state.powerLevel[id] || 0;
-      const maxed = lv >= p.max;
-      const selected = state.selectedPower === id;
-      const unlocked = lv > 0;
-
-      const left = document.createElement("div");
-      left.innerHTML = `<b>${p.name} ${unlocked ? `<span class="pill">Lv ${lv}</span>` : `<span class="pill">Kilitli</span>`} ${selected ? `<span class="pill">Seçili</span>`:""}</b><small>${p.desc}</small>`;
-
-      const right = document.createElement("div");
-      right.style.display="flex";
-      right.style.gap="8px";
-      right.style.alignItems="center";
-
-      const price = document.createElement("span");
-      price.className = "pill";
-      price.textContent = maxed ? "✅" : `🪙 ${powerNextPrice(id)}`;
-
-      const btnSelect = document.createElement("button");
-      btnSelect.className="btn";
-      btnSelect.style.flex="0 0 auto";
-      btnSelect.textContent = selected ? "Seçili" : "Seç";
-      btnSelect.disabled = selected || !unlocked;
-
-      btnSelect.onclick = () => {
-        sfx.ui();
-        state.selectedPower = id;
-        save();
-        refreshStats();
-        renderShop();
-      };
-
-      const btnUp = document.createElement("button");
-      btnUp.className="btn";
-      btnUp.style.flex="0 0 auto";
-      btnUp.textContent = maxed ? "Maks" : (lv===0 ? `Aç` : `Yükselt`);
-      btnUp.disabled = maxed;
-
-      btnUp.onclick = () => {
-        resumeAudioOnInput();
-        const cost = powerNextPrice(id);
-        if (state.coins < cost) { sfx.hit(); return; }
-        state.coins -= cost;
-        state.powerLevel[id] = (state.powerLevel[id]||0) + 1;
-        if (state.powerLevel[id] === 1) state.selectedPower = id;
-        save();
-        sfx.buy();
-        refreshStats();
-        renderShop();
-      };
-
-      right.appendChild(price);
-      right.appendChild(btnSelect);
-      right.appendChild(btnUp);
-
-      row.appendChild(left);
-      row.appendChild(right);
-      shopGrid.appendChild(row);
-    }
-  }
-
-  // =========================
-  // Stats + settings sync
-  // =========================
-  function refreshStats() {
-    mCoins.textContent = state.coins|0;
-    mHigh.textContent = state.highScore|0;
-
-    sCoins.textContent = state.coins|0;
-    sSkin.textContent = (SKINS[state.selectedSkin]?.name || "Klasik");
-    sPower.textContent = (state.selectedPower === "none") ? "Yok" : (POWERS[state.selectedPower]?.name || "Yok");
-
-    togMusic.classList.toggle("on", !!state.settings.music);
-    togSfx.classList.toggle("on", !!state.settings.sfx);
-
-    musicSelect.value = state.settings.musicMode || "random";
-  }
-
-  // =========================
-  // Game loop
-  // =========================
-  let last = performance.now();
-  function loop(now) {
-    const dtRaw = (now - last)/1000;
-    last = now;
-    const dt = Math.min(0.033, Math.max(0.0, dtRaw));
-
-    ctx.clearRect(0,0,WORLD_W,WORLD_H);
-    drawRoad();
-
-    if (run.running) {
-      run.t += dt;
-
-      // smooth speed ramp + cap
-      run.speed = Math.min(run.maxSpeed, run.speed + run.accel*dt);
-
-      // jump/slide timers
-      if (player.jumpT > 0) player.jumpT = Math.max(0, player.jumpT - dt);
-      if (player.slideT > 0) player.slideT = Math.max(0, player.slideT - dt);
-      if (player.invuln > 0) player.invuln = Math.max(0, player.invuln - dt);
-
-      // score
-      run.score += dt * (18 + run.speed*2.2);
-
-      // spawn using z distances
-      // coins: every 3.2..4.6 z
-      if (run.nextCoinZ <= 0) run.nextCoinZ = 8;
-      if (run.nextObsZ <= 0) run.nextObsZ = 12;
-
-      // advance all objects towards player by speed
-      for (const o of run.objects) {
-        o.z -= run.speed * dt;
-      }
-
-      // spawn ahead (z measured forward, so we spawn at positive z)
-      // track by decreasing counters: when player progressed, counters drop
-      run.nextCoinZ -= run.speed * dt;
-      run.nextObsZ -= run.speed * dt;
-
-      if (run.nextCoinZ <= 0) {
-        const z = 18 + Math.random()*6; // ahead
-        spawnCoinRow(z);
-        run.nextCoinZ = 3.2 + Math.random()*1.4;
-      }
-
-      if (run.nextObsZ <= 0) {
-        const z = 22 + Math.random()*7;
-        spawnObstacle(z);
-        run.nextObsZ = 4.6 + Math.random()*1.8; // avoid back-to-back
-      }
-
-      // magnet
-      const magRange = magnetActiveRange();
-
-      // draw + collisions, sort far->near for correct layering
-      run.objects.sort((a,b)=>b.z-a.z);
-
-      const hb = playerHitbox();
-
-      for (const o of run.objects) {
-        if (o.kind === "coin" && !o.taken) {
-          // magnet pull: if within range, convert to closer lane x implicitly (we just allow easier pickup)
-          // collision when near
-          if (o.z < 2.2) {
-            const y = yAtZ(o.z);
-            const x = laneXAtZ(o.lane, o.z);
-            const r = 12*scaleAtZ(o.z);
-
-            // “magnet”: if close enough in z and same/adj lane, treat as near
-            let effX = x;
-            if (magRange > 0 && o.z < magRange) {
-              effX = x + (player.x - x) * 0.55;
-            }
-            if (circleRect(effX, y, r, hb)) {
-              o.taken = true;
-
-              const gain = Math.max(1, Math.round(1 * bonusMult()));
-              state.coins += gain;
-              run.earned += gain;
-              save();
-              refreshStats();
-              sfx.coin();
-            }
-          }
-
-          if (!o.taken) drawCoin(o);
-        }
-
-        if (o.kind === "spike" && !o.hit) {
-          drawSpike(o);
-
-          // collision zone near player
-          if (o.z < 1.9 && o.z > -0.2) {
-            // spike requires jump (must be jumping)
-            const jumping = hb.jumping;
-            if (!jumping && player.invuln <= 0) {
-              // hit
-              o.hit = true;
-              if (player.shield > 0) {
-                player.shield = 0;
-                player.invuln = 0.55;
-              } else {
-                run.lives -= 1;
-                player.invuln = 0.9;
-                if (run.lives <= 0) { sfx.hit(); endGame(); break; }
-              }
-              sfx.hit();
-            }
-          }
-        }
-
-        if (o.kind === "bar" && !o.hit) {
-          drawBar(o);
-
-          if (o.z < 2.0 && o.z > -0.2) {
-            // bar requires slide (must be sliding)
-            const sliding = hb.sliding;
-            if (!sliding && player.invuln <= 0) {
-              o.hit = true;
-              if (player.shield > 0) {
-                player.shield = 0;
-                player.invuln = 0.55;
-              } else {
-                run.lives -= 1;
-                player.invuln = 0.9;
-                if (run.lives <= 0) { sfx.hit(); endGame(); break; }
-              }
-              sfx.hit();
-            }
-          }
-        }
-      }
-
-      // cleanup: remove far behind or collected
-      run.objects = run.objects.filter(o => {
-        if (o.kind === "coin") return !(o.taken && o.z < -1.5) && o.z > -6;
-        return (o.z > -6);
-      });
-
-      drawPlayer();
-      drawHUD();
-    } else {
-      // idle
-      drawPlayer();
-      drawHUD();
-    }
-
-    requestAnimationFrame(loop);
-  }
+  // Temizlik
+  run.objects = run.objects.filter(o => o.z > -2);
+
+  drawWorld();
+  drawPlayer();
+  
+  // Skor Tabelası
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 20px Arial";
+  ctx.fillText(`Puan: ${Math.floor(run.score)}`, 20, 40);
+  ctx.fillText(`Para: ${run.coins}`, 20, 70);
 
   requestAnimationFrame(loop);
+}
 
-  // =========================
-  // Buttons / Navigation
-  // =========================
-  document.getElementById("btnPlay").onclick = () => { sfx.ui(); resetRun(); };
-  document.getElementById("btnRetry").onclick = () => { sfx.ui(); resetRun(); };
+function gameOver() {
+  run.active = false;
+  sfx.hit();
+  stopMusic();
+  if (run.score > state.high) state.high = Math.floor(run.score);
+  save();
+  document.getElementById("overStats").innerHTML = `Skor: ${Math.floor(run.score)}<br>Toplanan Para: ${run.coins}<br>Rekor: ${state.high}`;
+  document.getElementById("uiOver").classList.remove("hidden");
+}
 
-  document.getElementById("btnMenu").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
-  document.getElementById("btnSettings").onclick = () => { sfx.ui(); showOnly(uiSettings); refreshStats(); };
-  document.getElementById("btnShop").onclick = () => { sfx.ui(); showOnly(uiShop); refreshStats(); renderShop(); };
-  document.getElementById("btnPatch").onclick = () => { sfx.ui(); showOnly(uiPatch); refreshStats(); };
+/** KONTROLLER **/
+window.onkeydown = (e) => {
+  if (!run || !run.active) return;
+  if (e.key === "ArrowLeft" && player.lane > 0) player.lane--;
+  if (e.key === "ArrowRight" && player.lane < 2) player.lane++;
+  if (e.key === "ArrowUp" && player.jumpT <= 0) { player.jumpT = 0.6; sfx.jump(); }
+  if (e.key === "ArrowDown") player.slideT = 0.6;
+};
 
-  document.getElementById("btnBackFromSettings").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
-  document.getElementById("btnBackFromShop").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
-  document.getElementById("btnBackFromPatch").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
+// UI Tıklamaları
+document.getElementById("btnStart").onclick = () => {
+  document.getElementById("uiMenu").classList.add("hidden");
+  resetRun();
+  loop();
+};
 
-  document.getElementById("xSettings").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
-  document.getElementById("xShop").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
-  document.getElementById("xPatch").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
+document.getElementById("btnRetry").onclick = () => {
+  document.getElementById("uiOver").classList.add("hidden");
+  resetRun();
+  loop();
+};
 
-  document.getElementById("btnReset").onclick = () => {
-    state = deepClone(defaults);
-    save();
-    refreshStats();
-    renderShop();
-    sfx.ui();
-  };
+document.getElementById("btnMenu").onclick = () => {
+  location.reload();
+};
 
-  togMusic.onclick = () => {
-    state.settings.music = !state.settings.music;
-    save();
-    refreshStats();
-    refreshAudioSettings();
-    sfx.ui();
-  };
+document.getElementById("btnShop").onclick = () => {
+  alert("Market şu an yapım aşamasında! Mevcut paran: " + state.coins);
+};
 
-  togSfx.onclick = () => {
-    state.settings.sfx = !state.settings.sfx;
-    save();
-    refreshStats();
-    sfx.ui();
-  };
-
-  musicSelect.onchange = () => {
-    state.settings.musicMode = musicSelect.value;
-    save();
-    // restart music to apply change cleanly
-    stopMusic();
-    if (state.settings.music) startMusic();
-    sfx.ui();
-  };
-
-  document.getElementById("btnAudioUnlock").onclick = () => {
-    resumeAudioOnInput();
-    refreshAudioSettings();
-    sfx.ui();
-  };
-
-  // init
-  refreshStats();
-  if (state.settings.music) refreshAudioSettings();
-
-})();
+// Başlangıç ekranı istatistikleri
+document.getElementById("menuStats").innerHTML = `En Yüksek Skor: ${state.high}<br>Toplam Para: ${state.coins}`;
 </script>
 </body>
 </html>
