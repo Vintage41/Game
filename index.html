@@ -1099,7 +1099,7 @@ function drawCanan(){
 }
 function drawObstacle(o){
   const pulse=0.55 + 0.45*Math.sin(performance.now()/240);
-  ctx.fillStyle=`rgba(255,79,163,${0.55 + pulse*0.18})`;
+  ctx.fillStyle=`rgba(255,60,60,${0.60 + pulse*0.20})`;
   ctx.beginPath(); ctx.roundRect(o.x-o.w/2, o.y-o.h/2, o.w, o.h, 14); ctx.fill();
 
   ctx.fillStyle="rgba(255,255,255,.10)";
@@ -1590,3 +1590,4 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 </body>
 </html>
 ```
+
