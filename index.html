@@ -1,695 +1,239 @@
-<!doctype html>
-<html lang="tr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Kalp Yolu v7 — Soul Update (Stable)</title>
-  <style>
-    :root{ --p:#00d4ff; --a:#ff4fa3; --bg:#050814; }
-    *{ box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent; }
-    html,body{ margin:0; height:100%; background:var(--bg); color:#fff; font-family:system-ui; overflow:hidden; }
-    #wrap{ height:100%; display:flex; align-items:center; justify-content:center; padding:0; }
-    canvas{
-      width:min(100vw, 600px); height:min(100vh, 960px);
-      border-radius:22px; display:block;
-      background: radial-gradient(circle at 50% 15%, #0b1635 0%, #050814 100%);
-      box-shadow:0 22px 80px rgba(0,0,0,.85);
-      border:1px solid rgba(255,255,255,.06);
-      touch-action:none;
-    }
-
-    #hud{
-      position:absolute; top:16px; left:0; width:100%;
-      display:flex; justify-content:space-between; padding:0 12px;
-      z-index:60; pointer-events:none; font-weight:950;
-      text-shadow:0 2px 18px rgba(0,0,0,.55);
-    }
-    .pill{
-      background:rgba(0,0,0,.40); border:1px solid rgba(255,255,255,.12);
-      border-radius:999px; padding:8px 12px; backdrop-filter: blur(12px);
-      font-size:13px; display:flex; gap:8px; align-items:center;
-    }
-    #hudRight{ display:flex; gap:8px; }
-    #hudPause{ pointer-events:auto; cursor:pointer; }
-
-    #toast{
-      position:absolute; left:50%; top:92px; transform:translateX(-50%);
-      background:rgba(0,0,0,.62); border:1px solid rgba(255,255,255,.12);
-      padding:10px 14px; border-radius:999px; font-weight:950; font-size:12px;
-      opacity:0; transition:.16s; z-index:70; pointer-events:none; white-space:nowrap;
-    }
-    #toast.show{ opacity:1; }
-
-    .ui{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:100; padding:16px; }
-    .panel{
-      width:min(430px, 100%); background:rgba(14,18,40,.90);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:22px; padding:18px;
-      box-shadow:0 26px 90px rgba(0,0,0,.78);
-      backdrop-filter: blur(16px);
-      text-align:center;
-    }
-    .hidden{ display:none!important; }
-
-    .brand{ margin-bottom:12px; }
-    .brand h2{ margin:0; color:var(--p); letter-spacing:3px; }
-    .brand .sub{ opacity:.75; margin-top:6px; font-size:12px; }
-
-    .menuStats{
-      display:grid; grid-template-columns:1fr 1fr; gap:10px;
-      margin:12px 0 14px;
-    }
-    .stat{
-      background:rgba(255,255,255,.05);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:16px;
-      padding:10px 12px;
-      text-align:left;
-    }
-    .stat .k{ font-size:11px; opacity:.75; }
-    .stat .v{ font-size:16px; font-weight:1000; margin-top:2px; }
-
-    .btn{
-      width:100%; padding:13px 14px; margin:8px 0;
-      border-radius:14px; border:1px solid rgba(255,255,255,.12);
-      cursor:pointer; font-weight:1000;
-      background: linear-gradient(135deg, rgba(0,212,255,.96), rgba(0,212,255,.72));
-      color:#001019;
-    }
-    .btn.sec{ background:rgba(255,255,255,.06); color:#fff; }
-    .row{ display:flex; gap:10px; }
-  </style>
-</head>
-<body>
-
-<div id="wrap"><canvas id="c"></canvas></div>
-
-<div id="hud" class="hidden">
-  <div class="pill" style="color:var(--a)">💖 Run <span id="hudRunHearts">0</span></div>
-  <div class="pill" style="color:#ffd1e6">💖 Cüzdan <span id="hudWallet">0</span></div>
-  <div class="pill">🌿 Flow <span id="hudFlow">0%</span></div>
-  <div id="hudRight">
-    <div class="pill" id="hudMood">😌</div>
-    <div class="pill" id="hudPause">⏸</div>
-  </div>
-</div>
-<div id="toast"></div>
-
-<div id="uiMenu" class="ui">
-  <div class="panel">
-    <div class="brand">
-      <h2>KALP YOLU</h2>
-      <div class="sub">v7 — Soul Update • Karakter: <b>Canan</b></div>
-    </div>
-
-    <div class="menuStats">
-      <div class="stat">
-        <div class="k">CÜZDAN</div>
-        <div class="v" id="menuWallet">0 💖</div>
-      </div>
-      <div class="stat">
-        <div class="k">REKOR</div>
-        <div class="v" id="menuHigh">0m</div>
-      </div>
-    </div>
-
-    <button class="btn" id="btnStart">KOŞUYA BAŞLA</button>
-    <button class="btn sec" id="btnZen">ZEN MOD</button>
-    <div class="row">
-      <button class="btn sec" id="btnReset" style="flex:1;background:rgba(255,68,68,.90);color:#fff;">SIFIRLA</button>
-      <button class="btn sec" id="btnHow" style="flex:1;">NASIL?</button>
-    </div>
-  </div>
-</div>
-
-<div id="uiOver" class="ui hidden">
-  <div class="panel">
-    <h2 style="margin:0;color:var(--a)">OYUN BİTTİ</h2>
-    <div id="overText" style="margin:12px 0;opacity:.92;"></div>
-    <button class="btn" id="btnRetry">TEKRAR</button>
-    <button class="btn sec" id="btnMenu">MENÜ</button>
-  </div>
-</div>
-
-<script>
-/* ====== Safe utilities (no structuredClone) ====== */
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const lerp=(a,b,t)=>a+(b-a)*t;
-const deepCopy=(o)=>JSON.parse(JSON.stringify(o));
-
-/* ====== Elements ====== */
-const canvas = document.getElementById("c");
-const ctx = canvas.getContext("2d", { alpha:true });
-
-const hud = document.getElementById("hud");
-const hudRunHearts = document.getElementById("hudRunHearts");
-const hudWallet = document.getElementById("hudWallet");
-const hudFlow = document.getElementById("hudFlow");
-const hudMood = document.getElementById("hudMood");
-const hudPause = document.getElementById("hudPause");
-const toastEl = document.getElementById("toast");
-
-const uiMenu = document.getElementById("uiMenu");
-const uiOver = document.getElementById("uiOver");
-const overText = document.getElementById("overText");
-
-const btnStart = document.getElementById("btnStart");
-const btnZen = document.getElementById("btnZen");
-const btnRetry = document.getElementById("btnRetry");
-const btnMenu = document.getElementById("btnMenu");
-const btnReset = document.getElementById("btnReset");
-const btnHow = document.getElementById("btnHow");
-
-const menuWallet = document.getElementById("menuWallet");
-const menuHigh = document.getElementById("menuHigh");
-
-/* ====== Toast ====== */
-function toast(msg, ms=900){
-  toastEl.textContent = msg;
-  toastEl.classList.add("show");
-  clearTimeout(toastEl._t);
-  toastEl._t = setTimeout(()=>toastEl.classList.remove("show"), ms);
-}
-
-/* ====== Canvas resize ====== */
-let W=0,H=0,DPR=1;
-function resize(){
-  const r = canvas.getBoundingClientRect();
-  DPR = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
-  canvas.width = Math.floor(r.width * DPR);
-  canvas.height = Math.floor(r.height * DPR);
-  W = r.width; H = r.height;
-  ctx.setTransform(DPR,0,0,DPR,0,0);
-}
-window.addEventListener("resize", resize, {passive:true});
-resize();
-
-/* ====== Save/Load ====== */
-const LS_KEY="kalp_yolu_v7_stable";
-const defaults = { wallet: 0, high: 0 };
-let state = (() => {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    return raw ? Object.assign(deepCopy(defaults), JSON.parse(raw)) : deepCopy(defaults);
-  } catch { return deepCopy(defaults); }
-})();
-const save = () => localStorage.setItem(LS_KEY, JSON.stringify(state));
-
-function refreshMenu(){
-  menuWallet.textContent = `${state.wallet||0} 💖`;
-  menuHigh.textContent = `${state.high||0}m`;
-}
-
-/* ====== UI show ====== */
-function showMenu(){
-  uiMenu.classList.remove("hidden");
-  uiOver.classList.add("hidden");
-  hud.classList.add("hidden");
-  refreshMenu();
-}
-function showGame(){
-  uiMenu.classList.add("hidden");
-  uiOver.classList.add("hidden");
-  hud.classList.remove("hidden");
-}
-function showOver(){
-  uiOver.classList.remove("hidden");
-  hud.classList.add("hidden");
-}
-
-/* ====== Audio (calm procedural, Flow reactive) ====== */
-let audio=null, master=null, musicGain=null, music=null;
-function ensureAudio(){
-  if(audio) return;
-  audio = new (window.AudioContext || window.webkitAudioContext)();
-  master = audio.createGain();
-  master.gain.value = 0.85;
-  master.connect(audio.destination);
-
-  musicGain = audio.createGain();
-  musicGain.gain.value = 0.12;
-  musicGain.connect(master);
-}
-async function unlockAudio(){
-  try{
-    ensureAudio();
-    if(audio.state==="suspended") await audio.resume();
-  }catch{}
-}
-function startMusic(){
-  ensureAudio();
-  if(music) return;
-
-  const pad = audio.createOscillator();
-  const lead = audio.createOscillator();
-  const filter = audio.createBiquadFilter();
-  const g1 = audio.createGain();
-  const g2 = audio.createGain();
-
-  filter.type="lowpass";
-  filter.frequency.value=850;
-  filter.Q.value=0.7;
-
-  pad.type="triangle"; lead.type="sine";
-  pad.frequency.value=110; lead.frequency.value=220;
-
-  g1.gain.value=0.12; g2.gain.value=0.06;
-
-  pad.connect(g1); lead.connect(g2);
-  g1.connect(filter); g2.connect(filter);
-  filter.connect(musicGain);
-
-  pad.start(); lead.start();
-
-  music = { pad, lead, filter };
-}
-function stopMusic(){
-  if(!music) return;
-  try{ music.pad.stop(); music.lead.stop(); }catch{}
-  music=null;
-}
-
-/* ====== Game state ====== */
-let run=null, raf=0, lastT=0, paused=false;
-const player = { lane:1, x:0, y:0 };
-
-function laneX(l){
-  const roadW=W*0.74, start=(W-roadW)/2;
-  return start + (l+0.5)*(roadW/3);
-}
-function circleRectHit(cx,cy,r, rx,ry,rw,rh){
-  const nx=clamp(cx, rx, rx+rw);
-  const ny=clamp(cy, ry, ry+rh);
-  const dx=cx-nx, dy=cy-ny;
-  return (dx*dx + dy*dy) <= r*r;
-}
-function rectHit(a,b){
-  return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
-}
-
-function resetRun(zen=false){
-  paused=false;
-  run={
-    active:true,
-    zen,
-    hearts:0,       // run hearts
-    score:0,
-    flow:0.28,      // 0..1
-    speed:330,
-    obstacle:null,
-    heart:null,
-    nextObs:0.65,
-    nextHeart:0.32,
-    lastObsLane:-1
-  };
-  player.lane=1;
-  player.x=laneX(1);
-  player.y=H*0.90;
-  lastT=performance.now();
-  showGame();
-  toast(zen ? "Zen Mod 🌙" : "Başladık 💨", 900);
-  raf=requestAnimationFrame(loop);
-}
-
-function gameOver(){
-  if(run.zen){
-    run.flow = Math.max(0.10, run.flow-0.28);
-    run.obstacle=null;
-    toast("Zen: devam 😌", 900);
-    return;
-  }
-  run.active=false;
-  stopMusic();
-
-  const finalHearts = run.hearts;
-  // Rekor: score metre gibi (hızdan gelen sayıya bağlı)
-  const meters = Math.floor(run.score);
-  if(meters > (state.high||0)) { state.high = meters; save(); }
-
-  overText.innerHTML =
-    `Skor: <b>${meters}m</b><br>` +
-    `Toplanan: <b>${finalHearts} 💖</b><br>` +
-    `Flow: <b>${Math.floor(run.flow*100)}%</b><br>` +
-    `Cüzdan: <b>${state.wallet} 💖</b>`;
-
-  showOver();
-  refreshMenu();
-}
-
-function spawnObstacle(){
-  let lane = (Math.random()*3)|0;
-  const last=run.lastObsLane;
-
-  // Adalet: uçtan uca zıplamayı azalt + aynı lane spam azalt
-  if(last!==-1){
-    const extreme = (last===0 && lane===2) || (last===2 && lane===0);
-    if(extreme && Math.random()<0.75) lane=1;
-    if(lane===last && Math.random()<0.70) lane=(lane+1+((Math.random()*2)|0))%3;
-  }
-  run.lastObsLane=lane;
-
-  run.obstacle={
-    lane,
-    x:laneX(lane),
-    y:-80,
-    w:92,
-    h:34,
-    passed:false
-  };
-}
-function spawnHeart(){
-  let lane=(Math.random()*3)|0;
-  if(run.obstacle && run.obstacle.lane===lane && run.obstacle.y<240){
-    lane=(lane+1)%3;
-  }
-  run.heart={
-    lane,
-    x:laneX(lane),
-    y:-30,
-    r:18
-  };
-}
-
-/* ====== Draw ====== */
-function drawBackground(){
-  ctx.fillStyle="#050814";
-  ctx.fillRect(0,0,W,H);
-
-  const roadW=W*0.74, x0=(W-roadW)/2, y0=H*0.10;
-  ctx.fillStyle="rgba(255,255,255,0.06)";
-  ctx.fillRect(x0,y0,roadW,H-y0);
-
-  ctx.strokeStyle="rgba(255,255,255,0.10)";
-  ctx.lineWidth=2;
-  ctx.setLineDash([10,10]);
-  for(let i=1;i<3;i++){
-    const lx=x0+i*(roadW/3);
-    ctx.beginPath(); ctx.moveTo(lx,y0); ctx.lineTo(lx,H); ctx.stroke();
-  }
-  ctx.setLineDash([]);
-}
-function drawCanan(){
-  player.x += (laneX(player.lane)-player.x)*0.28;
-  const x=player.x, y=player.y;
-
-  // glow by flow
-  const glow = 0.10 + run.flow*0.22;
-  ctx.globalAlpha=glow;
-  ctx.strokeStyle="rgba(0,212,255,.9)";
-  ctx.lineWidth=4;
-  ctx.beginPath();
-  ctx.arc(x, y-48, 58, 0, Math.PI*2);
-  ctx.stroke();
-  ctx.globalAlpha=1;
-
-  // body
-  ctx.fillStyle="rgba(0,212,255,.95)";
-  ctx.beginPath();
-  ctx.roundRect(x-28,y-78,56,78,18);
-  ctx.fill();
-
-  // visor
-  ctx.fillStyle="rgba(0,0,0,.35)";
-  ctx.beginPath();
-  ctx.roundRect(x-22,y-66,44,18,10);
-  ctx.fill();
-
-  // eyes
-  ctx.fillStyle="#fff";
-  ctx.beginPath();
-  ctx.arc(x-10,y-57,3.2,0,Math.PI*2);
-  ctx.arc(x+10,y-57,3.2,0,Math.PI*2);
-  ctx.fill();
-
-  // name tag
-  ctx.fillStyle="rgba(255,255,255,.12)";
-  ctx.beginPath();
-  ctx.roundRect(x-20,y-40,40,14,8);
-  ctx.fill();
-
-  ctx.fillStyle="#fff";
-  ctx.font="900 10px system-ui";
-  ctx.textAlign="center"; ctx.textBaseline="middle";
-  ctx.fillText("CANAN", x, y-33);
-}
-function drawObstacle(o){
-  const pulse=0.55 + 0.45*Math.sin(performance.now()/240);
-  ctx.fillStyle=`rgba(255,79,163,${0.55 + pulse*0.18})`;
-  ctx.beginPath();
-  ctx.roundRect(o.x-o.w/2, o.y-o.h/2, o.w, o.h, 14);
-  ctx.fill();
-
-  ctx.fillStyle="rgba(255,255,255,.10)";
-  ctx.beginPath();
-  ctx.roundRect(o.x-o.w/2+6, o.y-o.h/2+6, o.w-12, o.h-12, 10);
-  ctx.fill();
-}
-function drawHeart(h){
-  const x=h.x, y=h.y, r=h.r;
-
-  // heart shape
-  ctx.fillStyle="rgba(255,79,163,.95)";
-  ctx.beginPath();
-  const top = y - r*0.15;
-  ctx.moveTo(x, top + r*0.65);
-  ctx.bezierCurveTo(x - r, top, x - r*0.95, top - r*0.55, x, top - r*0.10);
-  ctx.bezierCurveTo(x + r*0.95, top - r*0.55, x + r, top, x, top + r*0.65);
-  ctx.closePath();
-  ctx.fill();
-
-  // tiny highlight
-  ctx.globalAlpha=0.25;
-  ctx.fillStyle="#fff";
-  ctx.beginPath();
-  ctx.arc(x-r*0.35, y-r*0.65, r*0.22, 0, Math.PI*2);
-  ctx.fill();
-  ctx.globalAlpha=1;
-}
-
-/* ====== HUD ====== */
-function updateHud(){
-  hudRunHearts.textContent = run.hearts;
-  hudWallet.textContent = state.wallet||0;
-  hudFlow.textContent = `${Math.floor(run.flow*100)}%`;
-  hudMood.textContent = run.flow>0.66 ? "😌" : (run.flow>0.35 ? "🙂" : "😰");
-}
-
-/* ====== Core loop ====== */
-function loop(now){
-  if(!run || !run.active) return;
-
-  let dt=(now-lastT)/1000;
-  lastT=now;
-  dt=Math.min(0.033, Math.max(0, dt));
-
-  if(paused){
-    drawBackground();
-    if(run.obstacle) drawObstacle(run.obstacle);
-    if(run.heart) drawHeart(run.heart);
-    drawCanan();
-    raf=requestAnimationFrame(loop);
-    return;
-  }
-
-  // score (meters feel)
-  run.score += (run.speed*dt)/10;
-
-  // Flow: doğal düşüş (gerçek Flow)
-  run.flow = lerp(run.flow, 0.18, dt*0.25);
-  run.flow = clamp(run.flow, 0, 1);
-
-  // Music reacts to Flow
-  if(music && audio){
-    const cutoff = 650 + run.flow*1200;
-    music.filter.frequency.setTargetAtTime(cutoff, audio.currentTime, 0.12);
-
-    if(musicGain){
-      const targetVol = 0.10 + run.flow*0.08;
-      musicGain.gain.setTargetAtTime(targetVol, audio.currentTime, 0.15);
-    }
-  }
-
-  // spawn timers
-  run.nextObs -= dt;
-  run.nextHeart -= dt;
-
-  if(!run.obstacle && run.nextObs<=0){
-    spawnObstacle();
-    run.nextObs = 0.62 + Math.random()*0.38;
-  }
-  if(!run.heart && run.nextHeart<=0){
-    spawnHeart();
-    run.nextHeart = 0.28 + Math.random()*0.22;
-  }
-
-  // speed progression (no levels)
-  run.speed = clamp(run.speed + 14*dt, 330, 540);
-
-  // move
-  if(run.obstacle){
-    run.obstacle.y += run.speed*dt;
-    if(run.obstacle.y > H+120) run.obstacle=null;
-  }
-  if(run.heart){
-    run.heart.y += run.speed*dt*0.95;
-    if(run.heart.y > H+60) run.heart=null;
-  }
-
-  // player rect (for collisions)
-  const pw=52, ph=78;
-  const pr = { x:player.x-pw/2, y:player.y-ph, w:pw, h:ph };
-
-  // obstacle: dodge + near-miss + collision
-  if(run.obstacle){
-    const o=run.obstacle;
-    const or = { x:o.x-o.w/2, y:o.y-o.h/2, w:o.w, h:o.h };
-
-    // when passed player line => dodge
-    if(!o.passed && o.y > player.y){
-      o.passed=true;
-
-      // Dodge adds flow
-      run.flow = clamp(run.flow + 0.08, 0, 1);
-      toast("Kaçış! 🌿", 650);
-
-      // Near-miss: same lane and very close
-      const near = (o.lane === player.lane) && Math.abs((o.y - player.y)) < 24;
-      if(near){
-        const bonus = 2;
-        run.flow = clamp(run.flow + 0.10, 0, 1);
-        run.hearts += bonus;
-
-        state.wallet = (state.wallet||0) + bonus;
-        save();
-
-        toast(`Near-miss +${bonus} 💖`, 850);
-      }
-    }
-
-    if(rectHit(pr, or)){
-      gameOver();
-      if(!run.active) return;
-    }
-  }
-
-  // heart pickup (FIXED)
-  if(run.heart){
-    const h=run.heart;
-    if(circleRectHit(h.x,h.y,h.r, pr.x,pr.y,pr.w,pr.h)){
-      run.hearts += 1;
-      run.flow = clamp(run.flow + 0.05, 0, 1);
-
-      state.wallet = (state.wallet||0) + 1;
-      save();
-
-      toast("+1 💖", 650);
-      run.heart=null;
-    }
-  }
-
-  // draw
-  drawBackground();
-  if(run.obstacle) drawObstacle(run.obstacle);
-  if(run.heart) drawHeart(run.heart);
-  drawCanan();
-  updateHud();
-
-  raf=requestAnimationFrame(loop);
-}
-
-/* ====== Controls ====== */
-function togglePause(){
-  if(!run?.active) return;
-  paused = !paused;
-  toast(paused ? "Duraklatıldı ⏸" : "Devam ▶️", 900);
-}
-function control(dir){
-  if(!run?.active) return;
-  if(dir==="L" && player.lane>0) player.lane--;
-  if(dir==="R" && player.lane<2) player.lane++;
-}
-window.addEventListener("keydown",(e)=>{
-  if(e.key==="ArrowLeft") control("L");
-  if(e.key==="ArrowRight") control("R");
-  if(e.key==="Escape") togglePause();
-});
-
-let sx=0, sy=0;
-canvas.addEventListener("pointerdown", async (e)=>{
-  sx=e.clientX; sy=e.clientY;
-  await unlockAudio();
-  startMusic();
-},{passive:true});
-canvas.addEventListener("pointerup",(e)=>{
-  const dx=e.clientX-sx, dy=e.clientY-sy;
-  if(Math.abs(dx)>Math.abs(dy)){
-    if(Math.abs(dx)>18) control(dx>0?"R":"L");
-  }else{
-    if(Math.abs(dy)>22) togglePause();
-  }
-},{passive:true});
-
-/* ====== Buttons ====== */
-btnStart.addEventListener("click", async ()=>{
-  await unlockAudio(); startMusic();
-  resetRun(false);
-});
-btnZen.addEventListener("click", async ()=>{
-  await unlockAudio(); startMusic();
-  resetRun(true);
-});
-btnRetry.addEventListener("click", async ()=>{
-  await unlockAudio(); startMusic();
-  resetRun(run?.zen || false);
-});
-btnMenu.addEventListener("click", ()=>{
-  run=null; paused=false;
-  showMenu();
-});
-
-hudPause.addEventListener("click", ()=>togglePause());
-
-btnReset.addEventListener("click", ()=>{
-  if(confirm("Cüzdan + rekor sıfırlansın mı?")){
-    localStorage.removeItem(LS_KEY);
-    state = deepCopy(defaults);
-    save();
-    toast("Sıfırlandı ✅", 900);
-    showMenu();
-  }
-});
-
-btnHow.addEventListener("click", ()=>{
-  toast("Sağ/sol: şerit değiş • Dikey swipe: duraklat", 1600);
-});
-
-/* ====== roundRect polyfill (older browsers) ====== */
-if(!CanvasRenderingContext2D.prototype.roundRect){
-  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
-    const rr=Math.min(r,w/2,h/2);
-    this.beginPath();
-    this.moveTo(x+rr,y);
-    this.arcTo(x+w,y,x+w,y+h,rr);
-    this.arcTo(x+w,y+h,x,y+h,rr);
-    this.arcTo(x,y+h,x,y,rr);
-    this.arcTo(x,y,x+w,y,rr);
-    this.closePath();
-    return this;
-  };
-}
-
-/* ====== init ====== */
-(function init(){
-  save();
-  showMenu();
-  // idle frame
-  player.x=laneX(1); player.y=H*0.90;
-  drawBackground();
-  // fake run for drawing Canan on menu
-  run={ flow:0.28 };
-  drawCanan();
-})();
-</script>
-
-</body>
-</html>
+import pygame
+import random
+import sys
+import time
+
+# --- AYARLAR VE BAŞLATMA ---
+pygame.init()
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Galaktik Savaşçı: Power-up Devri")
+clock = pygame.time.Clock()
+
+# --- RENKLER ---
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 50, 50)
+BLUE = (50, 150, 255)
+YELLOW = (255, 255, 0)
+PURPLE = (160, 32, 240)
+CYAN = (0, 255, 255)
+
+# --- FONT ARŞİVİ ---
+font_small = pygame.font.SysFont("Courier New", 20, bold=True)
+font_med = pygame.font.SysFont("Courier New", 35, bold=True)
+font_large = pygame.font.SysFont("Courier New", 60, bold=True)
+
+# --- SINIFLAR ---
+
+class Player:
+    def __init__(self):
+        self.size = 50
+        self.x = WIDTH // 2
+        self.y = HEIGHT - 80
+        self.speed = 9
+        self.triple_shot_active = False
+        self.powerup_timer = 0
+
+    def draw(self):
+        # Güçlendirici aktifse uçağın rengi değişsin
+        color = CYAN if self.triple_shot_active else BLUE
+        # Ana gövde
+        pygame.draw.polygon(screen, color, [(self.x, self.y + 30), (self.x + 25, self.y), (self.x + 50, self.y + 30)])
+        pygame.draw.rect(screen, WHITE, (self.x + 20, self.y + 30, 10, 15)) # Motor
+        
+        if self.triple_shot_active:
+            # Kalkan veya güç efekti dairesi
+            pygame.draw.circle(screen, CYAN, (self.x + 25, self.y + 20), 35, 2)
+
+    def move(self, keys):
+        if keys[pygame.K_LEFT] and self.x > 0:
+            self.x -= self.speed
+        if keys[pygame.K_RIGHT] and self.x < WIDTH - self.size:
+            self.x += self.speed
+
+class Bullet:
+    def __init__(self, x, y, angle=0):
+        self.x = x
+        self.y = y
+        self.speed_y = -12
+        self.speed_x = angle # Yanlara ateş için
+
+    def update(self):
+        self.y += self.speed_y
+        self.x += self.speed_x
+
+    def draw(self):
+        pygame.draw.rect(screen, YELLOW, (self.x, self.y, 6, 15))
+
+class Enemy:
+    def __init__(self, level):
+        self.size = 45
+        self.x = random.randint(0, WIDTH - self.size)
+        self.y = random.randint(-150, -50)
+        self.speed = random.uniform(2, 4) + (level * 0.4)
+
+    def update(self):
+        self.y += self.speed
+
+    def draw(self):
+        pygame.draw.rect(screen, RED, (self.x, self.y, self.size, self.size))
+        pygame.draw.line(screen, WHITE, (self.x, self.y), (self.x + self.size, self.y + self.size), 2)
+
+class PowerUp:
+    def __init__(self):
+        self.size = 30
+        self.x = random.randint(0, WIDTH - self.size)
+        self.y = -50
+        self.speed = 4
+
+    def update(self):
+        self.y += self.speed
+
+    def draw(self):
+        pygame.draw.circle(screen, CYAN, (self.x + 15, self.y + 15), 15)
+        text = font_small.render("3", True, BLACK)
+        screen.blit(text, (self.x + 10, self.y + 5))
+
+# --- YARDIMCI FONKSİYONLAR ---
+
+def message_display(text, font, color, y_offset=0):
+    text_surface = font.render(text, True, color)
+    text_rect = text_surface.get_rect(center=(WIDTH/2, HEIGHT/2 + y_offset))
+    screen.blit(text_surface, text_rect)
+
+# --- ANA OYUN FONKSİYONU ---
+
+def main_game():
+    player = Player()
+    bullets = []
+    enemies = []
+    powerups = []
+    
+    score = 0
+    lives = 3
+    level = 1
+    running = True
+    
+    # Zamanlayıcılar
+    enemy_spawn_event = pygame.USEREVENT + 1
+    pygame.time.set_timer(enemy_spawn_event, 1000)
+    
+    powerup_spawn_event = pygame.USEREVENT + 2
+    pygame.time.set_timer(powerup_spawn_event, 10000) # 10 saniyede bir powerup
+
+    while running:
+        screen.fill(BLACK)
+        
+        # 1. Event Handling
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            
+            if event.type == enemy_spawn_event:
+                enemies.append(Enemy(level))
+            
+            if event.type == powerup_spawn_event:
+                powerups.append(PowerUp())
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    if player.triple_shot_active:
+                        bullets.append(Bullet(player.x + 22, player.y, 0))
+                        bullets.append(Bullet(player.x + 5, player.y, -3))
+                        bullets.append(Bullet(player.x + 40, player.y, 3))
+                    else:
+                        bullets.append(Bullet(player.x + 22, player.y))
+
+        # 2. Update Logic
+        keys = pygame.key.get_pressed()
+        player.move(keys)
+        
+        # Power-up Süre Kontrolü
+        if player.triple_shot_active:
+            if time.time() > player.powerup_timer:
+                player.triple_shot_active = False
+
+        # Mermileri Güncelle
+        for b in bullets[:]:
+            b.update()
+            if b.y < 0: bullets.remove(b)
+
+        # Düşmanları Güncelle
+        for e in enemies[:]:
+            e.update()
+            if e.y > HEIGHT:
+                enemies.remove(e)
+                lives -= 1
+            
+            # Mermi-Düşman Çarpışması
+            for b in bullets[:]:
+                if (e.x < b.x < e.x + e.size) and (e.y < b.y < e.y + e.size):
+                    score += 15
+                    if b in bullets: bullets.remove(b)
+                    if e in enemies: enemies.remove(e)
+                    break
+
+        # Power-up Toplama
+        for p in powerups[:]:
+            p.update()
+            if (player.x < p.x + p.size and player.x + player.size > p.x and
+                player.y < p.y + p.size and player.y + player.size > p.y):
+                player.triple_shot_active = True
+                player.powerup_timer = time.time() + 7 # 7 saniye sürer
+                powerups.remove(p)
+            elif p.y > HEIGHT:
+                powerups.remove(p)
+
+        # Zorluk Seviyesi
+        level = 1 + (score // 200)
+
+        # 3. Drawing
+        player.draw()
+        for b in bullets: b.draw()
+        for e in enemies: e.draw()
+        for p in powerups: p.draw()
+
+        # UI
+        show_info = f"SKOR: {score}  CAN: {lives}  SEVİYE: {level}"
+        screen.blit(font_small.render(show_info, True, WHITE), (10, 10))
+        if player.triple_shot_active:
+            rem = int(player.powerup_timer - time.time())
+            screen.blit(font_small.render(f"GÜÇ: {rem}s", True, CYAN), (10, 40))
+
+        if lives <= 0:
+            running = False
+
+        pygame.display.flip()
+        clock.tick(60)
+
+    return score
+
+# --- ANA DÖNGÜ ---
+while True:
+    screen.fill(BLACK)
+    message_display("GALAKTİK SAVAŞÇI", font_large, BLUE, -50)
+    message_display("BAŞLAMAK İÇİN 'B' TUŞUNA BASIN", font_small, WHITE, 50)
+    pygame.display.flip()
+
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_b:
+                waiting = False
+
+    final_score = main_game()
+
+    screen.fill(BLACK)
+    message_display("OYUN BİTTİ", font_large, RED, -50)
+    message_display(f"SKORUNUZ: {final_score}", font_med, WHITE, 50)
+    message_display("TEKRAR İÇİN 'T' TUŞUNA BASIN", font_small, YELLOW, 120)
+    pygame.display.flip()
+
+    retry = True
+    while retry:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_t:
+                retry = False
