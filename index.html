@@ -144,7 +144,13 @@ const defaults = {
   wallet: 0,   // (istersen sonra kalıcı yaparız)
   high: 0
 };
-let state = deepCopy(defaults);
+let state = (() => {
+  try {
+    const raw = localStorage.getItem("kalp_yolu_v7_fix");
+    return raw ? Object.assign(deepCopy(defaults), JSON.parse(raw)) : deepCopy(defaults);
+  } catch { return deepCopy(defaults); }
+})();
+const save = () => localStorage.setItem("kalp_yolu_v7_fix", JSON.stringify(state));
 
 let run=null, raf=0, lastT=0, paused=false;
 const player = { lane:1, x:0, y:0 };
@@ -233,6 +239,7 @@ function resetRun(zen=false){
     active:true,
     zen,
     hearts:0,
+    wallet: (state.wallet||0),
     score:0,
     flow:0.25,
     speed:320,
@@ -547,4 +554,5 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 
 </body>
 </html>
+
 
