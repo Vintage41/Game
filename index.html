@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Kalp Yolu v7.1 — Fun & Soul Update</title>
+  <title>Kalp Yolu v7.1 — Fun & Soul Update (Full)</title>
   <style>
     :root{
       --p:#00d4ff; --a:#ff4fa3; --bg:#050814;
@@ -49,7 +49,7 @@
 
     .ui{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:100; padding:16px; }
     .panel{
-      width:min(440px, 100%); background:var(--card);
+      width:min(460px, 100%); background:var(--card);
       border:1px solid var(--stroke);
       border-radius:22px; padding:18px;
       box-shadow:0 26px 90px rgba(0,0,0,.78);
@@ -61,6 +61,7 @@
     .brand{ margin-bottom:12px; }
     .brand h2{ margin:0; color:var(--p); letter-spacing:3px; }
     .brand .sub{ opacity:.75; margin-top:6px; font-size:12px; }
+
     .menuStats{
       display:grid; grid-template-columns:1fr 1fr; gap:10px;
       margin:12px 0 14px;
@@ -87,7 +88,7 @@
     .row{ display:flex; gap:10px; }
     .row .btn{ margin:8px 0; }
 
-    .scroll{ max-height:360px; overflow:auto; padding-right:6px; scrollbar-width:thin; text-align:left; }
+    .scroll{ max-height:380px; overflow:auto; padding-right:6px; scrollbar-width:thin; text-align:left; }
     .card{
       background:rgba(255,255,255,.05);
       border:1px solid rgba(255,255,255,.10);
@@ -106,6 +107,12 @@
       width:auto; padding:10px 12px; margin:0;
       border-radius:12px; font-weight:1000;
     }
+
+    .patch h3{ margin:8px 0 6px; color:var(--p); }
+    .patch .ver{ color:var(--a); font-weight:1000; }
+    .patch ul{ margin:6px 0 12px 18px; padding:0; }
+    .patch li{ margin:6px 0; line-height:1.35; }
+    .sep{ height:1px; background:rgba(255,255,255,.10); margin:10px 0; }
   </style>
 </head>
 <body>
@@ -164,6 +171,11 @@
     </div>
 
     <div class="row">
+      <button class="btn sec" id="btnSettings" style="flex:1;">AYARLAR</button>
+      <button class="btn sec" id="btnPatch" style="flex:1;">YAMA NOTLARI</button>
+    </div>
+
+    <div class="row">
       <button class="btn danger" id="btnReset" style="flex:1;">SIFIRLA</button>
       <button class="btn sec" id="btnHow" style="flex:1;">NASIL?</button>
     </div>
@@ -186,6 +198,34 @@
     <div class="scroll" id="shopList"></div>
 
     <button class="btn sec" id="btnShopBack">GERİ</button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="uiSettings" class="ui hidden">
+  <div class="panel">
+    <div class="brand">
+      <h2>AYARLAR</h2>
+      <div class="sub">Daha stabil olması için basit tutuldu.</div>
+    </div>
+
+    <button class="btn sec" id="togMusic">MÜZİK: AÇIK</button>
+    <button class="btn sec" id="togSfx">SES EFEKTLERİ: AÇIK</button>
+    <button class="btn sec" id="btnSettingsBack">GERİ</button>
+  </div>
+</div>
+
+<!-- PATCH NOTES -->
+<div id="uiPatch" class="ui hidden">
+  <div class="panel patch">
+    <div class="brand">
+      <h2>YAMA NOTLARI</h2>
+      <div class="sub">Tüm sürümler korunur.</div>
+    </div>
+
+    <div class="scroll" id="patchBody"></div>
+
+    <button class="btn sec" id="btnPatchBack">KAPAT</button>
   </div>
 </div>
 
@@ -221,6 +261,8 @@ const toastEl=document.getElementById("toast");
 
 const uiMenu=document.getElementById("uiMenu");
 const uiShop=document.getElementById("uiShop");
+const uiSettings=document.getElementById("uiSettings");
+const uiPatch=document.getElementById("uiPatch");
 const uiOver=document.getElementById("uiOver");
 
 const menuWallet=document.getElementById("menuWallet");
@@ -232,12 +274,21 @@ const btnStart=document.getElementById("btnStart");
 const btnZen=document.getElementById("btnZen");
 const btnShop=document.getElementById("btnShop");
 const btnDaily=document.getElementById("btnDaily");
+const btnSettings=document.getElementById("btnSettings");
+const btnPatch=document.getElementById("btnPatch");
 const btnReset=document.getElementById("btnReset");
 const btnHow=document.getElementById("btnHow");
 
 const shopWallet=document.getElementById("shopWallet");
 const shopList=document.getElementById("shopList");
 const btnShopBack=document.getElementById("btnShopBack");
+
+const togMusic=document.getElementById("togMusic");
+const togSfx=document.getElementById("togSfx");
+const btnSettingsBack=document.getElementById("btnSettingsBack");
+
+const patchBody=document.getElementById("patchBody");
+const btnPatchBack=document.getElementById("btnPatchBack");
 
 const overText=document.getElementById("overText");
 const btnRetry=document.getElementById("btnRetry");
@@ -265,18 +316,20 @@ window.addEventListener("resize", resize, {passive:true});
 resize();
 
 /* ====== save/load ====== */
-const LS_KEY="kalp_yolu_v71";
+const LS_KEY="kalp_yolu_v71_full";
 const defaults={
   wallet:0,
   high:0,
   aura:"soft",
   ownedAuras:["soft"],
-  daily:{ lastClaimKey:0, streak:0 }
+  daily:{ lastClaimKey:0, streak:0 },
+  sett:{ music:true, sfx:true }
 };
+
 const AURAS={
-  soft:   { n:"Soft Glow",   p:0,   tag:"FREE" },
-  pulse:  { n:"Pulse Ring",  p:140, tag:"CLEAN" },
-  rainbow:{ n:"Rainbow Soul",p:320, tag:"🌈" }
+  soft:   { n:"Soft Glow",    p:0,   tag:"FREE" },
+  pulse:  { n:"Pulse Ring",   p:140, tag:"CLEAN" },
+  rainbow:{ n:"Rainbow Soul", p:320, tag:"🌈" }
 };
 
 let state=(()=>{
@@ -286,12 +339,90 @@ let state=(()=>{
     if(!AURAS[s.aura]) s.aura="soft";
     if(!Array.isArray(s.ownedAuras)) s.ownedAuras=["soft"];
     if(!s.ownedAuras.includes("soft")) s.ownedAuras.push("soft");
+    if(!s.sett) s.sett=deepCopy(defaults.sett);
     return s;
   }catch{
     return deepCopy(defaults);
   }
 })();
 const save=()=>localStorage.setItem(LS_KEY, JSON.stringify(state));
+
+/* ====== patch notes ====== */
+const PATCH = [
+  {
+    v:"7.1", title:"Fun & Soul Update",
+    items:[
+      "Aura sistemi eklendi (kozmetik).",
+      "Gece/Gündüz döngüsü eklendi (yumuşak geçiş).",
+      "Günlük ödül eklendi (+25 💖).",
+      "Kalp toplama ‘pop’ efekti ve near-miss mikro sarsıntı eklendi.",
+      "Flow daha hissedilir ve stabil hale getirildi."
+    ]
+  },
+  {
+    v:"7.0", title:"Soul Update",
+    items:[
+      "Flow sistemi eklendi (akış hissi).",
+      "Kalp (💖) para birimi oldu, cüzdan kalıcılaştı.",
+      "Zen mod eklendi (çarpınca oyun bitmez).",
+      "Mobil tarayıcı uyumluluğu güçlendirildi."
+    ]
+  },
+  {
+    v:"6.0", title:"Stabilite & Temizlik",
+    items:[
+      "Engel sistemi sadeleştirildi (tek tip engel).",
+      "Zıplama/eğilme kaldırıldı; 3 şerit koşu netleştirildi.",
+      "Menü ve oyun döngüsü hata düzeltmeleri."
+    ]
+  },
+  {
+    v:"5.0", title:"Temel Genişleme",
+    items:[
+      "HUD iyileştirmeleri ve kayıt sistemi düzenlemeleri.",
+      "Akış ve çarpışma mantığında stabilite iyileştirmeleri."
+    ]
+  },
+  {
+    v:"4.0", title:"Görsel Dokunuşlar",
+    items:[
+      "Arayüz iyileştirmeleri.",
+      "Arka plan derinlik hissi ve daha temiz çizimler."
+    ]
+  },
+  {
+    v:"3.0", title:"Market Temeli",
+    items:[
+      "Market fikri ve kozmetik içerik altyapısı."
+    ]
+  },
+  {
+    v:"2.0", title:"Kayıt & Denge",
+    items:[
+      "Kayıt/rekor mantığı eklendi.",
+      "Engel üretimi ve tempo dengesi iyileştirildi."
+    ]
+  },
+  {
+    v:"1.0", title:"İlk Sürüm",
+    items:[
+      "Temel 3 şerit koşu mekaniği."
+    ]
+  }
+];
+
+function renderPatch(){
+  patchBody.innerHTML = PATCH.map(p=>{
+    const lis = p.items.map(x=>`<li>${x}</li>`).join("");
+    return `
+      <div>
+        <div class="ver">v${p.v} — ${p.title}</div>
+        <ul>${lis}</ul>
+        <div class="sep"></div>
+      </div>
+    `;
+  }).join("");
+}
 
 /* ====== audio (safe + flow reactive) ====== */
 let audio=null, master=null, musicGain=null, music=null;
@@ -306,7 +437,7 @@ async function unlockAudio(){
 }
 function startMusic(){
   ensureAudio();
-  if(music) return;
+  if(music || !state.sett.music) return;
 
   const pad=audio.createOscillator();
   const lead=audio.createOscillator();
@@ -331,18 +462,40 @@ function stopMusic(){
   try{ music.pad.stop(); music.lead.stop(); }catch{}
   music=null;
 }
+function sfx(type){
+  if(!state.sett.sfx) return;
+  ensureAudio();
+  try{
+    const o=audio.createOscillator();
+    const g=audio.createGain();
+    o.type="sine";
+    const t=audio.currentTime;
+    const f = type==="heart" ? 880 : type==="miss" ? 540 : 220;
+    o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(0.10, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t+0.12);
+    o.connect(g); g.connect(master);
+    o.start(); o.stop(t+0.13);
+  }catch{}
+}
 
 /* ====== UI navigation ====== */
 function showOnly(which){
   uiMenu.classList.add("hidden");
   uiShop.classList.add("hidden");
+  uiSettings.classList.add("hidden");
+  uiPatch.classList.add("hidden");
   uiOver.classList.add("hidden");
   hud.classList.add("hidden");
+
   if(which==="menu") uiMenu.classList.remove("hidden");
   if(which==="shop") uiShop.classList.remove("hidden");
+  if(which==="settings") uiSettings.classList.remove("hidden");
+  if(which==="patch") uiPatch.classList.remove("hidden");
   if(which==="over") uiOver.classList.remove("hidden");
   if(which==="game") hud.classList.remove("hidden");
 }
+
 function dailyReady(){
   return (state.daily?.lastClaimKey||0) !== dayKey();
 }
@@ -352,6 +505,8 @@ function refreshMenu(){
   menuAura.textContent=AURAS[state.aura].n;
   menuDaily.textContent = dailyReady() ? "Hazır" : "Alındı";
   menuDaily.style.color = dailyReady() ? "#39ff14" : "rgba(255,255,255,.70)";
+  togMusic.textContent = `MÜZİK: ${state.sett.music ? "AÇIK" : "KAPALI"}`;
+  togSfx.textContent   = `SES EFEKTLERİ: ${state.sett.sfx ? "AÇIK" : "KAPALI"}`;
 }
 
 /* ====== shop ====== */
@@ -410,7 +565,7 @@ function renderShop(){
 let run=null, raf=0, lastT=0, paused=false;
 const player={ lane:1, x:0, y:0 };
 let shake=0;
-const pops=[]; // pickup pop effects
+const pops=[];
 
 function laneX(l){
   const roadW=W*0.74, start=(W-roadW)/2;
@@ -443,14 +598,14 @@ function resetRun(zen=false){
     zen,
     runHearts:0,
     score:0,
-    flow:0.28, // 0..1
+    flow:0.28,
     speed:330,
     obstacle:null,
     heart:null,
     nextObs:0.62,
     nextHeart:0.30,
     lastObsLane:-1,
-    bgT: Math.random() // for day/night cycle
+    bgT: Math.random()
   };
   player.lane=1;
   player.x=laneX(1);
@@ -477,7 +632,6 @@ function gameOver(){
 
   const meters=Math.floor(run.score);
   if(meters > (state.high||0)) state.high=meters;
-
   save();
 
   overText.innerHTML =
@@ -493,21 +647,11 @@ function gameOver(){
 function spawnObstacle(){
   const lane=pickLaneFair(run.lastObsLane);
   run.lastObsLane=lane;
-  run.obstacle={
-    lane,
-    x:laneX(lane),
-    y:-80,
-    w:92,
-    h:34,
-    passed:false
-  };
+  run.obstacle={ lane, x:laneX(lane), y:-80, w:92, h:34, passed:false };
 }
 function spawnHeart(){
-  // hearts do a gentle zigzag -> less boring
   let lane=(Math.random()*3)|0;
-  if(run.obstacle && run.obstacle.lane===lane && run.obstacle.y<240){
-    lane=(lane+1)%3;
-  }
+  if(run.obstacle && run.obstacle.lane===lane && run.obstacle.y<240) lane=(lane+1)%3;
   run.heart={
     lane,
     baseX:laneX(lane),
@@ -519,20 +663,17 @@ function spawnHeart(){
   };
 }
 
-/* ====== visuals: day/night + aura + juice ====== */
+/* ====== visuals ====== */
 function auraColorByFlow(flow){
-  // returns a color string (hsl) used for glow
   const hue=190 + flow*70;
   return `hsl(${hue},90%,60%)`;
 }
 
 function drawBackground(dt){
-  // day/night cycle: smooth, not flashy
-  run.bgT = (run.bgT + dt/90) % 1; // ~90s
-  const k = 0.5 - 0.5*Math.cos(run.bgT*Math.PI*2); // 0..1
+  run.bgT = (run.bgT + dt/90) % 1;
+  const k = 0.5 - 0.5*Math.cos(run.bgT*Math.PI*2);
   const night = 1-k;
 
-  // sky gradient
   const top = `rgba(${Math.floor(8+18*k)},${Math.floor(14+26*k)},${Math.floor(36+28*k)},1)`;
   const bot = `rgba(5,8,20,1)`;
   const g=ctx.createLinearGradient(0,0,0,H);
@@ -541,7 +682,6 @@ function drawBackground(dt){
   ctx.fillStyle=g;
   ctx.fillRect(0,0,W,H);
 
-  // stars stronger at night
   ctx.globalAlpha = 0.10 + night*0.30;
   ctx.fillStyle="#fff";
   for(let i=0;i<70;i++){
@@ -551,7 +691,6 @@ function drawBackground(dt){
   }
   ctx.globalAlpha=1;
 
-  // road
   const roadW=W*0.74, x0=(W-roadW)/2, y0=H*0.10;
   ctx.fillStyle="rgba(255,255,255,0.06)";
   ctx.fillRect(x0,y0,roadW,H-y0);
@@ -570,7 +709,6 @@ function drawCanan(){
   player.x += (laneX(player.lane)-player.x)*0.28;
   const x=player.x, y=player.y;
 
-  // aura glow by selected aura
   const f=run.flow;
   const glowCol=auraColorByFlow(f);
 
@@ -596,22 +734,18 @@ function drawCanan(){
     ctx.globalAlpha=1;
   }
 
-  // body
   ctx.fillStyle="rgba(0,212,255,.95)";
   ctx.beginPath(); ctx.roundRect(x-28,y-78,56,78,18); ctx.fill();
 
-  // visor
   ctx.fillStyle="rgba(0,0,0,.35)";
   ctx.beginPath(); ctx.roundRect(x-22,y-66,44,18,10); ctx.fill();
 
-  // eyes
   ctx.fillStyle="#fff";
   ctx.beginPath();
   ctx.arc(x-10,y-57,3.2,0,Math.PI*2);
   ctx.arc(x+10,y-57,3.2,0,Math.PI*2);
   ctx.fill();
 
-  // name tag
   ctx.fillStyle="rgba(255,255,255,.12)";
   ctx.beginPath(); ctx.roundRect(x-20,y-40,40,14,8); ctx.fill();
   ctx.fillStyle="#fff";
@@ -648,9 +782,7 @@ function drawHeart(h){
   ctx.globalAlpha=1;
 }
 
-function addPop(x,y){
-  pops.push({x,y, t:0, r:12});
-}
+function addPop(x,y){ pops.push({x,y, t:0, r:12}); }
 function drawPops(dt){
   for(let i=pops.length-1;i>=0;i--){
     const p=pops[i];
@@ -685,7 +817,6 @@ function loop(now){
   lastT=now;
   dt=Math.min(0.033, Math.max(0, dt));
 
-  // pause render
   if(paused){
     drawBackground(0);
     if(run.obstacle) drawObstacle(run.obstacle);
@@ -696,14 +827,11 @@ function loop(now){
     return;
   }
 
-  // score meters feel
   run.score += (run.speed*dt)/10;
 
-  // Flow: natural decay -> baseline 0.18
   run.flow = lerp(run.flow, 0.18, dt*0.25);
   run.flow = clamp(run.flow, 0, 1);
 
-  // Music reacts to Flow
   if(music && audio){
     const cutoff = 650 + run.flow*1200;
     music.filter.frequency.setTargetAtTime(cutoff, audio.currentTime, 0.12);
@@ -713,7 +841,6 @@ function loop(now){
     }
   }
 
-  // spawn timers
   run.nextObs -= dt;
   run.nextHeart -= dt;
 
@@ -726,30 +853,24 @@ function loop(now){
     run.nextHeart = 0.26 + Math.random()*0.24;
   }
 
-  // speed progression (no levels)
   run.speed = clamp(run.speed + 14*dt, 330, 560);
 
-  // move
   if(run.obstacle){
     run.obstacle.y += run.speed*dt;
     if(run.obstacle.y > H+120) run.obstacle=null;
   }
   if(run.heart){
-    // zigzag: x = baseX + sin(t+phase)*amp
     run.heart.y += run.speed*dt*0.95;
     const t = performance.now()/300;
     run.heart.x = run.heart.baseX + Math.sin(t + run.heart.phase) * run.heart.amp;
     if(run.heart.y > H+60) run.heart=null;
   }
 
-  // player rect
   const pw=52, ph=78;
   const pr = { x:player.x-pw/2, y:player.y-ph, w:pw, h:ph };
 
-  // shake decay
   shake = Math.max(0, shake - dt*22);
 
-  // camera shake transform
   ctx.save();
   if(shake>0){
     const sx=(Math.random()-0.5)*shake;
@@ -757,32 +878,26 @@ function loop(now){
     ctx.translate(sx, sy);
   }
 
-  // draw bg
   drawBackground(dt);
 
-  // obstacle: dodge + near-miss + collision
   if(run.obstacle){
     const o=run.obstacle;
     const or = { x:o.x-o.w/2, y:o.y-o.h/2, w:o.w, h:o.h };
 
-    // passed player line => dodge
     if(!o.passed && o.y > player.y){
       o.passed=true;
-
       run.flow = clamp(run.flow + 0.08, 0, 1);
       toast("Kaçış! 🌿", 650);
 
-      // Near-miss: same lane AND very close => bonus hearts + micro-shake
       const near = (o.lane === player.lane) && Math.abs(o.y - player.y) < 24;
       if(near){
         const bonus=2;
         run.flow = clamp(run.flow + 0.10, 0, 1);
         run.runHearts += bonus;
-
         state.wallet = (state.wallet||0) + bonus;
         save();
-
-        shake = Math.max(shake, 7); // micro shake
+        shake = Math.max(shake, 7);
+        sfx("miss");
         toast(`Near-miss +${bonus} 💖`, 850);
       }
     }
@@ -796,7 +911,6 @@ function loop(now){
     }
   }
 
-  // heart pickup
   if(run.heart){
     const h=run.heart;
     drawHeart(h);
@@ -804,21 +918,16 @@ function loop(now){
     if(circleRectHit(h.x,h.y,h.r, pr.x,pr.y,pr.w,pr.h)){
       run.runHearts += 1;
       run.flow = clamp(run.flow + 0.06, 0, 1);
-
       state.wallet = (state.wallet||0) + 1;
       save();
-
       addPop(h.x, h.y);
+      sfx("heart");
       toast("+1 💖", 650);
-
       run.heart=null;
     }
   }
 
-  // player
   drawCanan();
-
-  // pops
   drawPops(dt);
 
   ctx.restore();
@@ -882,13 +991,11 @@ hudPause.addEventListener("click", ()=>togglePause());
 
 btnStart.addEventListener("click", async ()=>{
   await unlockAudio(); startMusic();
-  showOnly("game");
   resetRun(false);
 });
 
 btnZen.addEventListener("click", async ()=>{
   await unlockAudio(); startMusic();
-  showOnly("game");
   resetRun(true);
 });
 
@@ -906,8 +1013,43 @@ btnDaily.addEventListener("click", ()=>{
   claimDaily();
 });
 
+btnSettings.addEventListener("click", ()=>{
+  refreshMenu();
+  showOnly("settings");
+});
+
+btnSettingsBack.addEventListener("click", ()=>{
+  showOnly("menu");
+  refreshMenu();
+});
+
+togMusic.addEventListener("click", ()=>{
+  state.sett.music = !state.sett.music;
+  if(!state.sett.music) stopMusic();
+  save();
+  refreshMenu();
+  toast(`Müzik: ${state.sett.music ? "Açık" : "Kapalı"}`, 900);
+});
+
+togSfx.addEventListener("click", ()=>{
+  state.sett.sfx = !state.sett.sfx;
+  save();
+  refreshMenu();
+  toast(`SFX: ${state.sett.sfx ? "Açık" : "Kapalı"}`, 900);
+});
+
+btnPatch.addEventListener("click", ()=>{
+  renderPatch();
+  showOnly("patch");
+});
+
+btnPatchBack.addEventListener("click", ()=>{
+  showOnly("menu");
+  refreshMenu();
+});
+
 btnReset.addEventListener("click", ()=>{
-  if(confirm("Cüzdan + rekor + aura verileri sıfırlansın mı?")){
+  if(confirm("Cüzdan + rekor + aura + ayarlar sıfırlansın mı?")){
     localStorage.removeItem(LS_KEY);
     state=deepCopy(defaults);
     save();
@@ -952,12 +1094,13 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 (function init(){
   save();
   refreshMenu();
+  renderPatch();
   showOnly("menu");
 
   // idle frame
   player.x=laneX(1);
   player.y=H*0.90;
-  run={ flow:0.28, bgT:Math.random() }; // fake run for background/canan on menu
+  run={ flow:0.28, bgT:Math.random() };
   drawBackground(0);
   drawCanan();
   updateHud();
