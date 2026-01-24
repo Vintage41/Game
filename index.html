@@ -656,6 +656,20 @@ function renderShop(){
       renderShop();
       refreshMenu();
     };
+     function ensureShopDailyDeal(){
+     const k = dayKey();
+     if(state.shopDaily?.key === k) return;
+
+  const rand = rngSeeded(k * 9091);
+  const kinds = ["aura","trail","theme"];
+  const kind = kinds[Math.floor(rand()*kinds.length)];
+
+  const ids = Object.keys(SHOP[kind]).filter(x => SHOP[kind][x].p > 0);
+  const id = ids[Math.floor(rand()*ids.length)];
+
+  state.shopDaily = { key:k, kind, id, off:0.25 };
+  save();
+}
 
     row.appendChild(left);
     row.appendChild(btn);
@@ -1658,6 +1672,7 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 </body>
 </html>
 ```
+
 
 
 
