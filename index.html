@@ -414,12 +414,29 @@ resize();
 
 /* ===================== DATA / SAVE ===================== */
 const LS_KEY="kalp_yolu_v8_full";
-const AURAS={
-  soft:   { n:"Soft Glow",    p:0,   tag:"FREE" },
-  pulse:  { n:"Pulse Ring",   p:140, tag:"CLEAN" },
-  rainbow:{ n:"Rainbow Soul", p:320, tag:"🌈" }
+const SHOP = {
+  aura: {
+    soft:    { n:"Soft Glow",     p:0,   tag:"FREE" },
+    pulse:   { n:"Pulse Ring",    p:140, tag:"CLEAN" },
+    rainbow: { n:"Rainbow Soul",  p:320, tag:"🌈" },
+    ember:   { n:"Ember Heat",    p:260, tag:"HOT" },
+    prism:   { n:"Prism Halo",    p:420, tag:"SHINE" },
+    noir:    { n:"Noir Aura",     p:180, tag:"DARK" },
+  },
+  trail: {
+    none:    { n:"No Trail",      p:0,   tag:"FREE" },
+    spark:   { n:"Spark Dots",    p:120, tag:"✨" },
+    mist:    { n:"Mist Line",     p:160, tag:"🌫" },
+    pixel:   { n:"Pixel Bits",    p:200, tag:"8BIT" },
+    heart:   { n:"Tiny Hearts",   p:260, tag:"💖" },
+  },
+  theme: {
+    classic: { n:"Classic Night", p:0,   tag:"FREE" },
+    dawn:    { n:"Dawn Glow",     p:220, tag:"🌅" },
+    neon:    { n:"Neon City",     p:320, tag:"🟣" },
+    forest:  { n:"Forest Calm",   p:260, tag:"🌿" },
+  }
 };
-
 const defaults={
   wallet:0,
   high:0,
@@ -1634,6 +1651,7 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 </body>
 </html>
 ```
+
 
 
 
