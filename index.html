@@ -29,10 +29,8 @@
       background: rgba(0,0,0,0.09);
       border-radius: 22px;
       display:block;
-
       touch-action: none;
       -webkit-tap-highlight-color: transparent;
-
       border: 1px solid rgba(255,255,255,0.20);
       box-shadow: 0 18px 60px rgba(0,0,0,.18);
     }
@@ -98,7 +96,7 @@
 
 <script>
 (() => {
-  // ---------- Canvas ----------
+  // ===== Canvas / sizes =====
   const canvas = document.getElementById("c");
   const ctx = canvas.getContext("2d", { alpha:true });
 
@@ -115,7 +113,7 @@
 
   const W = 420, H = 620;
 
-  // PERF: lower DPR => smoother on mobile
+  // PERF: keep DPR low for mobile smoothness
   const dpr = Math.min(window.devicePixelRatio || 1, 1.0);
   canvas.style.width = W + "px";
   canvas.style.height = H + "px";
@@ -126,7 +124,7 @@
   const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
   const rand  = (a,b)=>a + Math.random()*(b-a);
 
-  // Istanbul time
+  // ===== Clock =====
   const clockFmt = new Intl.DateTimeFormat("tr-TR", {
     timeZone: "Europe/Istanbul",
     hour: "2-digit",
@@ -134,13 +132,12 @@
   });
   const nowClock = () => clockFmt.format(new Date());
 
-  // High score
-  const BEST_KEY = "canan_game_best_score_final_v2";
+  // ===== Score =====
+  const BEST_KEY = "canan_game_best_score_pages_v1";
   let bestScore = Number(localStorage.getItem(BEST_KEY) || 0);
 
   const MAX_LEVEL = 10;
 
-  // Palettes
   const LEVELS = [
     { bgA:"#ff2e63", bgB:"#08d9d6", hearts:["💖","💗","🩷"], deco:"bubbles"  },
     { bgA:"#6a00f4", bgB:"#ffbe0b", hearts:["💗","💓","💞"], deco:"sparkles" },
@@ -154,7 +151,6 @@
     { bgA:"#0ea5e9", bgB:"#f472b6", hearts:["💖","💘","💓"], deco:"confetti" },
   ];
 
-  // Goals
   const levelGoals = [10, 12, 14, 16, 18, 20, 22, 24, 26, 28];
 
   const levelCompliments = [
@@ -170,7 +166,6 @@
     "Canan: 10/10 — bitti! Çok özelsin 💖"
   ];
 
-  // Calmer difficulty (less sideways movement)
   function difficulty(lv){
     return {
       heartInterval: Math.max(0.32, 0.98 - lv*0.040),
@@ -178,6 +173,7 @@
       speedMul: 1 + lv*0.070,
       brokenChance: Math.min(0.08 + lv*0.028, 0.32),
 
+      // calmer sideways motion
       wobbleHeart: 0.35 + lv*0.045,
       wobbleBroken: 0.30 + lv*0.045,
       wobbleGold: 0.45,
@@ -188,12 +184,12 @@
     };
   }
 
-  // Paddle
+  // ===== Player =====
   const BASE_W = 120;
   const MAX_W = 170;
   const player = { x: W/2, y: H-84, w: BASE_W, h: 18 };
 
-  // PERF caps (for mobile fps)
+  // PERF caps
   const MAX_DROPS = 18;
   const MAX_PARTS = 45;
 
@@ -201,7 +197,12 @@
   const parts = [];
   const warnings = [];
 
-  // ---------- Audio ----------
+  function pushDrop(o){
+    if (drops.length >= MAX_DROPS) drops.shift();
+    drops.push(o);
+  }
+
+  // ===== Audio =====
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   const audioCtx = AudioCtx ? new AudioCtx() : null;
 
@@ -210,57 +211,11 @@
     if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
   }
 
-  function popSound(){
-    if (!audioCtx) return;
-    ensureAudio();
-    const t0 = audioCtx.currentTime;
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    const f = audioCtx.createBiquadFilter();
-
-    o.type = "sine";
-    o.frequency.setValueAtTime(520, t0);
-    o.frequency.exponentialRampToValueAtTime(240, t0 + 0.07);
-
-    f.type = "lowpass";
-    f.frequency.setValueAtTime(1700, t0);
-
-    g.gain.setValueAtTime(0.001, t0);
-    g.gain.exponentialRampToValueAtTime(0.05, t0 + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.10);
-
-    o.connect(f); f.connect(g); g.connect(audioCtx.destination);
-    o.start(t0); o.stop(t0 + 0.11);
-  }
-
-  function lifeLostSound(){
-    if (!audioCtx) return;
-    ensureAudio();
-    const t0 = audioCtx.currentTime;
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    const f = audioCtx.createBiquadFilter();
-
-    o.type = "triangle";
-    o.frequency.setValueAtTime(420, t0);
-    o.frequency.exponentialRampToValueAtTime(160, t0 + 0.13);
-
-    f.type = "lowpass";
-    f.frequency.setValueAtTime(1100, t0);
-
-    g.gain.setValueAtTime(0.001, t0);
-    g.gain.exponentialRampToValueAtTime(0.055, t0 + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
-
-    o.connect(f); f.connect(g); g.connect(audioCtx.destination);
-    o.start(t0); o.stop(t0 + 0.19);
-  }
-
-  // NEW: heart catch sound
   function heartCatchSound(){
     if (!audioCtx) return;
     ensureAudio();
     const t0 = audioCtx.currentTime;
+
     const o = audioCtx.createOscillator();
     const g = audioCtx.createGain();
     const f = audioCtx.createBiquadFilter();
@@ -273,14 +228,62 @@
     f.frequency.setValueAtTime(2200, t0);
 
     g.gain.setValueAtTime(0.001, t0);
-    g.gain.exponentialRampToValueAtTime(0.028, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.030, t0 + 0.01);
     g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.09);
 
     o.connect(f); f.connect(g); g.connect(audioCtx.destination);
     o.start(t0); o.stop(t0 + 0.10);
   }
 
-  // --- Ambient (relaxing, not too low) ---
+  function lifeLostSound(){
+    if (!audioCtx) return;
+    ensureAudio();
+    const t0 = audioCtx.currentTime;
+
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    const f = audioCtx.createBiquadFilter();
+
+    o.type = "triangle";
+    o.frequency.setValueAtTime(420, t0);
+    o.frequency.exponentialRampToValueAtTime(160, t0 + 0.13);
+
+    f.type = "lowpass";
+    f.frequency.setValueAtTime(1100, t0);
+
+    g.gain.setValueAtTime(0.001, t0);
+    g.gain.exponentialRampToValueAtTime(0.060, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+
+    o.connect(f); f.connect(g); g.connect(audioCtx.destination);
+    o.start(t0); o.stop(t0 + 0.19);
+  }
+
+  function popSound(){
+    if (!audioCtx) return;
+    ensureAudio();
+    const t0 = audioCtx.currentTime;
+
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    const f = audioCtx.createBiquadFilter();
+
+    o.type = "sine";
+    o.frequency.setValueAtTime(520, t0);
+    o.frequency.exponentialRampToValueAtTime(240, t0 + 0.07);
+
+    f.type = "lowpass";
+    f.frequency.setValueAtTime(1700, t0);
+
+    g.gain.setValueAtTime(0.001, t0);
+    g.gain.exponentialRampToValueAtTime(0.055, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.10);
+
+    o.connect(f); f.connect(g); g.connect(audioCtx.destination);
+    o.start(t0); o.stop(t0 + 0.11);
+  }
+
+  // Ambient music (audible, relaxing)
   let ambientOn = false;
   let ambientNodes = null;
 
@@ -291,7 +294,6 @@
 
     const t0 = audioCtx.currentTime;
 
-    // Layer 1: warm pad
     const pad1 = audioCtx.createOscillator();
     const g1 = audioCtx.createGain();
     const f1 = audioCtx.createBiquadFilter();
@@ -301,7 +303,6 @@
     f1.type = "lowpass";
     f1.frequency.setValueAtTime(520, t0);
 
-    // Layer 2: soft air
     const pad2 = audioCtx.createOscillator();
     const g2 = audioCtx.createGain();
     const f2 = audioCtx.createBiquadFilter();
@@ -311,12 +312,12 @@
     f2.type = "lowpass";
     f2.frequency.setValueAtTime(780, t0);
 
-    // audible but gentle
+    // not too low
     g1.gain.setValueAtTime(0.0001, t0);
-    g1.gain.exponentialRampToValueAtTime(0.016, t0 + 0.9);
+    g1.gain.exponentialRampToValueAtTime(0.020, t0 + 0.9);
 
     g2.gain.setValueAtTime(0.0001, t0);
-    g2.gain.exponentialRampToValueAtTime(0.007, t0 + 0.9);
+    g2.gain.exponentialRampToValueAtTime(0.010, t0 + 0.9);
 
     let breathe = 0;
     const breatheTimer = setInterval(() => {
@@ -325,12 +326,12 @@
       const tt = audioCtx.currentTime;
 
       g1.gain.cancelScheduledValues(tt);
-      g1.gain.setValueAtTime(g1.gain.value || 0.016, tt);
-      g1.gain.linearRampToValueAtTime(breathe ? 0.018 : 0.014, tt + 1.4);
+      g1.gain.setValueAtTime(g1.gain.value || 0.020, tt);
+      g1.gain.linearRampToValueAtTime(breathe ? 0.022 : 0.018, tt + 1.4);
 
       g2.gain.cancelScheduledValues(tt);
-      g2.gain.setValueAtTime(g2.gain.value || 0.007, tt);
-      g2.gain.linearRampToValueAtTime(breathe ? 0.008 : 0.006, tt + 1.4);
+      g2.gain.setValueAtTime(g2.gain.value || 0.010, tt);
+      g2.gain.linearRampToValueAtTime(breathe ? 0.011 : 0.009, tt + 1.4);
     }, 1500);
 
     pad1.connect(f1); f1.connect(g1); g1.connect(audioCtx.destination);
@@ -339,7 +340,7 @@
     pad1.start(t0);
     pad2.start(t0);
 
-    ambientNodes = { pad1, pad2, g1, g2, f1, f2, breatheTimer };
+    ambientNodes = { pad1, pad2, g1, g2, breatheTimer };
   }
 
   function stopAmbientMusic(){
@@ -351,11 +352,11 @@
       clearInterval(ambientNodes.breatheTimer);
 
       ambientNodes.g1.gain.cancelScheduledValues(t0);
-      ambientNodes.g1.gain.setValueAtTime(ambientNodes.g1.gain.value || 0.016, t0);
+      ambientNodes.g1.gain.setValueAtTime(ambientNodes.g1.gain.value || 0.020, t0);
       ambientNodes.g1.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.25);
 
       ambientNodes.g2.gain.cancelScheduledValues(t0);
-      ambientNodes.g2.gain.setValueAtTime(ambientNodes.g2.gain.value || 0.007, t0);
+      ambientNodes.g2.gain.setValueAtTime(ambientNodes.g2.gain.value || 0.010, t0);
       ambientNodes.g2.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.25);
 
       setTimeout(() => {
@@ -366,7 +367,7 @@
     ambientNodes = null;
   }
 
-  // Romantic music for finale (starts on YES)
+  // Romantic music (finale YES)
   let romanticOn = false;
   let romanticTimer = null;
 
@@ -377,7 +378,7 @@
 
     const scale = [0, 4, 7, 12, 16];
     const root = 392; // G4
-    let step = 0;
+    let stepN = 0;
 
     romanticTimer = setInterval(() => {
       if (!romanticOn) return;
@@ -393,7 +394,7 @@
       pf.frequency.setValueAtTime(1300, t0);
 
       pg.gain.setValueAtTime(0.001, t0);
-      pg.gain.exponentialRampToValueAtTime(0.018, t0 + 0.03);
+      pg.gain.exponentialRampToValueAtTime(0.020, t0 + 0.03);
       pg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.45);
 
       pad.connect(pf); pf.connect(pg); pg.connect(audioCtx.destination);
@@ -402,9 +403,9 @@
       const note = audioCtx.createOscillator();
       const ng = audioCtx.createGain();
       const bf = audioCtx.createBiquadFilter();
-      note.type = "triangle";
 
-      const sem = scale[step % scale.length];
+      note.type = "triangle";
+      const sem = scale[stepN % scale.length];
       const freq = root * Math.pow(2, sem/12);
       note.frequency.setValueAtTime(freq, t0);
 
@@ -412,13 +413,13 @@
       bf.frequency.setValueAtTime(1200, t0);
 
       ng.gain.setValueAtTime(0.001, t0);
-      ng.gain.exponentialRampToValueAtTime(0.030, t0 + 0.02);
+      ng.gain.exponentialRampToValueAtTime(0.032, t0 + 0.02);
       ng.gain.exponentialRampToValueAtTime(0.001, t0 + 0.22);
 
       note.connect(bf); bf.connect(ng); ng.connect(audioCtx.destination);
       note.start(t0); note.stop(t0 + 0.23);
 
-      step++;
+      stepN++;
     }, 260);
   }
 
@@ -428,34 +429,57 @@
     romanticTimer = null;
   }
 
-  // ---------- State ----------
-  let started=false, over=false, won=false;
-  let score=0, lives=3;
-  let level=1, levelHearts=0;
+  // ===== Sprites (outlined broken heart) =====
+  const spriteCache = new Map();
 
-  // 1 miss per level
-  let graceLeft = 1;
+  function makeOutlinedEmoji(octx, emo, x, y){
+    octx.save();
+    octx.shadowBlur = 0;
+    octx.globalAlpha = 0.75;
+    octx.fillStyle = "#000";
+    octx.fillText(emo, x-1.2, y);
+    octx.fillText(emo, x+1.2, y);
+    octx.fillText(emo, x, y-1.2);
+    octx.fillText(emo, x, y+1.2);
+    octx.restore();
+  }
 
-  // Timers
-  let lastT=0;
-  let heartSpawnAcc = 0;
-  let brokenSpawnAcc = 0;
+  function getSprite(emo, size){
+    const key = emo + "_" + size;
+    const cached = spriteCache.get(key);
+    if (cached) return cached;
 
-  // Gold: ONE per run, random level 4..10, trigger at progress>=0.55 on that level
-  let goldRunLevel = 4 + ((Math.random()*7)|0);
-  let goldSpawnedThisRun = false;
-  let goldQueued = false;
+    const pad = 12;
+    const off = document.createElement("canvas");
+    off.width = size + pad*2;
+    off.height = size + pad*2;
+    const octx = off.getContext("2d");
 
-  // Toast
-  let toastText="", toastT=0;
-  let levelUpT=0;
+    octx.font = `${size}px serif`;
+    octx.textBaseline = "alphabetic";
+    octx.textAlign = "left";
 
-  // ---------- Background cache ----------
+    if (emo === "💔"){
+      makeOutlinedEmoji(octx, emo, pad, size + pad*0.92);
+      octx.shadowColor = "rgba(0,0,0,0.78)";
+      octx.shadowBlur = 10;
+      octx.shadowOffsetY = 2;
+    } else {
+      octx.shadowColor = "rgba(0,0,0,0.60)";
+      octx.shadowBlur = 6;
+      octx.shadowOffsetY = 2;
+    }
+
+    octx.fillText(emo, pad, size + pad*0.92);
+    spriteCache.set(key, off);
+    return off;
+  }
+
+  // ===== Background cache =====
   const bgCache = new Map();
-  function bgKey(lv){ return "lv" + lv; }
 
-  function buildBackground(level){
-    const key = bgKey(level);
+  function buildBackground(lv){
+    const key = "lv" + lv;
     if (bgCache.has(key)) return bgCache.get(key);
 
     const off = document.createElement("canvas");
@@ -466,7 +490,7 @@
     b.fillStyle = "rgba(0,0,0,0.10)";
     b.fillRect(0,0,W,H);
 
-    const deco = LEVELS[level-1].deco;
+    const deco = LEVELS[lv-1].deco;
     b.globalAlpha = 0.10;
 
     if (deco === "bubbles"){
@@ -518,74 +542,7 @@
     return off;
   }
 
-  function applyLevelTheme(){
-    const t = LEVELS[level-1];
-    document.documentElement.style.setProperty("--bgA", t.bgA);
-    document.documentElement.style.setProperty("--bgB", t.bgB);
-    buildBackground(level);
-  }
-
-  // ---------- Emoji sprite cache (broken heart outlined) ----------
-  const spriteCache = new Map();
-  function makeOutlinedEmoji(octx, emo, x, y){
-    octx.save();
-    octx.shadowBlur = 0;
-    octx.globalAlpha = 0.75;
-    octx.fillStyle = "#000";
-    octx.fillText(emo, x-1.2, y);
-    octx.fillText(emo, x+1.2, y);
-    octx.fillText(emo, x, y-1.2);
-    octx.fillText(emo, x, y+1.2);
-    octx.restore();
-  }
-
-  function getSprite(emo, size){
-    const key = emo + "_" + size;
-    const cached = spriteCache.get(key);
-    if (cached) return cached;
-
-    const pad = 12;
-    const off = document.createElement("canvas");
-    off.width = size + pad*2;
-    off.height = size + pad*2;
-    const octx = off.getContext("2d");
-
-    octx.font = `${size}px serif`;
-    octx.textBaseline = "alphabetic";
-    octx.textAlign = "left";
-
-    if (emo === "💔"){
-      makeOutlinedEmoji(octx, emo, pad, size + pad*0.92);
-      octx.shadowColor = "rgba(0,0,0,0.75)";
-      octx.shadowBlur = 8;
-      octx.shadowOffsetY = 2;
-    } else {
-      octx.shadowColor = "rgba(0,0,0,0.60)";
-      octx.shadowBlur = 6;
-      octx.shadowOffsetY = 2;
-    }
-    octx.fillText(emo, pad, size + pad*0.92);
-
-    spriteCache.set(key, off);
-    return off;
-  }
-
-  // ---------- HUD / helpers ----------
-  function setToast(t, dur=1.2){ toastText=t; toastT=dur; }
-
-  function puff(x,y, amount=3, emo="✨"){
-    for (let i=0;i<amount && parts.length<MAX_PARTS;i++){
-      parts.push({
-        x, y,
-        vx: rand(-75,75),
-        vy: rand(-130,-45),
-        life: rand(0.24,0.42),
-        t: 0,
-        emo
-      });
-    }
-  }
-
+  // ===== HUD / helpers =====
   function updateBest(){
     if (score > bestScore){
       bestScore = score;
@@ -607,24 +564,64 @@
     elProgFill.style.width = Math.round(prog * 100) + "%";
   }
 
-  // Input throttle (a bit stronger for mobile)
-  let lastMoveTs = 0;
-  function setPlayerFromClientX(clientX){
-    const now = performance.now();
-    if (now - lastMoveTs < 16) return;
-    lastMoveTs = now;
+  function setToast(t, dur=1.2){ toastText=t; toastT=dur; }
 
-    const rect = canvas.getBoundingClientRect();
-    const cx = (clientX - rect.left) / rect.width;
-    player.x = clamp(cx * W, player.w/2, W - player.w/2);
+  function puff(x,y, amount=3, emo="✨"){
+    for (let i=0;i<amount && parts.length<MAX_PARTS;i++){
+      parts.push({
+        x, y,
+        vx: rand(-75,75),
+        vy: rand(-130,-45),
+        life: rand(0.24,0.42),
+        t: 0,
+        emo
+      });
+    }
   }
 
-  // ---------- Spawns ----------
-  function pushDrop(o){
-    if (drops.length >= MAX_DROPS) drops.shift();
-    drops.push(o);
+  function applyLevelTheme(){
+    const t = LEVELS[level-1];
+    document.documentElement.style.setProperty("--bgA", t.bgA);
+    document.documentElement.style.setProperty("--bgB", t.bgB);
+    buildBackground(level);
   }
 
+  function showQuestBanner(){
+    setToast(`🎯 Görev: ${levelGoals[level-1]} kalp yakala`, 0.95);
+  }
+
+  // ===== Game state =====
+  let started = false;
+  let over = false;
+
+  let score = 0;
+  let lives = 3;
+  let level = 1;
+  let levelHearts = 0;
+  let graceLeft = 1;
+
+  let toastText = "";
+  let toastT = 0;
+  let levelUpT = 0;
+
+  // timers (ONLY ONCE)
+  let lastT = 0;
+  let heartSpawnAcc = 0;
+  let brokenSpawnAcc = 0;
+
+  // gold rule: one per run, random level 4..10, spawn at 55% progress
+  let goldRunLevel = 4 + ((Math.random()*7)|0);
+  let goldSpawnedThisRun = false;
+  let goldQueued = false;
+
+  function scheduleGold(){
+    if (goldQueued || goldSpawnedThisRun) return;
+    goldQueued = true;
+    setToast("💛 geliyor… (tek şans) ✨", 1.0);
+    popSound();
+  }
+
+  // ===== Spawns =====
   function spawnHeartSingle(){
     const d = difficulty(level);
     const theme = LEVELS[level-1];
@@ -662,13 +659,6 @@
     });
   }
 
-  function scheduleGold(){
-    if (goldQueued || goldSpawnedThisRun) return;
-    goldQueued = true;
-    setToast("💛 geliyor… (tek şans) ✨", 1.0);
-    popSound();
-  }
-
   function spawnGold(){
     const d = difficulty(level);
     pushDrop({
@@ -683,10 +673,9 @@
     });
   }
 
-  // ---------- Lives ----------
+  // ===== Lives =====
   function loseLife(reason){
     lives -= 1;
-
     setToast(reason === "brokenHit" ? "💔 yakalandı… can gitti." : "💖 kaçtı… can gitti.", 1.0);
     lifeLostSound();
     if (navigator.vibrate) navigator.vibrate([18, 28, 18]);
@@ -711,15 +700,10 @@
     loseLife("heartMiss");
   }
 
-  function showQuestBanner(){
-    setToast(`🎯 Görev: ${levelGoals[level-1]} kalp yakala`, 0.95);
-  }
-
   function nextLevel(){
     setToast(levelCompliments[level-1] || "Canan, çok iyisin 💗", 1.8);
 
     if (level >= MAX_LEVEL){
-      won = true;
       started = false;
       updateBest();
       hint.textContent = "";
@@ -742,143 +726,19 @@
     showQuestBanner();
   }
 
-  // ---------- Game loop ----------
-  let heartSpawnAcc = 0;
-  let brokenSpawnAcc = 0;
+  // ===== Input (throttled) =====
+  let lastMoveTs = 0;
+  function setPlayerFromClientX(clientX){
+    const now = performance.now();
+    if (now - lastMoveTs < 16) return;
+    lastMoveTs = now;
 
-  function step(dt){
-    if (finale.active){
-      stepFinale(dt);
-      updateHud();
-      return;
-    }
-
-    const d = difficulty(level);
-
-    if (goldQueued){
-      goldQueued = false;
-      goldSpawnedThisRun = true;
-      spawnGold();
-    }
-
-    // Spawn hearts (guard)
-    heartSpawnAcc += dt;
-    const heartInterval = d.heartInterval;
-    let guard = 0;
-    while (heartSpawnAcc >= heartInterval && guard++ < 2){
-      heartSpawnAcc -= heartInterval;
-      spawnHeartSingle();
-    }
-    heartSpawnAcc = Math.min(heartSpawnAcc, heartInterval * 2);
-
-    // Broken schedule
-    brokenSpawnAcc += dt;
-    const brokenInterval = d.heartInterval * d.brokenIntervalMul;
-    if (brokenSpawnAcc >= brokenInterval){
-      brokenSpawnAcc -= brokenInterval;
-      if (Math.random() < d.brokenChance) scheduleBroken();
-    }
-    brokenSpawnAcc = Math.min(brokenSpawnAcc, brokenInterval * 2);
-
-    // warnings -> spawn broken
-    for (let i=warnings.length-1;i>=0;i--){
-      warnings[i].t -= dt;
-      if (warnings[i].t <= 0){
-        spawnBrokenAt(warnings[i].x);
-        warnings.splice(i,1);
-      }
-    }
-
-    // Collisions + misses
-    let write = 0;
-    let missedHeart = false;
-
-    const hitPad = 10;
-    const px1 = player.x - player.w/2 - hitPad;
-    const px2 = player.x + player.w/2 + hitPad;
-    const py1 = player.y - hitPad;
-    const py2 = player.y + player.h + hitPad;
-
-    for (let i=0;i<drops.length;i++){
-      const o = drops[i];
-
-      o.wob += dt * 2.0;
-
-      let wobbleAmp = 0;
-      if (o.kind === "heart") wobbleAmp = d.wobbleHeart;
-      else if (o.kind === "broken") wobbleAmp = d.wobbleBroken;
-      else wobbleAmp = d.wobbleGold;
-
-      o.x += o.vx * dt + Math.sin(o.wob) * wobbleAmp;
-      o.y += o.vy * dt;
-
-      o.x = clamp(o.x, 6, W-62);
-
-      const s = (o.size || 28);
-      const cx = o.x + s * 0.45;
-      const cy = o.y - s * 0.45;
-
-      const coll = (cx >= px1 && cx <= px2 && cy >= py1 && cy <= py2);
-
-      if (coll){
-        if (o.kind === "heart"){
-          score += 1;
-          levelHearts += 1;
-          heartCatchSound(); // NEW
-
-          // Gold trigger: 1 run, chosen level 4-10, progress >= 55%
-          if (!goldSpawnedThisRun && !goldQueued && level === goldRunLevel) {
-            const prog = levelHearts / levelGoals[level-1];
-            if (prog >= 0.55) scheduleGold();
-          }
-
-          puff(player.x, player.y, 3, "✨");
-          if (navigator.vibrate) navigator.vibrate(10);
-          updateBest();
-
-          if (levelHearts >= levelGoals[level-1]) nextLevel();
-        } else if (o.kind === "broken"){
-          loseLife("brokenHit");
-        } else {
-          player.w = Math.min(MAX_W, player.w + 18);
-          score += 2;
-          updateBest();
-          setToast("💛 yakalandı! +2 · çubuk uzadı ✨", 1.1);
-          popSound();
-          puff(player.x, player.y, 5, "✨");
-          if (navigator.vibrate) navigator.vibrate([12,18,12]);
-        }
-        continue;
-      }
-
-      if (o.y > H + 90){
-        if (o.kind === "heart") missedHeart = true;
-        continue;
-      }
-
-      drops[write++] = o;
-    }
-    drops.length = write;
-
-    if (missedHeart && !over && !won && lives > 0) handleHeartMiss();
-
-    // Particles
-    for (let i=parts.length-1;i>=0;i--){
-      const p = parts[i];
-      p.t += dt;
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.vy += 420 * dt;
-      if (p.t >= p.life) parts.splice(i,1);
-    }
-
-    if (toastT > 0) toastT -= dt;
-    if (levelUpT > 0) levelUpT -= dt;
-
-    updateHud();
+    const rect = canvas.getBoundingClientRect();
+    const cx = (clientX - rect.left) / rect.width;
+    player.x = clamp(cx * W, player.w/2, W - player.w/2);
   }
 
-  // ---------- Drawing ----------
+  // ===== Drawing helpers =====
   function roundRect(x,y,w,h,r){
     ctx.beginPath();
     ctx.moveTo(x+r,y);
@@ -902,226 +762,33 @@
     ctx.fillText(line2, W/2, H/2 + 18);
   }
 
-  const bgCacheImg = new Map();
   function drawBackground(){
-    const img = buildBackground(level);
-    ctx.drawImage(img, 0, 0);
+    ctx.drawImage(buildBackground(level), 0, 0);
   }
 
-  function draw(){
-    ctx.clearRect(0,0,W,H);
-
-    if (finale.active){
-      drawFinale();
-      return;
-    }
-
-    drawBackground();
-
-    // player
-    ctx.fillStyle = "rgba(255,255,255,0.95)";
-    ctx.fillRect(player.x - player.w/2, player.y, player.w, player.h);
-
-    // warnings
-    for (let i=0;i<warnings.length;i++){
-      const spr = getSprite("✨", 22);
-      ctx.drawImage(spr, warnings[i].x - 10, 40);
-    }
-
-    // drops
-    for (let i=0;i<drops.length;i++){
-      const o = drops[i];
-      const spr = getSprite(o.emo, o.size || 28);
-      ctx.drawImage(spr, o.x - 8, o.y - (o.size || 28) - 8);
-    }
-
-    // particles
-    for (let i=parts.length-1;i>=0;i--){
-      const p = parts[i];
-      const a = 1 - (p.t / p.life);
-      ctx.globalAlpha = a > 0 ? a : 0;
-      ctx.font = "15px serif";
-      ctx.fillText(p.emo || "✨", p.x, p.y);
-      ctx.globalAlpha = 1;
-    }
-
-    // toast
-    if (toastT > 0){
-      ctx.globalAlpha = Math.min(1, toastT*2);
-      ctx.textAlign = "center";
-      ctx.fillStyle = "rgba(0,0,0,0.28)";
-      roundRect(18, 92, W-36, 44, 14);
-      ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.font = "850 14px system-ui";
-      ctx.fillText(toastText, W/2, 120);
-      ctx.globalAlpha = 1;
-    }
-
-    // level banner
-    if (levelUpT > 0){
-      ctx.globalAlpha = Math.min(1, levelUpT*2);
-      ctx.textAlign = "center";
-      ctx.fillStyle = "rgba(255,255,255,0.22)";
-      roundRect(92, 160, W-184, 54, 16);
-      ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.font = "950 18px system-ui";
-      ctx.fillText(`LEVEL ${level} ✨`, W/2, 194);
-      ctx.globalAlpha = 1;
-    }
-
-    if (!started && !over && !won){
-      overlay("Canan için 💗", "Dokun ve başla", "60 FPS hedef · müzik + efektler ✅");
-    }
-    if (over){
-      overlay("Oyun bitti", `Skor: ${score} · Rekor: ${bestScore} · Lvl: ${level}/10`, "Dokun → tekrar");
-    }
-  }
-
-  function loop(t){
-    const dt = Math.min(0.033, (t - lastT)/1000);
-    lastT = t;
-
-    step(dt);
-    draw();
-
-    if (started || finale.active) requestAnimationFrame(loop);
-  }
-
-  // ---------- Reset ----------
-  function reset(){
-    stopAmbientMusic();
-    stopRomanticMusic();
-    finale.active = false;
-
-    started=false; over=false; won=false;
-    score=0; lives=3;
-    level=1; levelHearts=0;
-
-    heartSpawnAcc = 0;
-    brokenSpawnAcc = 0;
-
-    drops.length=0;
-    parts.length=0;
-    warnings.length=0;
-
-    graceLeft = 1;
-
-    goldQueued = false;
-    goldSpawnedThisRun = false;
-    goldRunLevel = 4 + ((Math.random()*7)|0);
-
-    toastT=0; toastText="";
-    levelUpT=0;
-
-    player.x = W/2;
-    player.w = BASE_W;
-
-    elHud.style.display = "";
-    applyLevelTheme();
-    hint.textContent = "Dokun → başlat. Parmağını sürükle → kaydır 💗";
-    showQuestBanner();
-    updateHud();
-    draw();
-  }
-
-  // ---------- Start ----------
-  function startIfNeeded(){
-    ensureAudio();
-
-    if (finale.active) return;
-
-    if (!started && !over && !won){
-      started = true;
-      startAmbientMusic();
-      hint.textContent = "💖 topla · 🛡️ Affet var · 💔 can alır · 💛 1 kez (Lvl 4-10)";
-      lastT = performance.now();
-      requestAnimationFrame(loop);
-    } else if (over){
-      reset();
-    }
-  }
-
-  // ---------- Input ----------
-  let activePointerId = null;
-
-  canvas.addEventListener("pointerdown", (e)=>{
-    e.preventDefault();
-    canvas.setPointerCapture(e.pointerId);
-    activePointerId = e.pointerId;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width * W;
-    const y = (e.clientY - rect.top) / rect.height * H;
-
-    if (finale.active){
-      handleFinalTap(x,y);
-      return;
-    }
-
-    setPlayerFromClientX(e.clientX);
-    startIfNeeded();
-  });
-
-  canvas.addEventListener("pointermove", (e)=>{
-    if (activePointerId !== e.pointerId) return;
-    if (finale.active) return;
-    e.preventDefault();
-    setPlayerFromClientX(e.clientX);
-  });
-
-  canvas.addEventListener("pointerup", (e)=>{ if (activePointerId===e.pointerId) activePointerId=null; });
-  canvas.addEventListener("pointercancel", (e)=>{ if (activePointerId===e.pointerId) activePointerId=null; });
-
-  canvas.addEventListener("touchstart", (e)=>{
-    e.preventDefault();
-    const t = e.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    const x = (t.clientX - rect.left) / rect.width * W;
-    const y = (t.clientY - rect.top) / rect.height * H;
-
-    if (finale.active){
-      handleFinalTap(x,y);
-      return;
-    }
-
-    setPlayerFromClientX(t.clientX);
-    startIfNeeded();
-  }, { passive:false });
-
-  canvas.addEventListener("touchmove", (e)=>{
-    if (finale.active) return;
-    e.preventDefault();
-    const t = e.touches[0];
-    setPlayerFromClientX(t.clientX);
-  }, { passive:false });
-
-  // ---------- Finale ----------
+  // ===== Finale =====
   const finale = {
-    active: false,
-    yes: false,
-    t: 0,
-    typeT: 0,
-    // FINAL TEXT (fixed Turkish)
-    line1: "Benimle evlenir misin?",
-    line2: "Dünyamın en tatlı ve en güzel kızı",
-    out1: "",
-    out2: "",
-    phase: 0,
-    bg: null,
-    stars: [],
-    hearts: [],
-    bursts: [],
-    btn: { x: W/2, y: 505, w: 320, h: 170 },
+    active:false,
+    yes:false,
+    t:0,
+    typeT:0,
+    line1:"Benimle evlenir misin?",
+    line2:"Dünyamın en tatlı ve en güzel kızı",
+    out1:"",
+    out2:"",
+    phase:0,
+    bg:null,
+    stars:[],
+    hearts:[],
+    bursts:[],
+    btn:{ x: W/2, y: 505, w: 320, h: 170 },
   };
 
   function buildFinaleBg(){
     if (finale.bg) return finale.bg;
 
     const off = document.createElement("canvas");
-    off.width = W;
-    off.height = H;
+    off.width = W; off.height = H;
     const g = off.getContext("2d");
 
     const grd = g.createLinearGradient(0,0,0,H);
@@ -1143,12 +810,7 @@
 
     finale.stars = [];
     for (let i=0;i<42;i++){
-      finale.stars.push({
-        x: rand(20, W-20),
-        y: rand(20, 240),
-        r: rand(0.7, 1.6),
-        a: rand(0.25, 0.8),
-      });
+      finale.stars.push({ x: rand(20, W-20), y: rand(20, 240), r: rand(0.7, 1.6), a: rand(0.25, 0.8) });
     }
     for (const s of finale.stars){
       g.globalAlpha = s.a;
@@ -1212,8 +874,7 @@
   }
 
   function drawHeartButton(btn){
-    const {x,y} = btn;
-    const cx = x, cy = y;
+    const cx = btn.x, cy = btn.y;
 
     ctx.save();
     ctx.globalAlpha = 0.55;
@@ -1273,8 +934,8 @@
   }
 
   function openFinale(){
-    stopAmbientMusic();    // stop game music
-    stopRomanticMusic();   // ensure off
+    stopAmbientMusic();
+    stopRomanticMusic();
 
     finale.active = true;
     finale.yes = false;
@@ -1288,13 +949,7 @@
     buildFinaleBg();
 
     elHud.style.display = "none";
-    started = false;
-    over = false;
-    won = true;
-
     hint.textContent = "";
-    lastT = performance.now();
-    requestAnimationFrame(loop);
   }
 
   function handleFinalTap(x,y){
@@ -1306,27 +961,12 @@
     }
 
     const b = finale.btn;
-
-    const hitBtn =
-      (x >= b.x - b.w/2 && x <= b.x + b.w/2 && y >= b.y - b.h/2 && y <= b.y + b.h/2);
-
+    const hitBtn = (x >= b.x - b.w/2 && x <= b.x + b.w/2 && y >= b.y - b.h/2 && y <= b.y + b.h/2);
     const hitAltYari = (finale.phase >= 2 && y >= H * 0.42);
 
     if (hitBtn || hitAltYari){
       finale.yes = true;
-
       spawnHeartBurst(b.x, b.y, 52);
-      for (let i=0;i<18;i++){
-        finale.hearts.push({
-          x: rand(40, W-40),
-          y: H + rand(0, 50),
-          vy: rand(45, 85),
-          wob: rand(0, Math.PI*2),
-          emo: ["💖","💗","🩷","✨"][(Math.random()*4)|0],
-          size: rand(18, 30),
-          a: rand(0.70, 0.99)
-        });
-      }
 
       popSound();
       startRomanticMusic();
@@ -1393,7 +1033,6 @@
     const px = 44, py = 140, pw = W-88, ph = 280;
     drawGlassPanel(px, py, pw, ph, 22);
 
-    // panel shine
     ctx.save();
     ctx.globalAlpha = 0.22;
     const shine = ctx.createLinearGradient(0, 140, W, 380);
@@ -1404,7 +1043,6 @@
     ctx.fillRect(60, 160, W-120, 26);
     ctx.restore();
 
-    // cute emojis
     ctx.save();
     ctx.globalAlpha = 0.95;
     ctx.font = "38px serif";
@@ -1422,7 +1060,6 @@
     ctx.fillText("💗", W-112, 522);
     ctx.restore();
 
-    // small title
     ctx.save();
     ctx.textAlign = "center";
     ctx.fillStyle = "rgba(255,255,255,0.88)";
@@ -1430,7 +1067,6 @@
     ctx.fillText("Final ödülün 💗", W/2, py + 42);
     ctx.restore();
 
-    // text
     ctx.save();
     ctx.textAlign = "center";
     ctx.fillStyle = "rgba(255,255,255,0.96)";
@@ -1474,7 +1110,6 @@
       ctx.restore();
     }
 
-    // floating hearts
     for (const h of finale.hearts){
       const spr = getSprite(h.emo, h.size);
       ctx.globalAlpha = h.a;
@@ -1482,7 +1117,6 @@
     }
     ctx.globalAlpha = 1;
 
-    // bursts
     for (const p of finale.bursts){
       const a = 1 - (p.t / p.life);
       ctx.globalAlpha = a > 0 ? a : 0;
@@ -1491,7 +1125,6 @@
     }
     ctx.globalAlpha = 1;
 
-    // footer score
     ctx.save();
     ctx.globalAlpha = 0.85;
     ctx.fillStyle = "rgba(255,255,255,0.80)";
@@ -1501,48 +1134,369 @@
     ctx.restore();
   }
 
-  // ---------- Finale input routing ----------
-  // (already handled in pointer/touch events)
+  // ===== Main step/draw =====
+  function step(dt){
+    if (finale.active){
+      stepFinale(dt);
+      updateHud();
+      return;
+    }
 
-  // ---------- Start / init ----------
-  function init(){
+    const d = difficulty(level);
+
+    if (goldQueued){
+      goldQueued = false;
+      goldSpawnedThisRun = true;
+      spawnGold();
+    }
+
+    // hearts
+    heartSpawnAcc += dt;
+    const heartInterval = d.heartInterval;
+    let guard = 0;
+    while (heartSpawnAcc >= heartInterval && guard++ < 2){
+      heartSpawnAcc -= heartInterval;
+      spawnHeartSingle();
+    }
+    heartSpawnAcc = Math.min(heartSpawnAcc, heartInterval * 2);
+
+    // broken schedule
+    brokenSpawnAcc += dt;
+    const brokenInterval = d.heartInterval * d.brokenIntervalMul;
+    if (brokenSpawnAcc >= brokenInterval){
+      brokenSpawnAcc -= brokenInterval;
+      if (Math.random() < d.brokenChance) scheduleBroken();
+    }
+    brokenSpawnAcc = Math.min(brokenSpawnAcc, brokenInterval * 2);
+
+    // warning -> broken
+    for (let i=warnings.length-1;i>=0;i--){
+      warnings[i].t -= dt;
+      if (warnings[i].t <= 0){
+        spawnBrokenAt(warnings[i].x);
+        warnings.splice(i,1);
+      }
+    }
+
+    // collisions
+    let write = 0;
+    let missedHeart = false;
+
+    const hitPad = 10;
+    const px1 = player.x - player.w/2 - hitPad;
+    const px2 = player.x + player.w/2 + hitPad;
+    const py1 = player.y - hitPad;
+    const py2 = player.y + player.h + hitPad;
+
+    for (let i=0;i<drops.length;i++){
+      const o = drops[i];
+
+      o.wob += dt * 2.0;
+
+      let wobbleAmp = 0;
+      if (o.kind === "heart") wobbleAmp = d.wobbleHeart;
+      else if (o.kind === "broken") wobbleAmp = d.wobbleBroken;
+      else wobbleAmp = d.wobbleGold;
+
+      o.x += o.vx * dt + Math.sin(o.wob) * wobbleAmp;
+      o.y += o.vy * dt;
+
+      o.x = clamp(o.x, 6, W-62);
+
+      const s = (o.size || 28);
+      const cx = o.x + s * 0.45;
+      const cy = o.y - s * 0.45;
+
+      const coll = (cx >= px1 && cx <= px2 && cy >= py1 && cy <= py2);
+
+      if (coll){
+        if (o.kind === "heart"){
+          score += 1;
+          levelHearts += 1;
+          heartCatchSound();
+          puff(player.x, player.y, 3, "✨");
+          if (navigator.vibrate) navigator.vibrate(10);
+          updateBest();
+
+          // gold trigger check
+          if (!goldSpawnedThisRun && !goldQueued && level === goldRunLevel) {
+            const prog = levelHearts / levelGoals[level-1];
+            if (prog >= 0.55) scheduleGold();
+          }
+
+          if (levelHearts >= levelGoals[level-1]) nextLevel();
+        } else if (o.kind === "broken"){
+          loseLife("brokenHit");
+        } else {
+          player.w = Math.min(MAX_W, player.w + 18);
+          score += 2;
+          updateBest();
+          setToast("💛 yakalandı! +2 · çubuk uzadı ✨", 1.1);
+          popSound();
+          puff(player.x, player.y, 5, "✨");
+          if (navigator.vibrate) navigator.vibrate([12,18,12]);
+        }
+        continue;
+      }
+
+      if (o.y > H + 90){
+        if (o.kind === "heart") missedHeart = true;
+        continue;
+      }
+
+      drops[write++] = o;
+    }
+    drops.length = write;
+
+    if (missedHeart && lives > 0 && !over) handleHeartMiss();
+
+    // particles
+    for (let i=parts.length-1;i>=0;i--){
+      const p = parts[i];
+      p.t += dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 420 * dt;
+      if (p.t >= p.life) parts.splice(i,1);
+    }
+
+    if (toastT > 0) toastT -= dt;
+    if (levelUpT > 0) levelUpT -= dt;
+
+    updateHud();
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    if (finale.active){
+      drawFinale();
+      return;
+    }
+
+    drawBackground();
+
+    // player
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    ctx.fillRect(player.x - player.w/2, player.y, player.w, player.h);
+
+    // warnings
+    for (let i=0;i<warnings.length;i++){
+      const spr = getSprite("✨", 22);
+      ctx.drawImage(spr, warnings[i].x - 10, 40);
+    }
+
+    // drops
+    for (let i=0;i<drops.length;i++){
+      const o = drops[i];
+      const spr = getSprite(o.emo, o.size || 28);
+      ctx.drawImage(spr, o.x - 8, o.y - (o.size || 28) - 8);
+    }
+
+    // particles
+    for (let i=parts.length-1;i>=0;i--){
+      const p = parts[i];
+      const a = 1 - (p.t / p.life);
+      ctx.globalAlpha = a > 0 ? a : 0;
+      ctx.font = "15px serif";
+      ctx.fillText(p.emo || "✨", p.x, p.y);
+      ctx.globalAlpha = 1;
+    }
+
+    // toast
+    if (toastT > 0){
+      ctx.globalAlpha = Math.min(1, toastT*2);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      roundRect(18, 92, W-36, 44, 14);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "850 14px system-ui";
+      ctx.fillText(toastText, W/2, 120);
+      ctx.globalAlpha = 1;
+    }
+
+    // level banner
+    if (levelUpT > 0){
+      ctx.globalAlpha = Math.min(1, levelUpT*2);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(255,255,255,0.22)";
+      roundRect(92, 160, W-184, 54, 16);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "950 18px system-ui";
+      ctx.fillText(`LEVEL ${level} ✨`, W/2, 194);
+      ctx.globalAlpha = 1;
+    }
+
+    if (!started && !over){
+      overlay("Canan için 💗", "Dokun ve başla", "Müzik + efektler ✅  Final sürpriz ✅");
+    }
+    if (over){
+      overlay("Oyun bitti", `Skor: ${score} · Rekor: ${bestScore} · Lvl: ${level}/10`, "Dokun → tekrar");
+    }
+  }
+
+  function loop(t){
+    const dt = Math.min(0.033, (t - lastT)/1000);
+    lastT = t;
+
+    step(dt);
+    draw();
+
+    if (started || finale.active) requestAnimationFrame(loop);
+  }
+
+  // ===== Start / Reset =====
+  function reset(){
+    stopAmbientMusic();
+    stopRomanticMusic();
+
+    finale.active = false;
+    finale.yes = false;
+    finale.bg = null;
+
+    started = false;
+    over = false;
+
+    score = 0;
+    lives = 3;
+    level = 1;
+    levelHearts = 0;
+    graceLeft = 1;
+
+    toastText = "";
+    toastT = 0;
+    levelUpT = 0;
+
+    lastT = 0;
+    heartSpawnAcc = 0;
+    brokenSpawnAcc = 0;
+
+    drops.length = 0;
+    parts.length = 0;
+    warnings.length = 0;
+
+    goldRunLevel = 4 + ((Math.random()*7)|0);
+    goldSpawnedThisRun = false;
+    goldQueued = false;
+
+    player.x = W/2;
+    player.w = BASE_W;
+
+    elHud.style.display = "";
     applyLevelTheme();
     showQuestBanner();
+    hint.textContent = "Dokun → başlat. Parmağını sürükle → kaydır 💗";
     updateHud();
     draw();
   }
 
+  function startGame(){
+    ensureAudio();
+    if (finale.active) return;
+
+    if (!started && !over){
+      started = true;
+      startAmbientMusic();
+      hint.textContent = "💖 topla · 🛡️ Affet var · 💔 can alır · 💛 1 kez (Lvl 4-10)";
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    } else if (over){
+      reset();
+    }
+  }
+
+  // ===== Events =====
+  let activePointerId = null;
+
+  function toGameXY(clientX, clientY){
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (clientX - rect.left) / rect.width * W,
+      y: (clientY - rect.top) / rect.height * H
+    };
+  }
+
+  canvas.addEventListener("pointerdown", (e)=>{
+    e.preventDefault();
+    ensureAudio();
+
+    canvas.setPointerCapture(e.pointerId);
+    activePointerId = e.pointerId;
+
+    const p = toGameXY(e.clientX, e.clientY);
+
+    if (finale.active){
+      handleFinalTap(p.x, p.y);
+      // finale aktifken loop zaten dönüyor
+      return;
+    }
+
+    setPlayerFromClientX(e.clientX);
+    startGame();
+  });
+
+  canvas.addEventListener("pointermove", (e)=>{
+    if (activePointerId !== e.pointerId) return;
+    if (finale.active) return;
+    e.preventDefault();
+    setPlayerFromClientX(e.clientX);
+  });
+
+  canvas.addEventListener("pointerup", (e)=>{
+    if (activePointerId === e.pointerId) activePointerId = null;
+  });
+  canvas.addEventListener("pointercancel", (e)=>{
+    if (activePointerId === e.pointerId) activePointerId = null;
+  });
+
+  canvas.addEventListener("touchstart", (e)=>{
+    e.preventDefault();
+    ensureAudio();
+
+    const t = e.touches[0];
+    const p = toGameXY(t.clientX, t.clientY);
+
+    if (finale.active){
+      handleFinalTap(p.x, p.y);
+      return;
+    }
+
+    setPlayerFromClientX(t.clientX);
+    startGame();
+  }, { passive:false });
+
+  canvas.addEventListener("touchmove", (e)=>{
+    if (finale.active) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    setPlayerFromClientX(t.clientX);
+  }, { passive:false });
+
+  // Pause on background
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      try { stopAmbientMusic(); } catch {}
+      // started = false; // istersen dondurur, şimdilik müzik kesilsin yeter
+    }
+  });
+
+  // ===== init =====
   setInterval(() => {
     updateHud();
-    if (!started || over || won || finale.active) draw();
+    if (!started || over || finale.active) draw();
   }, 1000);
 
-  init();
+  applyLevelTheme();
+  showQuestBanner();
+  updateHud();
+  draw();
+
+  // spawn cache warm
+  buildBackground(1);
+
 })();
-  // 🔓 GitHub Pages + Chrome audio & start fix
-let __forcedStart = false;
-
-canvas.addEventListener("pointerdown", () => {
-  if (__forcedStart) return;
-  __forcedStart = true;
-
-  try {
-    if (audioCtx && audioCtx.state === "suspended") {
-      audioCtx.resume();
-    }
-  } catch(e){}
-
-  // oyun hiç başlamadıysa zorla başlat
-  if (!started && !over && !won) {
-    started = true;
-    try { startAmbientMusic(); } catch(e){}
-    lastT = performance.now();
-    requestAnimationFrame(loop);
-  }
-}, { once: true });
-
 </script>
 </body>
 </html>
-
-
