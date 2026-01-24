@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Kalp Yolu v7 — Soul Update (Fix)</title>
+  <title>Kalp Yolu v7 — Soul Update (Stable)</title>
   <style>
     :root{ --p:#00d4ff; --a:#ff4fa3; --bg:#050814; }
     *{ box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent; }
     html,body{ margin:0; height:100%; background:var(--bg); color:#fff; font-family:system-ui; overflow:hidden; }
-    #wrap{ height:100%; display:flex; align-items:center; justify-content:center; }
+    #wrap{ height:100%; display:flex; align-items:center; justify-content:center; padding:0; }
     canvas{
       width:min(100vw, 600px); height:min(100vh, 960px);
       border-radius:22px; display:block;
@@ -22,6 +22,7 @@
       position:absolute; top:16px; left:0; width:100%;
       display:flex; justify-content:space-between; padding:0 12px;
       z-index:60; pointer-events:none; font-weight:950;
+      text-shadow:0 2px 18px rgba(0,0,0,.55);
     }
     .pill{
       background:rgba(0,0,0,.40); border:1px solid rgba(255,255,255,.12);
@@ -41,7 +42,7 @@
 
     .ui{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:100; padding:16px; }
     .panel{
-      width:min(420px, 100%); background:rgba(14,18,40,.90);
+      width:min(430px, 100%); background:rgba(14,18,40,.90);
       border:1px solid rgba(255,255,255,.10);
       border-radius:22px; padding:18px;
       box-shadow:0 26px 90px rgba(0,0,0,.78);
@@ -49,6 +50,25 @@
       text-align:center;
     }
     .hidden{ display:none!important; }
+
+    .brand{ margin-bottom:12px; }
+    .brand h2{ margin:0; color:var(--p); letter-spacing:3px; }
+    .brand .sub{ opacity:.75; margin-top:6px; font-size:12px; }
+
+    .menuStats{
+      display:grid; grid-template-columns:1fr 1fr; gap:10px;
+      margin:12px 0 14px;
+    }
+    .stat{
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      padding:10px 12px;
+      text-align:left;
+    }
+    .stat .k{ font-size:11px; opacity:.75; }
+    .stat .v{ font-size:16px; font-weight:1000; margin-top:2px; }
+
     .btn{
       width:100%; padding:13px 14px; margin:8px 0;
       border-radius:14px; border:1px solid rgba(255,255,255,.12);
@@ -65,7 +85,8 @@
 <div id="wrap"><canvas id="c"></canvas></div>
 
 <div id="hud" class="hidden">
-  <div class="pill" style="color:var(--a)">💖 <span id="hudHearts">0</span></div>
+  <div class="pill" style="color:var(--a)">💖 Run <span id="hudRunHearts">0</span></div>
+  <div class="pill" style="color:#ffd1e6">💖 Cüzdan <span id="hudWallet">0</span></div>
   <div class="pill">🌿 Flow <span id="hudFlow">0%</span></div>
   <div id="hudRight">
     <div class="pill" id="hudMood">😌</div>
@@ -76,18 +97,35 @@
 
 <div id="uiMenu" class="ui">
   <div class="panel">
-    <h2 style="margin:0;color:var(--p);letter-spacing:3px">KALP YOLU</h2>
-    <div style="opacity:.75;margin:6px 0 14px;">v7 — Soul Update</div>
-    <div style="opacity:.8;margin-bottom:12px;">Karakter: <b>Canan</b></div>
+    <div class="brand">
+      <h2>KALP YOLU</h2>
+      <div class="sub">v7 — Soul Update • Karakter: <b>Canan</b></div>
+    </div>
+
+    <div class="menuStats">
+      <div class="stat">
+        <div class="k">CÜZDAN</div>
+        <div class="v" id="menuWallet">0 💖</div>
+      </div>
+      <div class="stat">
+        <div class="k">REKOR</div>
+        <div class="v" id="menuHigh">0m</div>
+      </div>
+    </div>
+
     <button class="btn" id="btnStart">KOŞUYA BAŞLA</button>
     <button class="btn sec" id="btnZen">ZEN MOD</button>
+    <div class="row">
+      <button class="btn sec" id="btnReset" style="flex:1;background:rgba(255,68,68,.90);color:#fff;">SIFIRLA</button>
+      <button class="btn sec" id="btnHow" style="flex:1;">NASIL?</button>
+    </div>
   </div>
 </div>
 
 <div id="uiOver" class="ui hidden">
   <div class="panel">
     <h2 style="margin:0;color:var(--a)">OYUN BİTTİ</h2>
-    <div id="overText" style="margin:12px 0;opacity:.9;"></div>
+    <div id="overText" style="margin:12px 0;opacity:.92;"></div>
     <button class="btn" id="btnRetry">TEKRAR</button>
     <button class="btn sec" id="btnMenu">MENÜ</button>
   </div>
@@ -99,11 +137,13 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,t)=>a+(b-a)*t;
 const deepCopy=(o)=>JSON.parse(JSON.stringify(o));
 
-/* ====== Elements (NO GLOBAL ID ASSUMPTION) ====== */
+/* ====== Elements ====== */
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d", { alpha:true });
+
 const hud = document.getElementById("hud");
-const hudHearts = document.getElementById("hudHearts");
+const hudRunHearts = document.getElementById("hudRunHearts");
+const hudWallet = document.getElementById("hudWallet");
 const hudFlow = document.getElementById("hudFlow");
 const hudMood = document.getElementById("hudMood");
 const hudPause = document.getElementById("hudPause");
@@ -117,6 +157,11 @@ const btnStart = document.getElementById("btnStart");
 const btnZen = document.getElementById("btnZen");
 const btnRetry = document.getElementById("btnRetry");
 const btnMenu = document.getElementById("btnMenu");
+const btnReset = document.getElementById("btnReset");
+const btnHow = document.getElementById("btnHow");
+
+const menuWallet = document.getElementById("menuWallet");
+const menuHigh = document.getElementById("menuHigh");
 
 /* ====== Toast ====== */
 function toast(msg, ms=900){
@@ -139,26 +184,28 @@ function resize(){
 window.addEventListener("resize", resize, {passive:true});
 resize();
 
-/* ====== Game state ====== */
-const defaults = {
-  wallet: 0,   // (istersen sonra kalıcı yaparız)
-  high: 0
-};
+/* ====== Save/Load ====== */
+const LS_KEY="kalp_yolu_v7_stable";
+const defaults = { wallet: 0, high: 0 };
 let state = (() => {
   try {
-    const raw = localStorage.getItem("kalp_yolu_v7_fix");
+    const raw = localStorage.getItem(LS_KEY);
     return raw ? Object.assign(deepCopy(defaults), JSON.parse(raw)) : deepCopy(defaults);
   } catch { return deepCopy(defaults); }
 })();
-const save = () => localStorage.setItem("kalp_yolu_v7_fix", JSON.stringify(state));
+const save = () => localStorage.setItem(LS_KEY, JSON.stringify(state));
 
-let run=null, raf=0, lastT=0, paused=false;
-const player = { lane:1, x:0, y:0 };
+function refreshMenu(){
+  menuWallet.textContent = `${state.wallet||0} 💖`;
+  menuHigh.textContent = `${state.high||0}m`;
+}
 
+/* ====== UI show ====== */
 function showMenu(){
   uiMenu.classList.remove("hidden");
   uiOver.classList.add("hidden");
   hud.classList.add("hidden");
+  refreshMenu();
 }
 function showGame(){
   uiMenu.classList.add("hidden");
@@ -170,7 +217,7 @@ function showOver(){
   hud.classList.add("hidden");
 }
 
-/* ====== Audio (calm procedural) ====== */
+/* ====== Audio (calm procedural, Flow reactive) ====== */
 let audio=null, master=null, musicGain=null, music=null;
 function ensureAudio(){
   if(audio) return;
@@ -178,8 +225,9 @@ function ensureAudio(){
   master = audio.createGain();
   master.gain.value = 0.85;
   master.connect(audio.destination);
+
   musicGain = audio.createGain();
-  musicGain.gain.value = 0.13;
+  musicGain.gain.value = 0.12;
   musicGain.connect(master);
 }
 async function unlockAudio(){
@@ -191,6 +239,7 @@ async function unlockAudio(){
 function startMusic(){
   ensureAudio();
   if(music) return;
+
   const pad = audio.createOscillator();
   const lead = audio.createOscillator();
   const filter = audio.createBiquadFilter();
@@ -198,11 +247,12 @@ function startMusic(){
   const g2 = audio.createGain();
 
   filter.type="lowpass";
-  filter.frequency.value=900;
+  filter.frequency.value=850;
   filter.Q.value=0.7;
 
   pad.type="triangle"; lead.type="sine";
   pad.frequency.value=110; lead.frequency.value=220;
+
   g1.gain.value=0.12; g2.gain.value=0.06;
 
   pad.connect(g1); lead.connect(g2);
@@ -210,6 +260,7 @@ function startMusic(){
   filter.connect(musicGain);
 
   pad.start(); lead.start();
+
   music = { pad, lead, filter };
 }
 function stopMusic(){
@@ -218,7 +269,10 @@ function stopMusic(){
   music=null;
 }
 
-/* ====== Core mechanics ====== */
+/* ====== Game state ====== */
+let run=null, raf=0, lastT=0, paused=false;
+const player = { lane:1, x:0, y:0 };
+
 function laneX(l){
   const roadW=W*0.74, start=(W-roadW)/2;
   return start + (l+0.5)*(roadW/3);
@@ -238,15 +292,14 @@ function resetRun(zen=false){
   run={
     active:true,
     zen,
-    hearts:0,
-    wallet: (state.wallet||0),
+    hearts:0,       // run hearts
     score:0,
-    flow:0.25,
-    speed:320,
+    flow:0.28,      // 0..1
+    speed:330,
     obstacle:null,
     heart:null,
-    nextObs:0.7,
-    nextHeart:0.35,
+    nextObs:0.65,
+    nextHeart:0.32,
     lastObsLane:-1
   };
   player.lane=1;
@@ -260,39 +313,53 @@ function resetRun(zen=false){
 
 function gameOver(){
   if(run.zen){
-    run.flow = Math.max(0.15, run.flow-0.25);
+    run.flow = Math.max(0.10, run.flow-0.28);
     run.obstacle=null;
-    toast("Zen: düşüş yok 😌", 900);
+    toast("Zen: devam 😌", 900);
     return;
   }
   run.active=false;
   stopMusic();
-  overText.innerHTML = `Toplanan Kalp: <b>${run.hearts} 💖</b><br>Flow: <b>${Math.floor(run.flow*100)}%</b>`;
+
+  const finalHearts = run.hearts;
+  // Rekor: score metre gibi (hızdan gelen sayıya bağlı)
+  const meters = Math.floor(run.score);
+  if(meters > (state.high||0)) { state.high = meters; save(); }
+
+  overText.innerHTML =
+    `Skor: <b>${meters}m</b><br>` +
+    `Toplanan: <b>${finalHearts} 💖</b><br>` +
+    `Flow: <b>${Math.floor(run.flow*100)}%</b><br>` +
+    `Cüzdan: <b>${state.wallet} 💖</b>`;
+
   showOver();
+  refreshMenu();
 }
 
 function spawnObstacle(){
-  // adil lane: uçtan uca zıplatmayı azalt
   let lane = (Math.random()*3)|0;
   const last=run.lastObsLane;
+
+  // Adalet: uçtan uca zıplamayı azalt + aynı lane spam azalt
   if(last!==-1){
     const extreme = (last===0 && lane===2) || (last===2 && lane===0);
     if(extreme && Math.random()<0.75) lane=1;
-    if(lane===last && Math.random()<0.7) lane=(lane+1+((Math.random()*2)|0))%3;
+    if(lane===last && Math.random()<0.70) lane=(lane+1+((Math.random()*2)|0))%3;
   }
   run.lastObsLane=lane;
+
   run.obstacle={
     lane,
     x:laneX(lane),
     y:-80,
-    w:90,
+    w:92,
     h:34,
     passed:false
   };
 }
 function spawnHeart(){
   let lane=(Math.random()*3)|0;
-  if(run.obstacle && run.obstacle.lane===lane && run.obstacle.y<220){
+  if(run.obstacle && run.obstacle.lane===lane && run.obstacle.y<240){
     lane=(lane+1)%3;
   }
   run.heart={
@@ -304,11 +371,10 @@ function spawnHeart(){
 }
 
 /* ====== Draw ====== */
-function drawBackground(dt){
+function drawBackground(){
   ctx.fillStyle="#050814";
   ctx.fillRect(0,0,W,H);
 
-  // road
   const roadW=W*0.74, x0=(W-roadW)/2, y0=H*0.10;
   ctx.fillStyle="rgba(255,255,255,0.06)";
   ctx.fillRect(x0,y0,roadW,H-y0);
@@ -325,34 +391,50 @@ function drawBackground(dt){
 function drawCanan(){
   player.x += (laneX(player.lane)-player.x)*0.28;
   const x=player.x, y=player.y;
+
+  // glow by flow
+  const glow = 0.10 + run.flow*0.22;
+  ctx.globalAlpha=glow;
+  ctx.strokeStyle="rgba(0,212,255,.9)";
+  ctx.lineWidth=4;
+  ctx.beginPath();
+  ctx.arc(x, y-48, 58, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.globalAlpha=1;
+
   // body
   ctx.fillStyle="rgba(0,212,255,.95)";
   ctx.beginPath();
   ctx.roundRect(x-28,y-78,56,78,18);
   ctx.fill();
+
   // visor
   ctx.fillStyle="rgba(0,0,0,.35)";
   ctx.beginPath();
   ctx.roundRect(x-22,y-66,44,18,10);
   ctx.fill();
+
   // eyes
   ctx.fillStyle="#fff";
   ctx.beginPath();
   ctx.arc(x-10,y-57,3.2,0,Math.PI*2);
   ctx.arc(x+10,y-57,3.2,0,Math.PI*2);
   ctx.fill();
-  // name
+
+  // name tag
   ctx.fillStyle="rgba(255,255,255,.12)";
   ctx.beginPath();
   ctx.roundRect(x-20,y-40,40,14,8);
   ctx.fill();
+
   ctx.fillStyle="#fff";
   ctx.font="900 10px system-ui";
   ctx.textAlign="center"; ctx.textBaseline="middle";
   ctx.fillText("CANAN", x, y-33);
 }
-function drawObstacle(o, t){
-  ctx.fillStyle="rgba(255,79,163,.65)";
+function drawObstacle(o){
+  const pulse=0.55 + 0.45*Math.sin(performance.now()/240);
+  ctx.fillStyle=`rgba(255,79,163,${0.55 + pulse*0.18})`;
   ctx.beginPath();
   ctx.roundRect(o.x-o.w/2, o.y-o.h/2, o.w, o.h, 14);
   ctx.fill();
@@ -364,6 +446,8 @@ function drawObstacle(o, t){
 }
 function drawHeart(h){
   const x=h.x, y=h.y, r=h.r;
+
+  // heart shape
   ctx.fillStyle="rgba(255,79,163,.95)";
   ctx.beginPath();
   const top = y - r*0.15;
@@ -372,16 +456,25 @@ function drawHeart(h){
   ctx.bezierCurveTo(x + r*0.95, top - r*0.55, x + r, top, x, top + r*0.65);
   ctx.closePath();
   ctx.fill();
+
+  // tiny highlight
+  ctx.globalAlpha=0.25;
+  ctx.fillStyle="#fff";
+  ctx.beginPath();
+  ctx.arc(x-r*0.35, y-r*0.65, r*0.22, 0, Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha=1;
 }
 
 /* ====== HUD ====== */
 function updateHud(){
-  hudHearts.textContent = run.hearts;
+  hudRunHearts.textContent = run.hearts;
+  hudWallet.textContent = state.wallet||0;
   hudFlow.textContent = `${Math.floor(run.flow*100)}%`;
   hudMood.textContent = run.flow>0.66 ? "😌" : (run.flow>0.35 ? "🙂" : "😰");
 }
 
-/* ====== Loop ====== */
+/* ====== Core loop ====== */
 function loop(now){
   if(!run || !run.active) return;
 
@@ -390,21 +483,30 @@ function loop(now){
   dt=Math.min(0.033, Math.max(0, dt));
 
   if(paused){
-    drawBackground(0);
-    if(run.obstacle) drawObstacle(run.obstacle, now/1000);
+    drawBackground();
+    if(run.obstacle) drawObstacle(run.obstacle);
     if(run.heart) drawHeart(run.heart);
     drawCanan();
     raf=requestAnimationFrame(loop);
     return;
   }
 
-  // flow gentle decay
-  run.flow = lerp(run.flow, 0.25, dt*0.08);
+  // score (meters feel)
+  run.score += (run.speed*dt)/10;
 
-  // music reacts to flow (if active)
-  if(music){
-    const cutoff = 750 + run.flow*950;
+  // Flow: doğal düşüş (gerçek Flow)
+  run.flow = lerp(run.flow, 0.18, dt*0.25);
+  run.flow = clamp(run.flow, 0, 1);
+
+  // Music reacts to Flow
+  if(music && audio){
+    const cutoff = 650 + run.flow*1200;
     music.filter.frequency.setTargetAtTime(cutoff, audio.currentTime, 0.12);
+
+    if(musicGain){
+      const targetVol = 0.10 + run.flow*0.08;
+      musicGain.gain.setTargetAtTime(targetVol, audio.currentTime, 0.15);
+    }
   }
 
   // spawn timers
@@ -413,16 +515,17 @@ function loop(now){
 
   if(!run.obstacle && run.nextObs<=0){
     spawnObstacle();
-    run.nextObs = 0.65 + Math.random()*0.35;
+    run.nextObs = 0.62 + Math.random()*0.38;
   }
   if(!run.heart && run.nextHeart<=0){
     spawnHeart();
-    run.nextHeart = 0.30 + Math.random()*0.20;
+    run.nextHeart = 0.28 + Math.random()*0.22;
   }
 
-  // move
-  run.speed = clamp(run.speed + 12*dt, 320, 520);
+  // speed progression (no levels)
+  run.speed = clamp(run.speed + 14*dt, 330, 540);
 
+  // move
   if(run.obstacle){
     run.obstacle.y += run.speed*dt;
     if(run.obstacle.y > H+120) run.obstacle=null;
@@ -436,16 +539,31 @@ function loop(now){
   const pw=52, ph=78;
   const pr = { x:player.x-pw/2, y:player.y-ph, w:pw, h:ph };
 
-  // obstacle collision + dodge flow
+  // obstacle: dodge + near-miss + collision
   if(run.obstacle){
     const o=run.obstacle;
     const or = { x:o.x-o.w/2, y:o.y-o.h/2, w:o.w, h:o.h };
 
-    // dodge -> flow
+    // when passed player line => dodge
     if(!o.passed && o.y > player.y){
       o.passed=true;
+
+      // Dodge adds flow
       run.flow = clamp(run.flow + 0.08, 0, 1);
       toast("Kaçış! 🌿", 650);
+
+      // Near-miss: same lane and very close
+      const near = (o.lane === player.lane) && Math.abs((o.y - player.y)) < 24;
+      if(near){
+        const bonus = 2;
+        run.flow = clamp(run.flow + 0.10, 0, 1);
+        run.hearts += bonus;
+
+        state.wallet = (state.wallet||0) + bonus;
+        save();
+
+        toast(`Near-miss +${bonus} 💖`, 850);
+      }
     }
 
     if(rectHit(pr, or)){
@@ -460,14 +578,18 @@ function loop(now){
     if(circleRectHit(h.x,h.y,h.r, pr.x,pr.y,pr.w,pr.h)){
       run.hearts += 1;
       run.flow = clamp(run.flow + 0.05, 0, 1);
+
+      state.wallet = (state.wallet||0) + 1;
+      save();
+
       toast("+1 💖", 650);
       run.heart=null;
     }
   }
 
   // draw
-  drawBackground(dt);
-  if(run.obstacle) drawObstacle(run.obstacle, now/1000);
+  drawBackground();
+  if(run.obstacle) drawObstacle(run.obstacle);
   if(run.heart) drawHeart(run.heart);
   drawCanan();
   updateHud();
@@ -486,7 +608,6 @@ function control(dir){
   if(dir==="L" && player.lane>0) player.lane--;
   if(dir==="R" && player.lane<2) player.lane++;
 }
-
 window.addEventListener("keydown",(e)=>{
   if(e.key==="ArrowLeft") control("L");
   if(e.key==="ArrowRight") control("R");
@@ -508,7 +629,7 @@ canvas.addEventListener("pointerup",(e)=>{
   }
 },{passive:true});
 
-/* ====== Buttons (SAFE) ====== */
+/* ====== Buttons ====== */
 btnStart.addEventListener("click", async ()=>{
   await unlockAudio(); startMusic();
   resetRun(false);
@@ -522,19 +643,25 @@ btnRetry.addEventListener("click", async ()=>{
   resetRun(run?.zen || false);
 });
 btnMenu.addEventListener("click", ()=>{
-  // temiz dönüş
   run=null; paused=false;
   showMenu();
 });
 
-/* ====== init ====== */
-(function init(){
-  showMenu();
-  // draw an idle frame
-  player.x=laneX(1); player.y=H*0.90;
-  drawBackground(0);
-  drawCanan();
-})();
+hudPause.addEventListener("click", ()=>togglePause());
+
+btnReset.addEventListener("click", ()=>{
+  if(confirm("Cüzdan + rekor sıfırlansın mı?")){
+    localStorage.removeItem(LS_KEY);
+    state = deepCopy(defaults);
+    save();
+    toast("Sıfırlandı ✅", 900);
+    showMenu();
+  }
+});
+
+btnHow.addEventListener("click", ()=>{
+  toast("Sağ/sol: şerit değiş • Dikey swipe: duraklat", 1600);
+});
 
 /* ====== roundRect polyfill (older browsers) ====== */
 if(!CanvasRenderingContext2D.prototype.roundRect){
@@ -550,9 +677,19 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
     return this;
   };
 }
+
+/* ====== init ====== */
+(function init(){
+  save();
+  showMenu();
+  // idle frame
+  player.x=laneX(1); player.y=H*0.90;
+  drawBackground();
+  // fake run for drawing Canan on menu
+  run={ flow:0.28 };
+  drawCanan();
+})();
 </script>
 
 </body>
 </html>
-
-
