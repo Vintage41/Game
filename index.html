@@ -437,30 +437,37 @@ const SHOP = {
     forest:  { n:"Forest Calm",   p:260, tag:"🌿" },
   }
 };
-const defaults={
+const defaults = {
   wallet:0,
   high:0,
   aura:"soft",
   ownedAuras:["soft"],
+
+  trail:"none",
+  ownedTrails:["none"],
+
+  theme:"classic",
+  ownedThemes:["classic"],
+
   daily:{ lastClaimKey:0, streak:0 },
   dailyTasks:{ key:0, tasks:[], claimed:false },
   sett:{ music:true, sfx:true },
-  stats:{
-    totalHearts:0,
-    totalNear:0,
-    bestCombo:0,
-    bestMult:1,
-    bestMeters:0,
-    zenSeconds:0,
-    daysClaimedStreak:0
-  },
-  ach:{ } // id -> true
+  stats:{ totalHearts:0, totalNear:0, bestCombo:0, bestMult:1, bestMeters:0, zenSeconds:0, daysClaimedStreak:0 },
+  ach:{},
+  shopDaily:{ key:0, kind:"aura", id:"soft", off:0.25 } // v8.1 daily deal
 };
 
 let state=(()=>{
   try{
     const raw=localStorage.getItem(LS_KEY);
     const s=raw ? Object.assign(deepCopy(defaults), JSON.parse(raw)) : deepCopy(defaults);
+    if(!s.ownedTrails) s.ownedTrails=["none"];
+    if(!s.ownedThemes) s.ownedThemes=["classic"];
+    if(!s.trail) s.trail="none";
+    if(!s.theme) s.theme="classic";
+    if(!s.ownedTrails.includes("none")) s.ownedTrails.push("none");
+    if(!s.ownedThemes.includes("classic")) s.ownedThemes.push("classic");
+    if(!s.shopDaily) s.shopDaily = { key:0, kind:"aura", id:"soft", off:0.25 };
     if(!AURAS[s.aura]) s.aura="soft";
     if(!Array.isArray(s.ownedAuras)) s.ownedAuras=["soft"];
     if(!s.ownedAuras.includes("soft")) s.ownedAuras.push("soft");
@@ -1651,6 +1658,7 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 </body>
 </html>
 ```
+
 
 
 
