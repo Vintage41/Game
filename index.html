@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Kalp Yolu</title>
+  <title>Kalp Yolu (v3)</title>
   <style>
     :root { color-scheme: dark; }
     html, body { margin:0; height:100%; background:#070a12; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
@@ -13,7 +13,7 @@
       height: min(100vh, 900px);
       border-radius: 18px;
       box-shadow: 0 18px 60px rgba(0,0,0,.45);
-      background: radial-gradient(1200px 900px at 50% 20%, #1a2a47 0%, #0b1020 55%, #070a12 100%);
+      background: radial-gradient(1200px 900px at 50% 18%, #1a2a47 0%, #0b1020 55%, #070a12 100%);
       touch-action: none;
       -webkit-tap-highlight-color: transparent;
       display:block;
@@ -27,6 +27,7 @@
       border-radius: 18px;
       padding: 16px;
       backdrop-filter: blur(10px);
+      position: relative;
     }
     h1,h2 { margin:0 0 10px; letter-spacing:.2px; }
     h1 { font-size:24px; }
@@ -54,7 +55,7 @@
       padding:6px 10px; border-radius:999px;
       background: rgba(255,255,255,.07);
       border:1px solid rgba(255,255,255,.10);
-      font-weight:800;
+      font-weight:900;
     }
     .statline { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; opacity:.9; }
 
@@ -100,6 +101,30 @@
       white-space:nowrap;
     }
     .hidden { display:none !important; }
+
+    .xbtn{
+      position:absolute; top:10px; right:10px;
+      width:38px; height:38px; border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color:#fff; font-weight:900;
+      cursor:pointer;
+    }
+
+    .scroll {
+      max-height: 55vh;
+      overflow:auto;
+      padding-right: 6px;
+    }
+    .ver {
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      margin:10px 0;
+    }
+    .ver b { display:block; margin-bottom:4px; }
+    .ver ul { margin: 8px 0 0 18px; padding:0; opacity:.85; }
   </style>
 </head>
 <body>
@@ -111,18 +136,19 @@
 <div class="ui" id="uiMenu">
   <div class="panel">
     <div class="card">
-      <h1>❤️ Kalp Yolu</h1>
+      <h1>🪙 Kalp Yolu <span class="pill">v3</span></h1>
       <div class="statline">
-        <span class="badge">💗 Para: <span id="mCoins">0</span></span>
+        <span class="badge">🪙 Para: <span id="mCoins">0</span></span>
         <span class="badge">🏆 Rekor: <span id="mHigh">0</span></span>
       </div>
-      <p class="tiny">3 şerit • Sonsuz koşu • Kaydır: sağ/sol. Pembe kalp = para. Kırık kalp = can götürür.</p>
+      <p class="tiny">3 şerit • Sonsuz koşu • Kaydır: sağ/sol • ⬆ zıpla • ⬇ eğil (mobilde yukarı/aşağı kaydır)</p>
       <div class="row" style="margin-top:10px">
         <button class="btn primary" id="btnPlay">Oyna</button>
         <button class="btn" id="btnShop">Market</button>
         <button class="btn" id="btnSettings">Ayarlar</button>
       </div>
       <div class="row" style="margin-top:10px">
+        <button class="btn" id="btnPatch">Yama Notları</button>
         <button class="btn danger" id="btnReset">Sıfırla</button>
       </div>
     </div>
@@ -133,6 +159,7 @@
 <div class="ui hidden" id="uiSettings">
   <div class="panel">
     <div class="card">
+      <button class="xbtn" id="xSettings">✕</button>
       <h2>⚙️ Ayarlar</h2>
 
       <div class="switch">
@@ -146,9 +173,22 @@
       <div class="switch">
         <div>
           <b>🔊 Ses Efekti</b>
-          <div class="tiny">Kalp toplama / çarpma / buton</div>
+          <div class="tiny">Para toplama / çarpma / buton</div>
         </div>
         <div class="toggle" id="togSfx"><div class="knob"></div></div>
+      </div>
+
+      <div class="switch">
+        <div>
+          <b>🎼 Müzik Seç</b>
+          <div class="tiny">Track 1/2/3 veya Random</div>
+        </div>
+        <select id="musicSelect" class="btn" style="flex:0 0 auto; padding:10px 12px; font-weight:900;">
+          <option value="random">Random</option>
+          <option value="t1">Track 1</option>
+          <option value="t2">Track 2</option>
+          <option value="t3">Track 3</option>
+        </select>
       </div>
 
       <div class="row" style="margin-top:10px">
@@ -157,7 +197,7 @@
       </div>
 
       <p class="tiny" style="margin-top:10px">
-        iOS Safari ses için ilk dokunuş gerekir. “Sesi Başlat” bunu garanti eder.
+        iOS Safari ses için ilk dokunuş ister. “Sesi Başlat” bunu garanti eder.
       </p>
     </div>
   </div>
@@ -167,11 +207,12 @@
 <div class="ui hidden" id="uiShop">
   <div class="panel">
     <div class="card">
+      <button class="xbtn" id="xShop">✕</button>
       <h2>🛒 Market</h2>
       <div class="statline">
-        <span class="badge">💗 Para: <span id="sCoins">0</span></span>
+        <span class="badge">🪙 Para: <span id="sCoins">0</span></span>
         <span class="badge">🎨 Skin: <span id="sSkin">Klasik</span></span>
-        <span class="badge">🧩 Güç: <span id="sPower">Yok</span></span>
+        <span class="badge">✨ Güç: <span id="sPower">Yok</span></span>
       </div>
 
       <div class="grid" id="shopGrid"></div>
@@ -181,8 +222,51 @@
       </div>
 
       <p class="tiny" style="margin-top:10px">
-        Skin görünümü değiştirir. Güçler oyun içinde otomatik çalışır (magnet / kalkan / para bonusu / yavaşlatma).
+        Skin sadece görünüm. Güçler hafif bonus verir (oyunu kırmaz).
       </p>
+    </div>
+  </div>
+</div>
+
+<!-- PATCH NOTES -->
+<div class="ui hidden" id="uiPatch">
+  <div class="panel">
+    <div class="card">
+      <button class="xbtn" id="xPatch">✕</button>
+      <h2>🧩 Yama Notları</h2>
+      <div class="scroll">
+        <div class="ver">
+          <b>v1</b>
+          <ul>
+            <li>3 şerit runner temeli</li>
+            <li>Skor + rekor kaydı</li>
+          </ul>
+        </div>
+        <div class="ver">
+          <b>v2</b>
+          <ul>
+            <li>Menü + Ayarlar (Müzik/SFX aç-kapa)</li>
+            <li>Para sistemi ve market</li>
+            <li>Perspektif yol hissi</li>
+          </ul>
+        </div>
+        <div class="ver">
+          <b>v3 (şu an)</b>
+          <ul>
+            <li>Altın para (coin) + diken engel (spike)</li>
+            <li>Zıplama + eğilme + engeller</li>
+            <li>Kamera/perspektif runner’a göre ayarlandı</li>
+            <li>Spawn düzeni düzeltildi (arka arkaya kötü dizilim azaldı)</li>
+            <li>Hızlanma yumuşatıldı + üst limit</li>
+            <li>3 farklı müzik + Random seçeneği</li>
+            <li>Karakter görsel rewörk</li>
+            <li>Market X/Çıkış butonu eklendi</li>
+          </ul>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="btnBackFromPatch">Geri</button>
+      </div>
     </div>
   </div>
 </div>
@@ -194,7 +278,7 @@
       <h2>Oyun Bitti</h2>
       <div class="statline">
         <span class="badge">⭐ Skor: <span id="goScore">0</span></span>
-        <span class="badge">💗 Kazanç: +<span id="goEarn">0</span></span>
+        <span class="badge">🪙 Kazanç: +<span id="goEarn">0</span></span>
         <span class="badge">🏆 Rekor: <span id="goHigh">0</span></span>
       </div>
       <div class="row" style="margin-top:10px">
@@ -208,20 +292,19 @@
 <script>
 (() => {
   // =========================
-  //   SAVE / STATE
+  // SAVE / STATE
   // =========================
-  const LS_KEY = "kalpYolu_v2";
+  const LS_KEY = "kalpYolu_v3";
   const deepClone = (o) => JSON.parse(JSON.stringify(o));
 
   const defaults = {
     coins: 0,
     highScore: 0,
-    settings: { music: true, sfx: true },
+    settings: { music: true, sfx: true, musicMode: "random" },
     ownedSkins: { classic: true },
     selectedSkin: "classic",
-    ownedPowers: { none: true },
-    selectedPower: "none",
-    powerLevel: { magnet: 0, shield: 0, bonus: 0, slow: 0 } // 0 = locked
+    powerLevel: { magnet: 0, shield: 0, bonus: 0 }, // 0 locked
+    selectedPower: "none"
   };
 
   let state = load();
@@ -229,25 +312,33 @@
     try {
       const raw = localStorage.getItem(LS_KEY);
       if (!raw) return deepClone(defaults);
-      const s = deepClone(defaults);
       const p = JSON.parse(raw);
+      const s = deepClone(defaults);
 
       if (typeof p.coins === "number") s.coins = p.coins;
       if (typeof p.highScore === "number") s.highScore = p.highScore;
+
       if (p.settings) {
         s.settings.music = !!p.settings.music;
         s.settings.sfx = !!p.settings.sfx;
+        if (typeof p.settings.musicMode === "string") s.settings.musicMode = p.settings.musicMode;
       }
+
       if (p.ownedSkins) s.ownedSkins = { ...s.ownedSkins, ...p.ownedSkins };
       if (typeof p.selectedSkin === "string") s.selectedSkin = p.selectedSkin;
-      if (p.ownedPowers) s.ownedPowers = { ...s.ownedPowers, ...p.ownedPowers };
-      if (typeof p.selectedPower === "string") s.selectedPower = p.selectedPower;
+
       if (p.powerLevel) s.powerLevel = { ...s.powerLevel, ...p.powerLevel };
+      if (typeof p.selectedPower === "string") s.selectedPower = p.selectedPower;
 
       s.ownedSkins.classic = true;
-      s.ownedPowers.none = true;
       if (!s.selectedSkin) s.selectedSkin = "classic";
-      if (!s.selectedPower) s.selectedPower = "none";
+      if (!s.settings.musicMode) s.settings.musicMode = "random";
+
+      // if selectedPower locked, fallback
+      if (s.selectedPower !== "none") {
+        const lv = s.powerLevel[s.selectedPower] || 0;
+        if (lv <= 0) s.selectedPower = "none";
+      }
       return s;
     } catch {
       return deepClone(defaults);
@@ -256,11 +347,12 @@
   function save() { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 
   // =========================
-  //   UI REFS
+  // UI refs
   // =========================
   const uiMenu = document.getElementById("uiMenu");
   const uiSettings = document.getElementById("uiSettings");
   const uiShop = document.getElementById("uiShop");
+  const uiPatch = document.getElementById("uiPatch");
   const uiGameOver = document.getElementById("uiGameOver");
 
   const mCoins = document.getElementById("mCoins");
@@ -276,28 +368,28 @@
 
   const togMusic = document.getElementById("togMusic");
   const togSfx = document.getElementById("togSfx");
+  const musicSelect = document.getElementById("musicSelect");
 
   function show(el){ el.classList.remove("hidden"); }
   function hide(el){ el.classList.add("hidden"); }
   function showOnly(which) {
-    [uiMenu, uiSettings, uiShop, uiGameOver].forEach(hide);
+    [uiMenu, uiSettings, uiShop, uiPatch, uiGameOver].forEach(hide);
     show(which);
   }
 
   // =========================
-  //   CANVAS + DPI (Mobile smooth)
+  // Canvas + DPI (mobile smooth)
   // =========================
   const canvas = document.getElementById("c");
-  const ctx = canvas.getContext("2d", { alpha: true, desynchronized: true });
+  const ctx = canvas.getContext("2d", { alpha:true, desynchronized:true });
 
-  // Logical world size (stable physics); actual pixels use DPR
   const WORLD_W = 360;
   const WORLD_H = 640;
   let DPR = 1;
 
   function resizeCanvas() {
     const rect = canvas.getBoundingClientRect();
-    DPR = Math.min(2, Math.max(1, (window.devicePixelRatio || 1))); // iOS/Android stable
+    DPR = Math.min(2, Math.max(1, (window.devicePixelRatio || 1)));
     canvas.width = Math.floor(rect.width * DPR);
     canvas.height = Math.floor(rect.height * DPR);
     ctx.setTransform(canvas.width / WORLD_W, 0, 0, canvas.height / WORLD_H, 0, 0);
@@ -306,7 +398,7 @@
   resizeCanvas();
 
   // =========================
-  //   AUDIO (procedural)
+  // Audio (procedural multi-track)
   // =========================
   let audioCtx = null, masterGain = null, musicGain = null, musicNode = null;
 
@@ -345,42 +437,59 @@
   }
 
   const sfx = {
-    heart(){ playTone(880, 0.09, "triangle", 0.14); },
-    bad(){ playTone(160, 0.14, "square", 0.10); },
+    coin(){ playTone(980, 0.08, "triangle", 0.14); },
+    hit(){ playTone(160, 0.14, "square", 0.10); },
     ui(){ playTone(520, 0.06, "sine", 0.10); },
-    buy(){ playTone(740, 0.07, "triangle", 0.12); setTimeout(()=>playTone(980,0.07,"triangle",0.10), 70); }
+    buy(){ playTone(740, 0.07, "triangle", 0.12); setTimeout(()=>playTone(980,0.07,"triangle",0.10), 70); },
+    jump(){ playTone(620, 0.06, "sine", 0.10); },
+    slide(){ playTone(420, 0.06, "sine", 0.10); }
   };
+
+  const TRACKS = {
+    t1: { tempo: 260, notes: [261.63, 329.63, 392.00, 523.25, 392.00, 329.63], filt: 900 },
+    t2: { tempo: 220, notes: [293.66, 349.23, 440.00, 587.33, 440.00, 349.23], filt: 780 },
+    t3: { tempo: 280, notes: [220.00, 277.18, 329.63, 440.00, 329.63, 277.18], filt: 650 }
+  };
+
+  function pickMusicMode() {
+    const m = state.settings.musicMode || "random";
+    if (m === "random") {
+      const keys = ["t1","t2","t3"];
+      return keys[(Math.random()*keys.length)|0];
+    }
+    return (TRACKS[m] ? m : "t1");
+  }
 
   function startMusic() {
     ensureAudio();
     if (musicNode) return;
     resumeAudio();
 
+    const mode = pickMusicMode();
+    const tr = TRACKS[mode];
+
     const o = audioCtx.createOscillator();
     const f = audioCtx.createBiquadFilter();
     const g = audioCtx.createGain();
+
     o.type = "sine";
     f.type = "lowpass";
-    f.frequency.value = 900;
+    f.frequency.value = tr.filt;
     g.gain.value = 0.0001;
 
-    o.connect(f);
-    f.connect(g);
-    g.connect(musicGain);
+    o.connect(f); f.connect(g); g.connect(musicGain);
 
-    const notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63]; // C maj loop
     let i = 0;
-
     const tick = () => {
       if (!musicNode) return;
       const t = audioCtx.currentTime;
-      o.frequency.setValueAtTime(notes[i % notes.length], t);
+      o.frequency.setValueAtTime(tr.notes[i % tr.notes.length], t);
       g.gain.cancelScheduledValues(t);
       g.gain.setValueAtTime(0.0001, t);
       g.gain.exponentialRampToValueAtTime(0.20, t + 0.03);
       g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
       i++;
-      musicNode._timer = setTimeout(tick, 260);
+      musicNode._timer = setTimeout(tick, tr.tempo);
     };
 
     o.start();
@@ -402,91 +511,107 @@
   }
 
   // =========================
-  //   VISUAL ASSETS (fast Path2D)
+  // Paths (fast)
   // =========================
-  const HEART_PATH = new Path2D();
-  (function buildHeart() {
-    // unit heart centered at 0,0
-    HEART_PATH.moveTo(0, 12);
-    HEART_PATH.bezierCurveTo(-16, -2, -14, -18, 0, -8);
-    HEART_PATH.bezierCurveTo(14, -18, 16, -2, 0, 12);
-    HEART_PATH.closePath();
-  })();
+  const HEART_PATH = new Path2D(); // reused for logo only
+  HEART_PATH.moveTo(0, 12);
+  HEART_PATH.bezierCurveTo(-16, -2, -14, -18, 0, -8);
+  HEART_PATH.bezierCurveTo(14, -18, 16, -2, 0, 12);
+  HEART_PATH.closePath();
+
+  const COIN_PATH = new Path2D();
+  COIN_PATH.arc(0,0,14,0,Math.PI*2);
 
   // =========================
-  //   SKINS + POWERS + SHOP DATA
+  // Visual configs (balanced)
   // =========================
   const SKINS = {
-    classic: { name:"Klasik", color:"#ffffff", aura:"#ff5fa0" },
-    neon:    { name:"Neon",   color:"#b6f3ff", aura:"#66ffd6" },
-    sunset:  { name:"Sunset", color:"#ffe2b3", aura:"#ff7aa8" },
-    noir:    { name:"Noir",   color:"#d8d8d8", aura:"#8b8bff" },
-    mint:    { name:"Mint",   color:"#d8fff3", aura:"#3dffb6" },
-    ruby:    { name:"Ruby",   color:"#ffe1ea", aura:"#ff2a6d" },
-    space:   { name:"Space",  color:"#d9d6ff", aura:"#7a6cff" }
+    classic: { name:"Klasik", body:"#ffffff", accent:"#ffd166" },
+    neon:    { name:"Neon",   body:"#b6f3ff", accent:"#66ffd6" },
+    sunset:  { name:"Sunset", body:"#ffe2b3", accent:"#ff7aa8" },
+    noir:    { name:"Noir",   body:"#dedede", accent:"#8b8bff" },
+    mint:    { name:"Mint",   body:"#d8fff3", accent:"#3dffb6" },
   };
 
   const POWERS = {
-    none:   { name:"Yok", desc:"Güç kapalı.", basePrice: 0, max: 0 },
-    magnet: { name:"Mıknatıs", desc:"Yakındaki pembe kalpleri çeker.", basePrice: 140, max: 5 },
-    shield: { name:"Kalkan", desc:"Çarpmayı 1 kere affeder.", basePrice: 170, max: 5 },
-    bonus:  { name:"Para Bonus", desc:"Kalp parası x1.2 → x2.0.", basePrice: 200, max: 5 },
-    slow:   { name:"Yavaş Zaman", desc:"Kısa süre hız düşer.", basePrice: 190, max: 5 }
+    none:   { name:"Yok", desc:"Güç kapalı.", base: 0,   max: 0 },
+    magnet: { name:"Mıknatıs", desc:"Yakındaki coinleri çeker.", base: 120, max: 3 },
+    shield: { name:"Kalkan", desc:"Bir çarpmayı affeder.", base: 140, max: 3 },
+    bonus:  { name:"Coin Bonus", desc:"Coin kazancı artar.", base: 160, max: 3 }
   };
 
-  // Shop items (skins + power upgrades)
-  const SHOP_SECTIONS = [
-    { title: "🎨 Skinler", type:"skins", items: [
-      { id:"classic", price: 0, desc:"Default. Her zaman açık." },
-      { id:"neon",   price: 120, desc:"Parlak aura, net görünür." },
-      { id:"sunset", price: 200, desc:"Sıcak tonlar, göz yormaz." },
-      { id:"noir",   price: 260, desc:"Minimal, yüksek kontrast." },
-      { id:"mint",   price: 300, desc:"Ferahlık modu." },
-      { id:"ruby",   price: 420, desc:"Koyu pembe vibe." },
-      { id:"space",  price: 520, desc:"Uzay teması." },
-    ]},
-    { title: "🧩 Güçler", type:"powers", items: [
-      { id:"none" },
-      { id:"magnet" },
-      { id:"shield" },
-      { id:"bonus" },
-      { id:"slow" },
-    ]}
-  ];
+  const SHOP = {
+    skins: [
+      { id:"classic", price: 0,   desc:"Default. Her zaman açık." },
+      { id:"neon",   price: 80,  desc:"Parlak, net görünür." },
+      { id:"sunset", price: 120, desc:"Yumuşak tonlar." },
+      { id:"noir",   price: 160, desc:"Kontrastlı minimal." },
+      { id:"mint",   price: 200, desc:"Ferahlık modu." },
+    ],
+    powers: [
+      { id:"none" }, { id:"magnet" }, { id:"shield" }, { id:"bonus" }
+    ]
+  };
+
+  function powerNextPrice(id) {
+    const p = POWERS[id];
+    const lv = state.powerLevel[id] || 0;
+    if (!p || p.max === 0) return 0;
+    return Math.round(p.base * (1 + lv*0.55));
+  }
 
   // =========================
-  //   GAME CORE (Pseudo-3D)
+  // Runner world (z-depth)
   // =========================
-  // Camera/perspective:
-  // We render a road trapezoid and map lane positions by depth.
   const ROAD = {
-    yTop: 110,
-    yBottom: WORLD_H - 20,
-    wTop: 120,
-    wBottom: 310,
-    laneCount: 3
+    yTop: 115,
+    yBottom: WORLD_H - 22,
+    wTop: 110,
+    wBottom: 320,
+    lanes: 3,
+    focal: 420 // perspective strength
   };
 
-  function laneXAtDepth(lane, y) {
-    const t = clamp((y - ROAD.yTop) / (ROAD.yBottom - ROAD.yTop), 0, 1);
-    const w = lerp(ROAD.wTop, ROAD.wBottom, t);
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function lerp(a,b,t){ return a + (b-a)*t; }
+
+  function depthT(z) {
+    // z: distance in front of player (0..)
+    // t: 0 at bottom (near), 1 at top (far)
+    const f = ROAD.focal;
+    const t = 1 - (f / (z + f));
+    return clamp(t, 0, 1);
+  }
+
+  function yAtZ(z) {
+    const t = depthT(z);
+    return lerp(ROAD.yBottom, ROAD.yTop, t);
+  }
+
+  function widthAtZ(z) {
+    const t = depthT(z);
+    return lerp(ROAD.wBottom, ROAD.wTop, t);
+  }
+
+  function laneXAtZ(lane, z) {
+    const w = widthAtZ(z);
     const left = (WORLD_W - w)/2;
-    const laneW = w / ROAD.laneCount;
+    const laneW = w / ROAD.lanes;
     return left + laneW*(lane + 0.5);
   }
 
-  function scaleAtY(y) {
-    // small at top, bigger at bottom
-    const t = clamp((y - ROAD.yTop) / (ROAD.yBottom - ROAD.yTop), 0, 1);
-    return lerp(0.55, 1.12, t);
+  function scaleAtZ(z) {
+    // far smaller
+    const t = depthT(z);
+    return lerp(1.18, 0.55, t);
   }
 
   function drawRoad() {
-    // road trapezoid
     ctx.save();
-    ctx.beginPath();
+    // trapezoid
     const x1 = (WORLD_W - ROAD.wTop)/2, x2 = (WORLD_W + ROAD.wTop)/2;
     const x3 = (WORLD_W + ROAD.wBottom)/2, x4 = (WORLD_W - ROAD.wBottom)/2;
+    ctx.beginPath();
     ctx.moveTo(x1, ROAD.yTop);
     ctx.lineTo(x2, ROAD.yTop);
     ctx.lineTo(x3, ROAD.yBottom);
@@ -495,13 +620,13 @@
     ctx.fillStyle = "rgba(255,255,255,0.04)";
     ctx.fill();
 
-    // lane lines (dashed) - cheap
+    // dashed lane lines
     ctx.strokeStyle = "rgba(255,255,255,0.14)";
     ctx.lineWidth = 2;
     ctx.setLineDash([8, 10]);
-    for (let i=1;i<ROAD.laneCount;i++){
-      const ax = (WORLD_W - ROAD.wTop)/2 + (ROAD.wTop/ROAD.laneCount)*i;
-      const bx = (WORLD_W - ROAD.wBottom)/2 + (ROAD.wBottom/ROAD.laneCount)*i;
+    for (let i=1;i<ROAD.lanes;i++){
+      const ax = (WORLD_W - ROAD.wTop)/2 + (ROAD.wTop/ROAD.lanes)*i;
+      const bx = (WORLD_W - ROAD.wBottom)/2 + (ROAD.wBottom/ROAD.lanes)*i;
       ctx.beginPath();
       ctx.moveTo(ax, ROAD.yTop);
       ctx.lineTo(bx, ROAD.yBottom);
@@ -509,23 +634,35 @@
     }
     ctx.setLineDash([]);
 
-    // subtle vignette
-    const grad = ctx.createLinearGradient(0, 0, 0, WORLD_H);
-    grad.addColorStop(0, "rgba(255,255,255,0.02)");
-    grad.addColorStop(1, "rgba(0,0,0,0.18)");
-    ctx.fillStyle = grad;
+    // horizon glow
+    const g = ctx.createRadialGradient(WORLD_W/2, ROAD.yTop, 20, WORLD_W/2, ROAD.yTop, 260);
+    g.addColorStop(0, "rgba(255,255,255,0.06)");
+    g.addColorStop(1, "rgba(255,255,255,0.00)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,WORLD_W,WORLD_H);
+
+    // vignette
+    const v = ctx.createLinearGradient(0,0,0,WORLD_H);
+    v.addColorStop(0, "rgba(0,0,0,0.00)");
+    v.addColorStop(1, "rgba(0,0,0,0.22)");
+    ctx.fillStyle = v;
     ctx.fillRect(0,0,WORLD_W,WORLD_H);
     ctx.restore();
   }
 
+  // Player with jump/slide
   const player = {
     lane: 1,
-    y: WORLD_H - 130,
-    x: laneXAtDepth(1, WORLD_H - 130),
-    w: 34,
-    h: 48,
+    x: laneXAtZ(1, 0),
+    z: 0,
+    baseY: ROAD.yBottom - 110,
+    y: ROAD.yBottom - 110,
+    w: 30,
+    h: 52,
     invuln: 0,
-    shieldCharges: 0
+    jumpT: 0,   // remaining
+    slideT: 0,  // remaining
+    shield: 0
   };
 
   let run = {
@@ -534,14 +671,35 @@
     score: 0,
     earned: 0,
     lives: 3,
-    speed: 260,          // world units/sec
-    speedMul: 1,
-    magnetT: 0,
-    slowT: 0,
-    objects: [],         // unified list: hearts/bads
-    spawnH: 0,
-    spawnB: 0,
+    speed: 12.0,     // z units per sec
+    maxSpeed: 22.0,
+    accel: 0.35,     // smoother
+    objects: [],
+    // spawn control
+    nextCoinZ: 8,
+    nextObsZ: 14,
+    lastObsLane: -1,
+    lastCoinLane: -1
   };
+
+  function bonusMult() {
+    if (state.selectedPower !== "bonus") return 1;
+    const lv = state.powerLevel.bonus || 0;
+    if (lv <= 0) return 1;
+    return 1 + 0.25*lv; // lv1=1.25 lv3=1.75
+  }
+
+  function magnetActiveRange() {
+    if (state.selectedPower !== "magnet") return 0;
+    const lv = state.powerLevel.magnet || 0;
+    if (lv <= 0) return 0;
+    return 1.3 + lv*0.6; // 1.9..3.1
+  }
+
+  function ensureShield() {
+    if (state.selectedPower === "shield" && (state.powerLevel.shield || 0) > 0) return 1;
+    return 0;
+  }
 
   function resetRun() {
     run.running = true;
@@ -549,26 +707,23 @@
     run.score = 0;
     run.earned = 0;
     run.lives = 3;
-    run.speed = 260;
-    run.speedMul = 1;
+    run.speed = 12.0;
+    run.maxSpeed = 22.0;
+    run.accel = 0.35;
     run.objects.length = 0;
-    run.spawnH = 0;
-    run.spawnB = 0;
-    run.magnetT = 0;
-    run.slowT = 0;
+    run.nextCoinZ = 8;
+    run.nextObsZ = 14;
+    run.lastObsLane = -1;
+    run.lastCoinLane = -1;
 
     player.lane = 1;
-    player.y = WORLD_H - 130;
-    player.x = laneXAtDepth(1, player.y);
+    player.x = laneXAtZ(1, 0);
     player.invuln = 0;
+    player.jumpT = 0;
+    player.slideT = 0;
+    player.shield = ensureShield();
 
-    // Power effects (passive baseline + occasional triggers)
-    player.shieldCharges = (state.selectedPower === "shield" && state.powerLevel.shield > 0) ? 1 : 0;
-
-    showOnly({}); // noop; we’ll manual hide
-    [uiMenu, uiSettings, uiShop, uiGameOver].forEach(hide);
-
-    // music if enabled
+    [uiMenu, uiSettings, uiShop, uiPatch, uiGameOver].forEach(hide);
     if (state.settings.music) startMusic();
   }
 
@@ -586,62 +741,78 @@
     refreshStats();
   }
 
-  function spawnHeart() {
-    const lane = (Math.random()*3)|0;
-    const y = ROAD.yTop - 40;
-    run.objects.push({ kind:"heart", lane, y, x: laneXAtDepth(lane, y), alive:true });
+  // Spawn rules: prevent ugly sequences
+  function pickLaneAvoid(prevLane) {
+    let lane = (Math.random()*3)|0;
+    if (lane === prevLane) lane = (lane + 1 + ((Math.random()*2)|0)) % 3;
+    return lane;
   }
 
-  function spawnBad() {
-    const lane = (Math.random()*3)|0;
-    const y = ROAD.yTop - 60;
-    run.objects.push({ kind:"bad", lane, y, x: laneXAtDepth(lane, y), alive:true });
+  function spawnCoinRow(z) {
+    // 1-2 coins in a short line, avoid same lane spam
+    const lane = pickLaneAvoid(run.lastCoinLane);
+    run.lastCoinLane = lane;
+
+    run.objects.push({ kind:"coin", lane, z, taken:false });
+    if (Math.random() < 0.35) {
+      // second coin same lane but slightly behind
+      run.objects.push({ kind:"coin", lane, z: z + 1.1, taken:false });
+    } else if (Math.random() < 0.35) {
+      // second coin adjacent lane
+      const lane2 = clamp(lane + (Math.random()<0.5 ? -1 : 1), 0, 2);
+      run.objects.push({ kind:"coin", lane: lane2, z: z + 1.0, taken:false });
+    }
   }
 
-  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
-  function lerp(a,b,t){ return a + (b-a)*t; }
+  function spawnObstacle(z) {
+    // obstacle types:
+    // spike = must jump (ground)
+    // bar = must slide (high bar)
+    const lane = pickLaneAvoid(run.lastObsLane);
+    run.lastObsLane = lane;
 
-  // =========================
-  //   POWERS (auto behavior)
-  // =========================
-  function bonusMultiplier() {
-    // bonus power: x1.2 → x2.0
-    if (state.selectedPower !== "bonus") return 1;
-    const lv = state.powerLevel.bonus|0;
-    if (lv <= 0) return 1;
-    return 1 + 0.2*lv; // lv1=1.2, lv5=2.0
-  }
+    // also try not to put obstacle exactly where coin lane just created very near
+    // (simple rule: if same lane as last coin, shift)
+    if (lane === run.lastCoinLane && Math.random() < 0.70) {
+      const alt = (lane + (Math.random()<0.5 ? 1 : 2)) % 3;
+      run.lastObsLane = alt;
+      run.objects.push({ kind: (Math.random()<0.55 ? "spike":"bar"), lane: alt, z, hit:false });
+      return;
+    }
 
-  function maybeTriggerMagnet() {
-    if (state.selectedPower !== "magnet") return;
-    const lv = state.powerLevel.magnet|0;
-    if (lv <= 0) return;
-    // small chance when collecting a heart
-    const chance = 0.10 + lv*0.04; // 0.14..0.30
-    if (Math.random() < chance) run.magnetT = Math.max(run.magnetT, 1.2 + lv*0.25); // 1.45..2.45s
-  }
-
-  function maybeTriggerSlow() {
-    if (state.selectedPower !== "slow") return;
-    const lv = state.powerLevel.slow|0;
-    if (lv <= 0) return;
-    // small chance when near-miss / taking damage; we do it on damage below
-  }
-
-  function applySlowOnDamage() {
-    if (state.selectedPower !== "slow") return;
-    const lv = state.powerLevel.slow|0;
-    if (lv <= 0) return;
-    run.slowT = Math.max(run.slowT, 0.9 + lv*0.25); // 1.15..2.15s
+    run.objects.push({ kind: (Math.random()<0.55 ? "spike":"bar"), lane, z, hit:false });
   }
 
   // =========================
-  //   INPUT (mobile-first)
+  // Input (swipe + keys)
   // =========================
+  function resumeAudioOnInput() {
+    resumeAudio();
+    if (state.settings.music) startMusic();
+  }
+
   function moveLane(dir) {
     if (!run.running) return;
     player.lane = clamp(player.lane + dir, 0, 2);
     sfx.ui();
+  }
+
+  function jump() {
+    if (!run.running) return;
+    if (player.jumpT > 0) return;
+    // if sliding, cancel slide
+    player.slideT = 0;
+    player.jumpT = 0.55; // seconds
+    sfx.jump();
+  }
+
+  function slide() {
+    if (!run.running) return;
+    if (player.slideT > 0) return;
+    // if jumping, ignore
+    if (player.jumpT > 0) return;
+    player.slideT = 0.60;
+    sfx.slide();
   }
 
   let touchX=0, touchY=0, touching=false;
@@ -649,14 +820,22 @@
     touching = true;
     touchX = e.clientX;
     touchY = e.clientY;
-    resumeAudio();
-    if (state.settings.music) startMusic();
+    resumeAudioOnInput();
   }, { passive:true });
 
   canvas.addEventListener("pointermove", (e) => {
     if (!touching) return;
     const dx = e.clientX - touchX;
     const dy = e.clientY - touchY;
+
+    // prioritize vertical if clearly vertical
+    if (Math.abs(dy) > 34 && Math.abs(dy) > Math.abs(dx)*1.1) {
+      if (dy < 0) jump();
+      else slide();
+      touching = false;
+      return;
+    }
+
     if (Math.abs(dx) > 32 && Math.abs(dx) > Math.abs(dy)) {
       moveLane(dx>0 ? +1 : -1);
       touching = false;
@@ -668,108 +847,184 @@
   window.addEventListener("keydown", (e) => {
     if (e.key === "ArrowLeft") moveLane(-1);
     if (e.key === "ArrowRight") moveLane(+1);
+    if (e.key === "ArrowUp") jump();
+    if (e.key === "ArrowDown") slide();
   });
 
   // =========================
-  //   DRAW (fast)
+  // Draw entities
   // =========================
   function drawHUD() {
     ctx.save();
     ctx.fillStyle = "rgba(255,255,255,0.92)";
-    ctx.font = "800 14px system-ui";
+    ctx.font = "900 14px system-ui";
     ctx.textAlign = "left";
     ctx.fillText(`Skor: ${run.score|0}`, 12, 22);
-    ctx.fillText(`💗 ${state.coins|0}`, 12, 40);
+    ctx.fillText(`🪙 ${state.coins|0}`, 12, 40);
 
     ctx.textAlign = "right";
-    const shieldTxt = player.shieldCharges > 0 ? ` 🛡️${player.shieldCharges}` : "";
-    ctx.fillText(`Can: ${run.lives}${shieldTxt}`, WORLD_W-12, 22);
+    const sh = player.shield > 0 ? ` 🛡️` : "";
+    ctx.fillText(`Can: ${run.lives}${sh}`, WORLD_W-12, 22);
     ctx.fillText(`Rekor: ${state.highScore|0}`, WORLD_W-12, 40);
-
-    // power timers
-    ctx.textAlign = "left";
-    let y = 60;
-    if (run.magnetT > 0) { ctx.fillText(`🧲 ${run.magnetT.toFixed(1)}s`, 12, y); y += 18; }
-    if (run.slowT > 0)   { ctx.fillText(`🐢 ${run.slowT.toFixed(1)}s`, 12, y); y += 18; }
     ctx.restore();
   }
 
   function drawPlayer() {
     const skin = SKINS[state.selectedSkin] || SKINS.classic;
-    const targetX = laneXAtDepth(player.lane, player.y);
+
+    const targetX = laneXAtZ(player.lane, 0);
     player.x += (targetX - player.x) * 0.28;
 
-    const s = scaleAtY(player.y);
-    const w = player.w * s;
-    const h = player.h * s;
+    // jump curve
+    let jumpY = 0;
+    if (player.jumpT > 0) {
+      const u = 1 - (player.jumpT / 0.55);
+      // parabola-ish
+      const h = Math.sin(u * Math.PI) * 58;
+      jumpY = -h;
+    }
 
+    const baseY = player.baseY;
+    player.y = baseY + jumpY;
+
+    // slide changes height
+    const sliding = player.slideT > 0;
+
+    const w = 34;
+    const h = sliding ? 34 : 54;
+
+    // aura
     ctx.save();
-    // aura (cheap)
-    ctx.globalAlpha = 0.20 + 0.15*Math.max(0, Math.sin(run.t*6));
-    ctx.fillStyle = skin.aura;
+    ctx.globalAlpha = 0.18 + 0.10*Math.max(0, Math.sin(run.t*6));
+    ctx.fillStyle = skin.accent;
     ctx.beginPath();
-    ctx.ellipse(player.x, player.y + 10*s, 30*s, 16*s, 0, 0, Math.PI*2);
+    ctx.ellipse(player.x, baseY + 48, 32, 14, 0, 0, Math.PI*2);
     ctx.fill();
-
-    ctx.globalAlpha = player.invuln>0 ? 0.55 : 1;
 
     // body
-    ctx.fillStyle = skin.color;
-    roundRect(player.x - w/2, player.y - h/2, w, h, 10*s);
+    ctx.globalAlpha = player.invuln>0 ? 0.55 : 1;
+    ctx.fillStyle = skin.body;
+    roundRect(player.x - w/2, player.y - h/2, w, h, 12);
     ctx.fill();
 
-    // heart logo
-    ctx.fillStyle = skin.aura;
+    // visor / detail
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "rgba(10,14,26,0.45)";
+    roundRect(player.x - w*0.34, player.y - h*0.10, w*0.68, h*0.22, 8);
+    ctx.fill();
+
+    // logo
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = skin.accent;
     ctx.save();
-    ctx.translate(player.x, player.y - 2*s);
-    ctx.scale(0.55*s, 0.55*s);
+    ctx.translate(player.x, player.y + (sliding ? 2 : 6));
+    ctx.scale(0.38, 0.38);
     ctx.fill(HEART_PATH);
     ctx.restore();
 
-    // shield ring
-    if (player.shieldCharges > 0) {
-      ctx.globalAlpha = 0.30;
+    if (player.shield > 0) {
+      ctx.globalAlpha = 0.28;
       ctx.strokeStyle = "rgba(120,255,180,0.9)";
-      ctx.lineWidth = 2.5*s;
+      ctx.lineWidth = 2.2;
       ctx.beginPath();
-      ctx.ellipse(player.x, player.y + 2*s, 26*s, 18*s, 0, 0, Math.PI*2);
+      ctx.ellipse(player.x, player.y, 24, 18, 0, 0, Math.PI*2);
       ctx.stroke();
     }
 
     ctx.restore();
   }
 
-  function drawHeart(obj) {
-    const sc = scaleAtY(obj.y);
-    ctx.save();
-    ctx.translate(obj.x, obj.y);
-    ctx.scale(0.75*sc, 0.75*sc);
-    ctx.fillStyle = "rgba(255,105,180,0.95)";
-    ctx.fill(HEART_PATH);
+  function drawCoin(obj) {
+    const y = yAtZ(obj.z);
+    const x = laneXAtZ(obj.lane, obj.z);
+    const sc = scaleAtZ(obj.z);
 
-    ctx.globalAlpha = 0.20;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(sc, sc);
+
+    // coin body
+    ctx.fillStyle = "rgba(255,209,102,0.95)";
+    ctx.fill(COIN_PATH);
+
+    // inner ring
+    ctx.globalAlpha = 0.25;
+    ctx.strokeStyle = "rgba(255,255,255,0.9)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0,0,9,0,Math.PI*2);
+    ctx.stroke();
+
+    // highlight
+    ctx.globalAlpha = 0.22;
     ctx.fillStyle = "#fff";
     ctx.beginPath();
-    ctx.arc(-6, -4, 5, 0, Math.PI*2);
+    ctx.arc(-5,-5,4,0,Math.PI*2);
     ctx.fill();
+
     ctx.restore();
   }
 
-  function drawBad(obj) {
-    const sc = scaleAtY(obj.y);
-    ctx.save();
-    ctx.translate(obj.x, obj.y);
-    ctx.scale(0.70*sc, 0.70*sc);
-    ctx.fillStyle = "rgba(255,80,120,0.92)";
-    // two half hearts
-    ctx.save(); ctx.translate(-8, 0); ctx.fill(HEART_PATH); ctx.restore();
-    ctx.save(); ctx.translate( 8, 0); ctx.fill(HEART_PATH); ctx.restore();
+  function drawSpike(obj) {
+    const y = yAtZ(obj.z);
+    const x = laneXAtZ(obj.lane, obj.z);
+    const sc = scaleAtZ(obj.z);
 
-    ctx.strokeStyle = "rgba(10,5,12,0.55)";
-    ctx.lineWidth = 3;
+    ctx.save();
+    ctx.translate(x, y + 10*sc);
+    ctx.scale(sc, sc);
+
+    // base plate
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = "rgba(255,255,255,0.40)";
     ctx.beginPath();
-    ctx.moveTo(0, -18); ctx.lineTo(-6, -6); ctx.lineTo(6, 6); ctx.lineTo(-2, 18);
+    ctx.ellipse(0, 10, 18, 6, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+    // spikes
+    ctx.fillStyle = "rgba(255,80,120,0.95)";
+    for (let i=-1;i<=1;i++){
+      ctx.beginPath();
+      ctx.moveTo(i*10, 14);
+      ctx.lineTo(i*10 + 6, 14);
+      ctx.lineTo(i*10 + 3, -8);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // dark edge
+    ctx.strokeStyle = "rgba(10,5,12,0.45)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-14, 14);
+    ctx.lineTo(14, 14);
     ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawBar(obj) {
+    const y = yAtZ(obj.z);
+    const x = laneXAtZ(obj.lane, obj.z);
+    const sc = scaleAtZ(obj.z);
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(sc, sc);
+
+    // frame
+    ctx.fillStyle = "rgba(255,80,120,0.92)";
+    roundRect(-18, -18, 36, 18, 6);
+    ctx.fill();
+
+    // support legs
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    roundRect(-16, -18, 6, 34, 4);
+    roundRect(10, -18, 6, 34, 4);
+    ctx.fill();
+
     ctx.restore();
   }
 
@@ -784,172 +1039,176 @@
   }
 
   // =========================
-  //   COLLISION + MAGNET
+  // Collision
   // =========================
-  function playerRect() {
-    const s = scaleAtY(player.y);
-    const w = player.w * s;
-    const h = player.h * s;
-    return { x: player.x - w/2, y: player.y - h/2, w, h };
+  function playerHitbox() {
+    const sliding = player.slideT > 0;
+    const w = 34;
+    const h = sliding ? 32 : 54;
+    return { x: player.x - w/2, y: player.y - h/2, w, h, sliding, jumping: player.jumpT > 0 };
   }
 
-  function hit(obj, pr) {
-    // simple circle vs rect (fast enough)
-    const sc = scaleAtY(obj.y);
-    const r = (obj.kind === "heart" ? 14 : 16) * sc;
-    const cx = obj.x, cy = obj.y;
-    const nx = Math.max(pr.x, Math.min(cx, pr.x + pr.w));
-    const ny = Math.max(pr.y, Math.min(cy, pr.y + pr.h));
+  function circleRect(cx, cy, r, rc) {
+    const nx = Math.max(rc.x, Math.min(cx, rc.x+rc.w));
+    const ny = Math.max(rc.y, Math.min(cy, rc.y+rc.h));
     const dx = cx - nx, dy = cy - ny;
     return dx*dx + dy*dy <= r*r;
   }
 
   // =========================
-  //   LOOP
+  // Shop render
   // =========================
-  let last = performance.now();
-  function tick(now) {
-    const dtRaw = (now - last) / 1000;
-    last = now;
+  function renderShop() {
+    shopGrid.innerHTML = "";
 
-    // clamp dt for mobile spikes
-    const dt = Math.min(0.033, Math.max(0.0, dtRaw));
+    // section: skins
+    const head1 = document.createElement("div");
+    head1.className = "item";
+    head1.innerHTML = `<div><b>🎨 Skinler</b><small>Görünüm değiştirir (pay-to-win değil)</small></div><div class="pill">🪙 ${state.coins|0}</div>`;
+    shopGrid.appendChild(head1);
 
-    // clear world
-    ctx.clearRect(0, 0, WORLD_W, WORLD_H);
+    for (const it of SHOP.skins) {
+      const owned = !!state.ownedSkins[it.id];
+      const selected = state.selectedSkin === it.id;
 
-    drawRoad();
+      const row = document.createElement("div");
+      row.className = "item";
 
-    if (run.running) {
-      run.t += dt;
+      const left = document.createElement("div");
+      left.innerHTML = `<b>${SKINS[it.id].name} ${owned ? `<span class="pill">Sahip</span>` : ``} ${selected ? `<span class="pill">Seçili</span>` : ``}</b><small>${it.desc}</small>`;
 
-      // speed curve: ramps, but controlled for mobile
-      run.speed += dt * 6.5;
+      const right = document.createElement("div");
+      right.style.display = "flex";
+      right.style.gap = "8px";
+      right.style.alignItems = "center";
 
-      // slow power
-      if (run.slowT > 0) run.slowT -= dt;
-      const slowMul = (run.slowT > 0) ? lerp(0.72, 0.88, clamp(run.slowT/2,0,1)) : 1;
+      const price = document.createElement("span");
+      price.className = "pill";
+      price.textContent = it.price === 0 ? "Ücretsiz" : `🪙 ${it.price}`;
 
-      // magnet timer
-      if (run.magnetT > 0) run.magnetT -= dt;
+      const btn = document.createElement("button");
+      btn.className = "btn";
+      btn.style.flex = "0 0 auto";
+      btn.textContent = owned ? (selected ? "Seçili" : "Seç") : "Satın Al";
+      btn.disabled = owned && selected;
 
-      const speedEff = run.speed * slowMul;
-
-      // score: time + speed
-      run.score += dt * (22 + speedEff*0.06);
-
-      // spawns: increases gently (no "impossible" spam)
-      run.spawnH -= dt;
-      run.spawnB -= dt;
-
-      const heartRate = Math.max(0.30, 0.85 - run.t*0.008);
-      const badRate   = Math.max(0.55, 1.35 - run.t*0.009);
-
-      if (run.spawnH <= 0) {
-        spawnHeart();
-        run.spawnH = heartRate * (0.75 + Math.random()*0.85);
-      }
-      if (run.spawnB <= 0) {
-        spawnBad();
-        run.spawnB = badRate * (0.80 + Math.random()*0.90);
-      }
-
-      // move objects
-      for (const o of run.objects) {
-        if (!o.alive) continue;
-        o.y += speedEff * dt;
-        o.x = laneXAtDepth(o.lane, o.y);
-
-        // magnet pulls hearts toward player when close
-        if (run.magnetT > 0 && o.kind === "heart") {
-          const dy = Math.abs(o.y - player.y);
-          if (dy < 140) {
-            const pull = (1 - dy/140) * 220;
-            o.x += (player.x - o.x) * (pull * dt / 220);
-          }
+      btn.onclick = () => {
+        resumeAudioOnInput();
+        if (!state.ownedSkins[it.id]) {
+          if (state.coins < it.price) { sfx.hit(); return; }
+          state.coins -= it.price;
+          state.ownedSkins[it.id] = true;
+          sfx.buy();
+        } else {
+          sfx.ui();
         }
-      }
+        state.selectedSkin = it.id;
+        save();
+        refreshStats();
+        renderShop();
+      };
 
-      if (player.invuln > 0) player.invuln -= dt;
-
-      // collision (sort by y for better feel & consistent draw)
-      run.objects.sort((a,b)=>a.y-b.y);
-
-      const pr = playerRect();
-
-      for (const o of run.objects) {
-        if (!o.alive) continue;
-
-        // offscreen cleanup
-        if (o.y > WORLD_H + 80) { o.alive = false; continue; }
-
-        // draw
-        if (o.kind === "heart") drawHeart(o);
-        else drawBad(o);
-
-        // collide
-        if (hit(o, pr)) {
-          if (o.kind === "heart") {
-            o.alive = false;
-
-            // coin payout w/ bonus
-            const mult = bonusMultiplier();
-            const gain = Math.round(1 * mult);
-            state.coins += gain;
-            run.earned += gain;
-
-            save();
-            refreshStats();
-
-            sfx.heart();
-            maybeTriggerMagnet(); // magnet chance when collecting
-          } else {
-            if (player.invuln > 0) { o.alive = false; continue; }
-
-            o.alive = false;
-
-            // shield power
-            if (player.shieldCharges > 0) {
-              player.shieldCharges -= 1;
-              player.invuln = 0.55;
-              sfx.bad();
-              applySlowOnDamage();
-            } else {
-              run.lives -= 1;
-              player.invuln = 0.90;
-              sfx.bad();
-              applySlowOnDamage();
-              if (run.lives <= 0) { endGame(); break; }
-            }
-          }
-        }
-      }
-
-      // compact array occasionally
-      if ((run.t*10|0) % 10 === 0) {
-        // cheap cleanup: keep alive only
-        // (don’t do every frame)
-      }
-      if ((run.t*2|0) % 2 === 0) {
-        run.objects = run.objects.filter(o=>o.alive);
-      }
-
-      drawPlayer();
-      drawHUD();
-    } else {
-      // idle draw
-      run.t += dt;
-      drawPlayer();
-      drawHUD();
+      right.appendChild(price);
+      right.appendChild(btn);
+      row.appendChild(left);
+      row.appendChild(right);
+      shopGrid.appendChild(row);
     }
 
-    requestAnimationFrame(tick);
+    // section: powers
+    const head2 = document.createElement("div");
+    head2.className = "item";
+    head2.innerHTML = `<div><b>✨ Güçler</b><small>Hafif bonus (dengeli)</small></div><div class="pill">Seçili: ${state.selectedPower === "none" ? "Yok" : POWERS[state.selectedPower].name}</div>`;
+    shopGrid.appendChild(head2);
+
+    for (const it of SHOP.powers) {
+      const id = it.id;
+      const p = POWERS[id] || null;
+
+      const row = document.createElement("div");
+      row.className = "item";
+
+      if (id === "none") {
+        row.innerHTML = `
+          <div><b>Yok <span class="pill">Ücretsiz</span> ${state.selectedPower==="none" ? `<span class="pill">Seçili</span>`:""}</b><small>Güç kapalı.</small></div>
+          <div style="display:flex; gap:8px; align-items:center">
+            <button class="btn" id="btnSelNone" style="flex:0 0 auto">${state.selectedPower==="none" ? "Seçili":"Seç"}</button>
+          </div>
+        `;
+        row.querySelector("#btnSelNone").disabled = (state.selectedPower==="none");
+        row.querySelector("#btnSelNone").onclick = () => {
+          sfx.ui();
+          state.selectedPower = "none";
+          save();
+          refreshStats();
+          renderShop();
+        };
+        shopGrid.appendChild(row);
+        continue;
+      }
+
+      const lv = state.powerLevel[id] || 0;
+      const maxed = lv >= p.max;
+      const selected = state.selectedPower === id;
+      const unlocked = lv > 0;
+
+      const left = document.createElement("div");
+      left.innerHTML = `<b>${p.name} ${unlocked ? `<span class="pill">Lv ${lv}</span>` : `<span class="pill">Kilitli</span>`} ${selected ? `<span class="pill">Seçili</span>`:""}</b><small>${p.desc}</small>`;
+
+      const right = document.createElement("div");
+      right.style.display="flex";
+      right.style.gap="8px";
+      right.style.alignItems="center";
+
+      const price = document.createElement("span");
+      price.className = "pill";
+      price.textContent = maxed ? "✅" : `🪙 ${powerNextPrice(id)}`;
+
+      const btnSelect = document.createElement("button");
+      btnSelect.className="btn";
+      btnSelect.style.flex="0 0 auto";
+      btnSelect.textContent = selected ? "Seçili" : "Seç";
+      btnSelect.disabled = selected || !unlocked;
+
+      btnSelect.onclick = () => {
+        sfx.ui();
+        state.selectedPower = id;
+        save();
+        refreshStats();
+        renderShop();
+      };
+
+      const btnUp = document.createElement("button");
+      btnUp.className="btn";
+      btnUp.style.flex="0 0 auto";
+      btnUp.textContent = maxed ? "Maks" : (lv===0 ? `Aç` : `Yükselt`);
+      btnUp.disabled = maxed;
+
+      btnUp.onclick = () => {
+        resumeAudioOnInput();
+        const cost = powerNextPrice(id);
+        if (state.coins < cost) { sfx.hit(); return; }
+        state.coins -= cost;
+        state.powerLevel[id] = (state.powerLevel[id]||0) + 1;
+        if (state.powerLevel[id] === 1) state.selectedPower = id;
+        save();
+        sfx.buy();
+        refreshStats();
+        renderShop();
+      };
+
+      right.appendChild(price);
+      right.appendChild(btnSelect);
+      right.appendChild(btnUp);
+
+      row.appendChild(left);
+      row.appendChild(right);
+      shopGrid.appendChild(row);
+    }
   }
 
-  requestAnimationFrame(tick);
-
   // =========================
-  //   SHOP + SETTINGS UI
+  // Stats + settings sync
   // =========================
   function refreshStats() {
     mCoins.textContent = state.coins|0;
@@ -957,172 +1216,170 @@
 
     sCoins.textContent = state.coins|0;
     sSkin.textContent = (SKINS[state.selectedSkin]?.name || "Klasik");
-    sPower.textContent = (POWERS[state.selectedPower]?.name || "Yok");
+    sPower.textContent = (state.selectedPower === "none") ? "Yok" : (POWERS[state.selectedPower]?.name || "Yok");
 
     togMusic.classList.toggle("on", !!state.settings.music);
     togSfx.classList.toggle("on", !!state.settings.sfx);
-  }
 
-  function powerNextPrice(id) {
-    const p = POWERS[id];
-    const lv = state.powerLevel[id]|0;
-    if (p.max === 0) return 0;
-    // rising price
-    return Math.round(p.basePrice * (1 + lv*0.55));
-  }
-
-  function renderShop() {
-    shopGrid.innerHTML = "";
-
-    for (const section of SHOP_SECTIONS) {
-      const head = document.createElement("div");
-      head.className = "item";
-      head.innerHTML = `<div><b>${section.title}</b><small>Buradan seç / satın al / yükselt</small></div><div class="pill">💗 ${state.coins|0}</div>`;
-      shopGrid.appendChild(head);
-
-      if (section.type === "skins") {
-        for (const it of section.items) {
-          const id = it.id;
-          const owned = !!state.ownedSkins[id];
-          const selected = state.selectedSkin === id;
-
-          const row = document.createElement("div");
-          row.className = "item";
-
-          const left = document.createElement("div");
-          left.innerHTML = `<b>${SKINS[id].name} ${owned ? `<span class="pill">Sahip</span>` : ``}</b><small>${it.desc}</small>`;
-
-          const right = document.createElement("div");
-          right.style.display = "flex";
-          right.style.gap = "8px";
-          right.style.alignItems = "center";
-
-          const price = document.createElement("span");
-          price.className = "pill";
-          price.textContent = it.price === 0 ? "Ücretsiz" : `💗 ${it.price}`;
-
-          const btn = document.createElement("button");
-          btn.className = "btn";
-          btn.style.flex = "0 0 auto";
-
-          function sync() {
-            const o2 = !!state.ownedSkins[id];
-            const s2 = state.selectedSkin === id;
-            btn.textContent = o2 ? (s2 ? "Seçili" : "Seç") : "Satın Al";
-            btn.disabled = o2 && s2;
-          }
-          sync();
-
-          btn.onclick = () => {
-            resumeAudio();
-            if (!state.ownedSkins[id]) {
-              if (state.coins < it.price) { sfx.bad(); return; }
-              state.coins -= it.price;
-              state.ownedSkins[id] = true;
-              sfx.buy();
-            } else {
-              sfx.ui();
-            }
-            state.selectedSkin = id;
-            save();
-            refreshStats();
-            renderShop();
-          };
-
-          right.appendChild(price);
-          right.appendChild(btn);
-
-          row.appendChild(left);
-          row.appendChild(right);
-          shopGrid.appendChild(row);
-        }
-      } else if (section.type === "powers") {
-        for (const it of section.items) {
-          const id = it.id;
-          const p = POWERS[id];
-
-          const lv = state.powerLevel[id] || 0;
-          const unlocked = (id === "none") ? true : (lv > 0);
-          const selected = state.selectedPower === id;
-
-          const row = document.createElement("div");
-          row.className = "item";
-
-          const left = document.createElement("div");
-          const lvTxt = (id === "none") ? "" : (unlocked ? ` <span class="pill">Lv ${lv}</span>` : ` <span class="pill">Kilitli</span>`);
-          left.innerHTML = `<b>${p.name}${lvTxt} ${selected ? `<span class="pill">Seçili</span>` : ``}</b><small>${p.desc}</small>`;
-
-          const right = document.createElement("div");
-          right.style.display = "flex";
-          right.style.gap = "8px";
-          right.style.alignItems = "center";
-
-          const btnSelect = document.createElement("button");
-          btnSelect.className = "btn";
-          btnSelect.style.flex = "0 0 auto";
-          btnSelect.textContent = selected ? "Seçili" : "Seç";
-          btnSelect.disabled = selected || (!unlocked && id !== "none");
-
-          btnSelect.onclick = () => {
-            sfx.ui();
-            state.selectedPower = id;
-            save();
-            refreshStats();
-            renderShop();
-          };
-
-          // upgrade button
-          const btnUp = document.createElement("button");
-          btnUp.className = "btn";
-          btnUp.style.flex = "0 0 auto";
-
-          if (id === "none") {
-            btnUp.textContent = "—";
-            btnUp.disabled = true;
-          } else {
-            const nextPrice = powerNextPrice(id);
-            const maxed = lv >= p.max;
-            btnUp.textContent = maxed ? "Maks" : (lv === 0 ? `Aç 💗${nextPrice}` : `Yükselt 💗${nextPrice}`);
-            btnUp.disabled = maxed;
-            btnUp.onclick = () => {
-              resumeAudio();
-              const price = powerNextPrice(id);
-              if (state.coins < price) { sfx.bad(); return; }
-              state.coins -= price;
-              state.powerLevel[id] = (state.powerLevel[id]||0) + 1;
-              // auto select when first unlocked
-              if (state.powerLevel[id] === 1) state.selectedPower = id;
-              save();
-              sfx.buy();
-              refreshStats();
-              renderShop();
-            };
-          }
-
-          // price pill
-          const pill = document.createElement("span");
-          pill.className = "pill";
-          if (id === "none") pill.textContent = "Ücretsiz";
-          else {
-            const next = powerNextPrice(id);
-            const maxed = lv >= p.max;
-            pill.textContent = maxed ? "✅" : `💗 ${next}`;
-          }
-
-          right.appendChild(pill);
-          right.appendChild(btnSelect);
-          right.appendChild(btnUp);
-
-          row.appendChild(left);
-          row.appendChild(right);
-          shopGrid.appendChild(row);
-        }
-      }
-    }
+    musicSelect.value = state.settings.musicMode || "random";
   }
 
   // =========================
-  //   BUTTONS
+  // Game loop
+  // =========================
+  let last = performance.now();
+  function loop(now) {
+    const dtRaw = (now - last)/1000;
+    last = now;
+    const dt = Math.min(0.033, Math.max(0.0, dtRaw));
+
+    ctx.clearRect(0,0,WORLD_W,WORLD_H);
+    drawRoad();
+
+    if (run.running) {
+      run.t += dt;
+
+      // smooth speed ramp + cap
+      run.speed = Math.min(run.maxSpeed, run.speed + run.accel*dt);
+
+      // jump/slide timers
+      if (player.jumpT > 0) player.jumpT = Math.max(0, player.jumpT - dt);
+      if (player.slideT > 0) player.slideT = Math.max(0, player.slideT - dt);
+      if (player.invuln > 0) player.invuln = Math.max(0, player.invuln - dt);
+
+      // score
+      run.score += dt * (18 + run.speed*2.2);
+
+      // spawn using z distances
+      // coins: every 3.2..4.6 z
+      if (run.nextCoinZ <= 0) run.nextCoinZ = 8;
+      if (run.nextObsZ <= 0) run.nextObsZ = 12;
+
+      // advance all objects towards player by speed
+      for (const o of run.objects) {
+        o.z -= run.speed * dt;
+      }
+
+      // spawn ahead (z measured forward, so we spawn at positive z)
+      // track by decreasing counters: when player progressed, counters drop
+      run.nextCoinZ -= run.speed * dt;
+      run.nextObsZ -= run.speed * dt;
+
+      if (run.nextCoinZ <= 0) {
+        const z = 18 + Math.random()*6; // ahead
+        spawnCoinRow(z);
+        run.nextCoinZ = 3.2 + Math.random()*1.4;
+      }
+
+      if (run.nextObsZ <= 0) {
+        const z = 22 + Math.random()*7;
+        spawnObstacle(z);
+        run.nextObsZ = 4.6 + Math.random()*1.8; // avoid back-to-back
+      }
+
+      // magnet
+      const magRange = magnetActiveRange();
+
+      // draw + collisions, sort far->near for correct layering
+      run.objects.sort((a,b)=>b.z-a.z);
+
+      const hb = playerHitbox();
+
+      for (const o of run.objects) {
+        if (o.kind === "coin" && !o.taken) {
+          // magnet pull: if within range, convert to closer lane x implicitly (we just allow easier pickup)
+          // collision when near
+          if (o.z < 2.2) {
+            const y = yAtZ(o.z);
+            const x = laneXAtZ(o.lane, o.z);
+            const r = 12*scaleAtZ(o.z);
+
+            // “magnet”: if close enough in z and same/adj lane, treat as near
+            let effX = x;
+            if (magRange > 0 && o.z < magRange) {
+              effX = x + (player.x - x) * 0.55;
+            }
+            if (circleRect(effX, y, r, hb)) {
+              o.taken = true;
+
+              const gain = Math.max(1, Math.round(1 * bonusMult()));
+              state.coins += gain;
+              run.earned += gain;
+              save();
+              refreshStats();
+              sfx.coin();
+            }
+          }
+
+          if (!o.taken) drawCoin(o);
+        }
+
+        if (o.kind === "spike" && !o.hit) {
+          drawSpike(o);
+
+          // collision zone near player
+          if (o.z < 1.9 && o.z > -0.2) {
+            // spike requires jump (must be jumping)
+            const jumping = hb.jumping;
+            if (!jumping && player.invuln <= 0) {
+              // hit
+              o.hit = true;
+              if (player.shield > 0) {
+                player.shield = 0;
+                player.invuln = 0.55;
+              } else {
+                run.lives -= 1;
+                player.invuln = 0.9;
+                if (run.lives <= 0) { sfx.hit(); endGame(); break; }
+              }
+              sfx.hit();
+            }
+          }
+        }
+
+        if (o.kind === "bar" && !o.hit) {
+          drawBar(o);
+
+          if (o.z < 2.0 && o.z > -0.2) {
+            // bar requires slide (must be sliding)
+            const sliding = hb.sliding;
+            if (!sliding && player.invuln <= 0) {
+              o.hit = true;
+              if (player.shield > 0) {
+                player.shield = 0;
+                player.invuln = 0.55;
+              } else {
+                run.lives -= 1;
+                player.invuln = 0.9;
+                if (run.lives <= 0) { sfx.hit(); endGame(); break; }
+              }
+              sfx.hit();
+            }
+          }
+        }
+      }
+
+      // cleanup: remove far behind or collected
+      run.objects = run.objects.filter(o => {
+        if (o.kind === "coin") return !(o.taken && o.z < -1.5) && o.z > -6;
+        return (o.z > -6);
+      });
+
+      drawPlayer();
+      drawHUD();
+    } else {
+      // idle
+      drawPlayer();
+      drawHUD();
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  requestAnimationFrame(loop);
+
+  // =========================
+  // Buttons / Navigation
   // =========================
   document.getElementById("btnPlay").onclick = () => { sfx.ui(); resetRun(); };
   document.getElementById("btnRetry").onclick = () => { sfx.ui(); resetRun(); };
@@ -1130,11 +1387,17 @@
   document.getElementById("btnMenu").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
   document.getElementById("btnSettings").onclick = () => { sfx.ui(); showOnly(uiSettings); refreshStats(); };
   document.getElementById("btnShop").onclick = () => { sfx.ui(); showOnly(uiShop); refreshStats(); renderShop(); };
+  document.getElementById("btnPatch").onclick = () => { sfx.ui(); showOnly(uiPatch); refreshStats(); };
+
   document.getElementById("btnBackFromSettings").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
   document.getElementById("btnBackFromShop").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
+  document.getElementById("btnBackFromPatch").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
+
+  document.getElementById("xSettings").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
+  document.getElementById("xShop").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
+  document.getElementById("xPatch").onclick = () => { sfx.ui(); showOnly(uiMenu); refreshStats(); };
 
   document.getElementById("btnReset").onclick = () => {
-    // wipe save
     state = deepClone(defaults);
     save();
     refreshStats();
@@ -1149,6 +1412,7 @@
     refreshAudioSettings();
     sfx.ui();
   };
+
   togSfx.onclick = () => {
     state.settings.sfx = !state.settings.sfx;
     save();
@@ -1156,15 +1420,23 @@
     sfx.ui();
   };
 
+  musicSelect.onchange = () => {
+    state.settings.musicMode = musicSelect.value;
+    save();
+    // restart music to apply change cleanly
+    stopMusic();
+    if (state.settings.music) startMusic();
+    sfx.ui();
+  };
+
   document.getElementById("btnAudioUnlock").onclick = () => {
-    resumeAudio();
+    resumeAudioOnInput();
     refreshAudioSettings();
     sfx.ui();
   };
 
   // init
   refreshStats();
-  // (iOS genelde ilk dokunuşa kadar başlamaz, ama ayarları hazır tutuyoruz)
   if (state.settings.music) refreshAudioSettings();
 
 })();
