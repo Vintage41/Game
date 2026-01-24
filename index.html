@@ -3,71 +3,74 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Kalp Yolu: Ultimate v6.0</title>
+  <title>Kalp Yolu: Pro Runner v6.1</title>
   <style>
     :root { --p: #00d4ff; --a: #ff007b; --bg: #070a12; }
-    * { box-sizing: border-box; user-select: none; }
-    html, body { margin:0; height:100%; background: var(--bg); font-family: 'Segoe UI', Roboto, Arial, sans-serif; overflow: hidden; color: #fff; }
+    * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+    html, body { margin:0; height:100%; background: var(--bg); font-family: system-ui, -apple-system, sans-serif; overflow: hidden; color: #fff; }
     #wrap { height:100%; display:flex; align-items:center; justify-content:center; }
     canvas {
       width: min(100vw, 520px); height: min(100vh, 900px);
-      border-radius: 20px; box-shadow: 0 20px 80px rgba(0,0,0,0.6);
-      background: #000; touch-action: none; display:block;
+      border-radius: 18px; box-shadow: 0 15px 50px rgba(0,0,0,0.8);
+      background: radial-gradient(circle at 50% 20%, #1a2a47 0%, #070a12 100%);
+      display:block; touch-action: none;
     }
 
-    /* UI PANELLERİ */
+    /* SENİN UI TASARIMIN */
     .ui { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:100; }
     .panel {
-      pointer-events:auto; background: rgba(15,22,38,0.95); padding:30px; border-radius:25px;
-      width:350px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(15px);
-      box-shadow: 0 25px 50px rgba(0,0,0,0.5); text-align:center;
+      pointer-events:auto; background: rgba(15,22,38,0.96); padding:25px; border-radius:22px;
+      width:340px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(15px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7); text-align:center;
     }
-    h1 { margin:0 0 10px; font-size:28px; letter-spacing:4px; color: var(--p); text-shadow: 0 0 15px var(--p); }
-    .scroll { max-height: 380px; overflow-y: auto; margin: 15px 0; padding-right: 10px; text-align: left; }
+    h1 { margin:0 0 10px; font-size:26px; letter-spacing:3px; color: var(--p); text-shadow: 0 0 10px var(--p); }
+    .scroll { max-height: 320px; overflow-y: auto; margin: 15px 0; padding-right: 8px; text-align: left; scrollbar-width: thin; }
     
-    /* BUTONLAR */
     button {
-      display:block; width:100%; padding:14px; margin:10px 0; border:none; border-radius:12px;
-      background: var(--p); color:#000; font-weight:bold; font-size:16px; cursor:pointer; transition: 0.2s;
+      display:block; width:100%; padding:14px; margin:8px 0; border:none; border-radius:12px;
+      background: var(--p); color:#000; font-weight:bold; font-size:15px; cursor:pointer; transition: 0.2s;
     }
-    button:active { transform: scale(0.96); }
-    button.sec { background: rgba(255,255,255,0.1); color:#fff; }
-    button.buy { background: var(--a); color:#fff; padding: 6px 12px; font-size:12px; width:auto; display:inline-block; }
-
+    button:active { transform: scale(0.96); filter: brightness(1.2); }
+    button.sec { background: rgba(255,255,255,0.08); color:#fff; }
     .hidden { display:none !important; }
-    .item { background: rgba(255,255,255,0.03); padding:12px; border-radius:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
-    
-    /* GÖREV VE DURUM */
-    #mission-box { position:absolute; top:80px; left:20px; pointer-events:none; }
-    .m-tag { background:rgba(0,0,0,0.6); padding:5px 12px; border-radius:8px; border-left:3px solid var(--a); margin-bottom:6px; font-size:11px; }
-    #p-status { position:absolute; top:80px; right:20px; text-align:right; }
-    .p-tag { background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:8px; margin-bottom:4px; font-size:11px; color: var(--p); font-weight:bold; }
+
+    /* MARKET & BAŞARIMLAR */
+    .item-card { background: rgba(255,255,255,0.04); padding:12px; border-radius:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
+    .badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; background: var(--a); }
+
+    /* HUD */
+    #hud-top { position: absolute; top: 40px; left: 0; width: 100%; display: flex; justify-content: space-between; padding: 0 25px; pointer-events: none; font-weight: bold; font-size: 20px; }
+    #mission-box { position: absolute; top: 90px; left: 20px; pointer-events: none; }
+    .m-item { background: rgba(0,0,0,0.5); padding: 5px 12px; border-radius: 8px; border-left: 3px solid var(--a); margin-bottom: 5px; font-size: 11px; }
   </style>
 </head>
 <body>
 
 <div id="wrap"><canvas id="c"></canvas></div>
 
-<div id="mission-box"></div>
-<div id="p-status"></div>
+<div id="hud-top" class="hidden">
+  <div id="hud-coin" style="color:#ffd700">💰 0</div>
+  <div id="hud-score">0m</div>
+</div>
+<div id="mission-box" class="hidden"></div>
 
 <div id="uiMenu" class="ui">
   <div class="panel">
     <h1>KALP YOLU</h1>
-    <div id="menuStats" style="font-size:14px; opacity:0.7; margin-bottom:20px;"></div>
+    <div id="menuStats" style="font-size:13px; opacity:0.6; margin-bottom:15px;"></div>
     <button id="btnStart">KOŞUYA BAŞLA</button>
-    <button id="btnShop" class="sec">MARKET & SKINLER</button>
+    <button id="btnShop" class="sec">MARKET (SKINLER)</button>
     <button id="btnSettings" class="sec">AYARLAR</button>
     <button id="btnPatch" class="sec">YAMA NOTLARI</button>
   </div>
 </div>
 
 <div id="uiShop" class="ui hidden">
-  <div class="panel" style="width:380px;">
+  <div class="panel">
     <h1>MARKET</h1>
-    <div id="wallet" style="color:#ffd700; font-weight:bold; margin-bottom:10px;"></div>
+    <div id="wallet" style="color:#ffd700; margin-bottom:10px;">Cüzdan: 0 💰</div>
     <div class="scroll" id="shopList"></div>
-    <button id="btnBackShop" class="sec">GERİ DÖN</button>
+    <button id="btnBackShop" class="sec">ANA MENÜYE DÖN</button>
   </div>
 </div>
 
@@ -84,26 +87,18 @@
 <div id="uiPatch" class="ui hidden">
   <div class="panel">
     <h1>YAMA NOTLARI</h1>
-    <div class="scroll" style="font-size:13px; line-height:1.6;">
-      <b style="color:var(--p)">v6.0 (Güncel):</b><br>
-      - Engel çakışma hatası giderildi.<br>
-      - 3 Yeni Güçlendirici: Kalkan, Mıknatıs, Boost.<br>
-      - Görev Sistemi: Ödüllü hedeflere ulaşıldı.<br>
-      - Prosedürel Siber Şehir arka planı eklendi.<br><br>
-      
-      <b style="color:var(--a)">v5.0:</b><br>
-      - Robot Karakter Tasarımı eklendi.<br>
-      - Yeni Para toplama ve patlama efektleri.<br>
-      - Swipe (Kaydırma) kontrolleri optimize edildi.<br><br>
-      
-      <b style="color:#ccc">v4.0:</b><br>
-      - Market Sistemi ve Skin Seçimi aktif edildi.<br>
-      - Synthwave müzik motoru eklendi.<br><br>
-      
-      <b>v1.0 - v3.0:</b><br>
-      - İlk çıkış, 3 şeritli sonsuz koşu temeli.<br>
-      - Kayıt sistemi (LocalStorage) entegrasyonu.<br>
-      - Ses efektleri ve temel engeller.
+    <div class="scroll" style="font-size:12px; line-height:1.5;">
+      <b style="color:var(--p)">v6.1 (GÜNCEL):</b><br>
+      - Başlatma hatası ve nesne çakışmaları giderildi.<br>
+      - 3 Yeni Power-up: Kalkan, Mıknatıs, Hız.<br>
+      - Görev sistemi ve HUD yenilendi.<br><br>
+      <b style="color:var(--a)">v3.0 - v5.0:</b><br>
+      - Robot karakter animasyonları eklendi.<br>
+      - Market ve Skin sistemi entegre edildi.<br>
+      - Arka plan derinlik efektleri eklendi.<br><br>
+      <b>v1.0 - v2.0:</b><br>
+      - İlk sürüm: Temel 3 şerit mekaniği.<br>
+      - Kayıt sistemi ve engeller.
     </div>
     <button id="btnBackPatch" class="sec">KAPAT</button>
   </div>
@@ -111,22 +106,20 @@
 
 <div id="uiOver" class="ui hidden">
   <div class="panel">
-    <h1 style="color:#ff4444;">GAME OVER</h1>
-    <div id="overStats" style="margin:15px 0; font-size:15px;"></div>
+    <h1 style="color:#ff4444;">EYVAH!</h1>
+    <div id="overStats" style="margin:15px 0;"></div>
     <button id="btnRetry">TEKRAR DENE</button>
-    <button id="btnBackMenu" class="sec">ANA MENÜ</button>
+    <button id="btnMenu">ANA MENÜ</button>
   </div>
 </div>
 
 <script>
-/** 1. TEMEL VERİLER VE SKINLER **/
+/** 1. TEMEL AYARLAR & KAYIT (Senin sistemin) **/
 const SKINS = {
-  classic: { n: "Klasik", c: "#00d4ff", a: "#ffffff", p: 0 },
-  neon: { n: "Neon Gecesi", c: "#39ff14", a: "#000", p: 250 },
-  sunset: { n: "Gün Batımı", c: "#ff8c00", a: "#ff007b", p: 500 },
-  noir: { n: "Gizemli Siyah", c: "#444444", a: "#00ffff", p: 1000 },
-  gold: { n: "Altın Robot", c: "#ffd700", a: "#fff", p: 2500 },
-  mint: { n: "Nane Ferahlığı", c: "#00ffcc", a: "#fff", p: 5000 }
+  classic: { n: "Klasik", c: "#00d4ff", a: "#fff", p: 0 },
+  neon: { n: "Neon Savaşçı", c: "#39ff14", a: "#fff", p: 300 },
+  sunset: { n: "Gün Batımı", c: "#ff8c00", a: "#ff007b", p: 750 },
+  gold: { n: "Altın Robot", c: "#ffd700", a: "#fff", p: 2000 }
 };
 
 const defaults = {
@@ -134,19 +127,19 @@ const defaults = {
   owned: ["classic"], skin: "classic",
   sett: { music: true, sfx: true },
   missions: [
-    { id: 1, t: "500m Koş", goal: 500, cur: 0, rew: 50, done: false },
-    { id: 2, t: "30 Para Topla", goal: 30, cur: 0, rew: 100, done: false }
+    { t: "300m Koş", goal: 300, cur: 0, done: false, rew: 50 },
+    { t: "15 Para Topla", goal: 15, cur: 0, done: false, rew: 30 }
   ]
 };
 
-let state = JSON.parse(localStorage.getItem("kalp_yolu_v6_final")) || JSON.parse(JSON.stringify(defaults));
-const save = () => localStorage.setItem("kalp_yolu_v6_final", JSON.stringify(state));
+let state = JSON.parse(localStorage.getItem("kalp_yolu_v61")) || JSON.parse(JSON.stringify(defaults));
+const save = () => localStorage.setItem("kalp_yolu_v61", JSON.stringify(state));
 
 /** 2. SES MOTORU **/
 const audio = new (window.AudioContext || window.webkitAudioContext)();
 let bgm = null;
 
-function sfx(f, t='sine', d=0.2, v=0.1) {
+function playSfx(f, t='sine', d=0.2, v=0.1) {
   if(!state.sett.sfx) return;
   const o = audio.createOscillator(), g = audio.createGain();
   o.type = t; o.frequency.setValueAtTime(f, audio.currentTime);
@@ -156,257 +149,228 @@ function sfx(f, t='sine', d=0.2, v=0.1) {
   o.start(); o.stop(audio.currentTime + d);
 }
 
-function startBGM() {
+function startMusic() {
   if(!state.sett.music || bgm) return;
-  const osc = audio.createOscillator(), g = audio.createGain();
-  osc.type = 'triangle'; osc.frequency.setValueAtTime(110, audio.currentTime); // Lo-fi bass
-  g.gain.setValueAtTime(0.02, audio.currentTime);
-  osc.connect(g); g.connect(audio.destination);
-  osc.start(); bgm = osc;
+  bgm = audio.createOscillator();
+  const g = audio.createGain();
+  bgm.type = 'triangle'; bgm.frequency.setValueAtTime(110, audio.currentTime); 
+  g.gain.setValueAtTime(0.03, audio.currentTime);
+  bgm.connect(g); g.connect(audio.destination);
+  bgm.start();
 }
-function stopBGM() { if(bgm) { try{bgm.stop();}catch(e){} bgm=null; } }
 
 /** 3. OYUN MOTORU **/
 const canvas = document.getElementById("c"), ctx = canvas.getContext("2d");
-let W, H, run = null, particles = [], buildings = [];
+let W, H, run = null, stars = [];
 
-function resize() {
-  W = canvas.width = canvas.offsetWidth;
-  H = canvas.height = canvas.offsetHeight;
-}
+function resize() { W = canvas.width = canvas.offsetWidth; H = canvas.height = canvas.offsetHeight; }
 window.onresize = resize; resize();
 
-// Şehir silüeti oluştur
-buildings = Array.from({length: 20}, (_, i) => ({ x: (i-10)*1.8, h: 40+Math.random()*160, w: 30+Math.random()*50 }));
+stars = Array.from({length: 100}, () => ({x: Math.random()*2-1, y: Math.random()*2-1, s: Math.random()}));
 
-const player = { lane: 1, x: 0, jumpT: 0, slideT: 0, p: { shield:0, magnet:0, boost:0 } };
+const player = { lane: 1, x: 0, jump: 0, slide: 0, power: { shield:0, magnet:0, boost:0 } };
 
 function resetRun() {
-  stopBGM(); startBGM();
+  if(bgm) { bgm.stop(); bgm = null; }
+  startMusic();
   run = { active: true, score: 0, coins: 0, speed: 0.18, objs: [], nextZ: 10, shake: 0 };
-  player.lane = 1; player.x = W/2; player.jumpT = 0; player.slideT = 0;
-  player.p = { shield:0, magnet:0, boost:0 };
-  updateUI();
+  player.lane = 1; player.x = W/2; player.jump = 0; player.slide = 0;
+  player.power = { shield:0, magnet:0, boost:0 };
+  showOnly("none");
+  document.getElementById("hud-top").classList.remove("hidden");
+  document.getElementById("mission-box").classList.remove("hidden");
+  updateMissions();
 }
 
 function getPos(l, z) {
   const p = 1 / (z + 1);
-  return { x: W/2 + (l - 1) * (W * 0.38) * p, y: H * 0.78 - (z * 22 * p), s: p };
+  return { x: W/2 + (l - 1) * (W * 0.4) * p, y: H * 0.76 - (z * 22 * p), s: p };
 }
 
-/** 4. ÇİZİM VE SPAWN SİSTEMİ (HATALAR GİDERİLDİ) **/
-function drawWorld() {
-  // Arka Plan
-  const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0, "#05070a"); g.addColorStop(0.6, "#1a1033");
-  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
-
-  // Şehir
-  buildings.forEach(b => {
-    const p = getPos(b.x, 50);
-    ctx.fillStyle = "#080410"; ctx.fillRect(p.x - b.w*p.s, p.y - b.h*p.s, b.w*p.s*2, b.h*p.s);
-    ctx.strokeStyle = "rgba(0, 212, 255, 0.1)"; ctx.strokeRect(p.x - b.w*p.s, p.y - b.h*p.s, b.w*p.s*2, b.h*p.s);
+function draw() {
+  if(!run || !run.active) return;
+  
+  // Arkaplan
+  ctx.fillStyle = "#070a12"; ctx.fillRect(0,0,W,H);
+  stars.forEach(s => {
+    const x = W/2 + s.x * W; const y = H/2 + s.y * H;
+    ctx.fillStyle = `rgba(255,255,255,${s.s})`; ctx.fillRect(x,y,2,2);
   });
 
   // Yol
-  ctx.fillStyle = "#0f172a"; ctx.beginPath();
-  ctx.moveTo(W*0.05, H); ctx.lineTo(W*0.42, H*0.4); ctx.lineTo(W*0.58, H*0.4); ctx.lineTo(W*0.95, H); ctx.fill();
-}
-
-function loop() {
-  if(!run || !run.active) return;
-  drawWorld();
+  ctx.fillStyle = "#111827"; ctx.beginPath();
+  ctx.moveTo(W*0.05, H); ctx.lineTo(W*0.45, H*0.4); ctx.lineTo(W*0.55, H*0.4); ctx.lineTo(W*0.95, H); ctx.fill();
 
   run.score += run.speed;
   run.speed += 0.00005;
 
-  // Güçlendirici Süreleri ve UI
-  let pHTML = "";
-  for(let k in player.p) {
-    if(player.p[k] > 0) {
-      player.p[k] -= 0.016;
-      pHTML += `<div class="p-tag">${k.toUpperCase()}: ${player.p[k].toFixed(1)}s</div>`;
-      if(k === "boost") run.speed += 0.005;
-    }
+  // Güçlendirici Mantığı
+  for(let k in player.power) if(player.power[k] > 0) {
+    player.power[k] -= 0.016;
+    if(k === 'boost') run.speed += 0.005;
   }
-  document.getElementById("p-status").innerHTML = pHTML;
 
-  // Engel ve Para Üretimi (Çakışmasız)
+  // Nesne Üretimi
   run.nextZ -= run.speed;
   if(run.nextZ <= 0) {
     const lane = Math.floor(Math.random()*3);
     const r = Math.random();
     let type = "coin";
     if(r < 0.25) type = "spike";
-    else if(r < 0.40) type = "bar";
-    else if(r < 0.48) type = ["shield","magnet","boost"][Math.floor(Math.random()*3)];
+    else if(r < 0.4) type = "bar";
+    else if(r < 0.45) type = ["shield","magnet","boost"][Math.floor(Math.random()*3)];
     
-    // Yolu tamamen kapatmamak için kontrol
-    run.objs.push({ t: type, l: lane, z: 50 });
-    run.nextZ = 7 + Math.random()*10; 
+    run.objs.push({t: type, l: lane, z: 50});
+    run.nextZ = 8 + Math.random()*10;
   }
 
-  // Nesne Güncelleme
   run.objs.forEach((o, i) => {
     o.z -= run.speed;
+    if(player.power.magnet > 0 && o.t === 'coin') o.l += (player.lane - o.l) * 0.15;
     
-    if(player.p.magnet > 0 && o.t === "coin" && o.z < 18) {
-      o.l += (player.lane - o.l) * 0.12;
-    }
-
-    const pos = getPos(o.l, o.z);
+    const p = getPos(o.l, o.z);
     if(o.z < 0 || o.z > 50) return;
 
-    // Görselleştirme
-    ctx.shadowBlur = 0;
-    if(o.t === "coin") {
-      ctx.fillStyle = "#ffd700"; ctx.beginPath(); ctx.arc(pos.x, pos.y-25*pos.s, 15*pos.s, 0, 7); ctx.fill();
-    } else if(o.t === "spike") {
-      ctx.fillStyle = "#ff0044"; ctx.beginPath(); ctx.moveTo(pos.x-30*pos.s, pos.y); ctx.lineTo(pos.x, pos.y-60*pos.s); ctx.lineTo(pos.x+30*pos.s, pos.y); ctx.fill();
-    } else if(o.t === "bar") {
-      ctx.fillStyle = "#00d4ff"; ctx.fillRect(pos.x-50*pos.s, pos.y-100*pos.s, 100*pos.s, 15*pos.s);
+    if(o.t === 'coin') {
+      ctx.fillStyle = "#ffd700"; ctx.beginPath(); ctx.arc(p.x, p.y-20*p.s, 15*p.s, 0, 7); ctx.fill();
+    } else if(o.t === 'spike') {
+      ctx.fillStyle = "#ff4444"; ctx.beginPath(); ctx.moveTo(p.x-30*p.s, p.y); ctx.lineTo(p.x, p.y-60*p.s); ctx.lineTo(p.x+30*p.s, p.y); ctx.fill();
+    } else if(o.t === 'bar') {
+      ctx.fillStyle = "#00d4ff"; ctx.fillRect(p.x-50*p.s, p.y-100*p.s, 100*p.s, 15*p.s);
     } else {
-      ctx.fillStyle = "#fff"; ctx.font = `${18*pos.s}px Arial`; ctx.fillText("🎁", pos.x-10, pos.y-20);
+      ctx.fillStyle = "#fff"; ctx.font = "20px Arial"; ctx.fillText("🎁", p.x-10, p.y-20);
     }
 
     // Çarpışma
-    if(o.z > 0 && o.z < 1.3 && Math.abs(o.l - player.lane) < 0.45) {
-      if(o.t === "coin") {
-        run.coins++; state.coins++; sfx(1000); run.objs.splice(i,1); checkMissions("coin");
-      } else if(["shield","magnet","boost"].includes(o.t)) {
-        player.p[o.t] = 10; sfx(600, 'square'); run.objs.splice(i,1);
-      } else if(player.p.boost <= 0) {
-        if((o.t === "spike" && player.jumpT <= 0) || (o.t === "bar" && player.slideT <= 0)) {
-          if(player.p.shield > 0) { player.p.shield = 0; run.shake = 12; run.objs.splice(i,1); sfx(200); }
+    if(o.z > 0 && o.z < 1.3 && Math.abs(o.l - player.lane) < 0.5) {
+      if(o.t === 'coin') {
+        run.coins++; state.coins++; playSfx(1000); run.objs.splice(i,1);
+        checkMissions('coin');
+      } else if(['shield','magnet','boost'].includes(o.t)) {
+        player.power[o.t] = 10; playSfx(800, 'square'); run.objs.splice(i,1);
+      } else if(player.power.boost <= 0) {
+        if((o.t === 'spike' && player.jump <= 0) || (o.t === 'bar' && player.slide <= 0)) {
+          if(player.power.shield > 0) { player.power.shield = 0; run.shake = 10; run.objs.splice(i,1); }
           else gameOver();
         }
       }
     }
   });
 
-  // Robot
+  // Robot Çizimi
   const skin = SKINS[state.skin];
-  player.x += (getPos(player.lane, 0).x - player.x) * 0.22;
+  player.x += (getPos(player.lane, 0).x - player.x) * 0.2;
   let jy = 0;
-  if(player.jumpT > 0) { jy = -Math.sin((1-player.jumpT/0.6)*Math.PI)*120; player.jumpT -= 0.016; }
-  if(player.slideT > 0) player.slideT -= 0.016;
+  if(player.jump > 0) { jy = -Math.sin((1-player.jump/0.6)*Math.PI)*120; player.jump -= 0.016; }
+  if(player.slide > 0) player.slide -= 0.016;
 
   ctx.save(); ctx.translate(player.x, H * 0.88 + jy);
   if(run.shake > 0) { ctx.translate((Math.random()-0.5)*10, 0); run.shake--; }
-
-  const w = player.slideT > 0 ? 65 : 45, h = player.slideT > 0 ? 35 : 75;
-  ctx.fillStyle = player.p.boost > 0 ? `hsl(${Date.now()%360}, 100%, 50%)` : skin.c;
-  ctx.beginPath(); ctx.roundRect(-w/2, -h, w, h, 12); ctx.fill();
-  ctx.fillStyle = "#000"; ctx.fillRect(-w/2+6, -h+12, w-12, 18); // Vizör
-  ctx.fillStyle = skin.a; ctx.fillRect(-w/2+12, -h+18, w-24, 4);
-  
-  if(player.p.shield > 0) {
-    ctx.strokeStyle = "#00d4ff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, -h/2, 60, 0, 7); ctx.stroke();
-  }
+  const w = player.slide > 0 ? 60 : 45, h = player.slide > 0 ? 30 : 70;
+  ctx.fillStyle = skin.c; ctx.beginPath(); ctx.roundRect(-w/2, -h, w, h, 10); ctx.fill();
+  ctx.fillStyle = "#000"; ctx.fillRect(-w/2+5, -h+10, w-10, 15);
+  ctx.fillStyle = skin.a; ctx.fillRect(-w/2+10, -h+15, w-20, 3);
+  if(player.power.shield > 0) { ctx.strokeStyle = "#00d4ff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, -h/2, 60, 0, 7); ctx.stroke(); }
   ctx.restore();
 
-  // HUD
-  ctx.fillStyle = "#fff"; ctx.font = "bold 22px Arial";
-  ctx.fillText(`${Math.floor(run.score)}m`, W-100, 45);
-  ctx.fillStyle = "#ffd700"; ctx.fillText(`💰 ${run.coins}`, 25, 45);
+  // HUD Güncelle
+  document.getElementById("hud-coin").innerText = "💰 " + run.coins;
+  document.getElementById("hud-score").innerText = Math.floor(run.score) + "m";
 
   run.objs = run.objs.filter(o => o.z > -1);
-  checkMissions("run");
-  requestAnimationFrame(loop);
+  checkMissions('run');
+  requestAnimationFrame(draw);
 }
 
-function gameOver() {
-  run.active = false; stopBGM(); sfx(150, 'sawtooth', 0.5);
-  if(run.score > state.high) state.high = Math.floor(run.score);
-  save();
-  document.getElementById("overStats").innerHTML = `Skor: ${Math.floor(run.score)}m<br>Para: ${run.coins}<br>Rekor: ${state.high}m`;
-  showOnly("uiOver");
-}
-
-/** 5. GÖREV VE UI SİSTEMİ **/
-function checkMissions(type) {
-  state.missions.forEach(m => {
-    if(m.done) return;
-    if(type === "coin" && m.t.includes("Para")) m.cur++;
-    if(type === "run" && m.t.includes("Koş")) m.cur = Math.max(m.cur, Math.floor(run.score));
-    if(m.cur >= m.goal) { m.done = true; state.coins += m.rew; sfx(1200); updateUI(); }
-  });
-}
-
+/** 4. SİSTEM FONKSİYONLARI **/
 function showOnly(id) {
   document.querySelectorAll(".ui").forEach(u => u.classList.add("hidden"));
+  document.getElementById("hud-top").classList.add("hidden");
+  document.getElementById("mission-box").classList.add("hidden");
   if(id !== "none") document.getElementById(id).classList.remove("hidden");
 }
 
-function updateUI() {
-  document.getElementById("menuStats").innerHTML = `Rekor: ${state.high}m | Bakiye: ${state.coins} 💰`;
-  document.getElementById("wallet").innerText = `Bakiye: ${state.coins} 💰`;
-  document.getElementById("togMusic").innerText = `MÜZİK: ${state.sett.music ? "AÇIK" : "KAPALI"}`;
-  document.getElementById("togSfx").innerText = `SES: ${state.sett.sfx ? "AÇIK" : "KAPALI"}`;
-  
-  const mBox = document.getElementById("mission-box");
-  mBox.innerHTML = state.missions.filter(m => !m.done).map(m => `<div class="m-tag">${m.t} (${m.cur}/${m.goal})</div>`).join("");
+function gameOver() {
+  run.active = false; if(bgm) bgm.stop(); playSfx(150, 'sawtooth');
+  if(run.score > state.high) state.high = Math.floor(run.score);
+  save();
+  document.getElementById("overStats").innerHTML = `Skor: ${Math.floor(run.score)}m<br>Para: ${run.coins}`;
+  showOnly("uiOver");
+}
+
+function checkMissions(type) {
+  state.missions.forEach(m => {
+    if(m.done) return;
+    if(type === 'coin' && m.t.includes("Para")) m.cur++;
+    if(type === 'run' && m.t.includes("Koş")) m.cur = Math.max(m.cur, Math.floor(run.score));
+    if(m.cur >= m.goal) { m.done = true; state.coins += m.rew; playSfx(1200); updateMissions(); }
+  });
+}
+
+function updateMissions() {
+  const box = document.getElementById("mission-box");
+  box.innerHTML = state.missions.filter(m => !m.done).map(m => `<div class="m-item">${m.t} (${m.cur}/${m.goal})</div>`).join("");
 }
 
 function renderShop() {
   const list = document.getElementById("shopList");
-  list.innerHTML = "";
+  list.innerHTML = ""; document.getElementById("wallet").innerText = `Cüzdan: ${state.coins} 💰`;
   for(let id in SKINS) {
     const s = SKINS[id], owned = state.owned.includes(id), sel = state.skin === id;
-    list.innerHTML += `
-      <div class="item">
-        <div style="text-align:left">
-          <b style="color:${s.c}">${s.n} ${sel ? '✓' : ''}</b><br>
-          <small style="opacity:0.6">${owned ? 'Sahipsin' : s.p + ' 💰'}</small>
-        </div>
-        <button class="buy" onclick="buySkin('${id}')">${owned ? (sel ? 'Seçili' : 'Seç') : 'Satın Al'}</button>
-      </div>`;
+    list.innerHTML += `<div class="item-card">
+      <div style="text-align:left"><b style="color:${s.c}">${s.n}</b><br><small>${owned ? 'Sahipsin' : s.p+' 💰'}</small></div>
+      <button onclick="buy('${id}')" style="width:80px; padding:8px; font-size:12px;">${owned ? (sel ? 'Seçili' : 'Seç') : 'Al'}</button>
+    </div>`;
   }
 }
 
-window.buySkin = (id) => {
+window.buy = (id) => {
   if(state.owned.includes(id)) state.skin = id;
-  else if(state.coins >= SKINS[id].p) { state.coins -= SKINS[id].p; state.owned.push(id); state.skin = id; sfx(800); }
-  save(); renderShop(); updateUI();
+  else if(state.coins >= SKINS[id].p) { state.coins -= SKINS[id].p; state.owned.push(id); state.skin = id; playSfx(900); }
+  save(); renderShop();
 };
 
-/** 6. KONTROLLER VE BAŞLATMA **/
-const input = (d) => {
+/** 5. ETKİLEŞİM & BAŞLATMA **/
+const control = (dir) => {
   if(!run?.active) return;
-  if(d === "L" && player.lane > 0) player.lane--;
-  if(d === "R" && player.lane < 2) player.lane++;
-  if(d === "U" && player.jumpT <= 0) { player.jumpT = 0.6; sfx(500, 'triangle'); }
-  if(d === "D") player.slideT = 0.6;
+  if(dir === 'L' && player.lane > 0) player.lane--;
+  if(dir === 'R' && player.lane < 2) player.lane++;
+  if(dir === 'U' && player.jump <= 0) { player.jump = 0.6; playSfx(400, 'triangle'); }
+  if(dir === 'D') player.slide = 0.6;
 };
 
 window.onkeydown = e => {
-  if(e.key === "ArrowLeft") input("L"); if(e.key === "ArrowRight") input("R");
-  if(e.key === "ArrowUp") input("U"); if(e.key === "ArrowDown") input("D");
+  if(e.key === "ArrowLeft") control('L'); if(e.key === "ArrowRight") control('R');
+  if(e.key === "ArrowUp") control('U'); if(e.key === "ArrowDown") control('D');
 };
 
 let tx, ty;
 canvas.ontouchstart = e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; };
 canvas.ontouchend = e => {
   const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
-  if(Math.abs(dx) > Math.abs(dy)) input(dx > 0 ? "R" : "L");
-  else input(dy > 0 ? "D" : "U");
+  if(Math.abs(dx) > Math.abs(dy)) control(dx > 0 ? 'R' : 'L');
+  else control(dy > 0 ? 'D' : 'U');
 };
 
-// BUTON TIKLAMALARI (TAMİR EDİLDİ)
-document.getElementById("btnStart").onclick = () => { showOnly("none"); resetRun(); loop(); };
-document.getElementById("btnRetry").onclick = () => { showOnly("none"); resetRun(); loop(); };
+// BUTONLAR (TAMİR EDİLDİ)
+document.getElementById("btnStart").onclick = resetRun;
+document.getElementById("btnRetry").onclick = resetRun;
+document.getElementById("btnMenu").onclick = () => location.reload();
 document.getElementById("btnShop").onclick = () => { showOnly("uiShop"); renderShop(); };
 document.getElementById("btnBackShop").onclick = () => showOnly("uiMenu");
 document.getElementById("btnSettings").onclick = () => showOnly("uiSettings");
 document.getElementById("btnBackSettings").onclick = () => showOnly("uiMenu");
 document.getElementById("btnPatch").onclick = () => showOnly("uiPatch");
 document.getElementById("btnBackPatch").onclick = () => showOnly("uiMenu");
-document.getElementById("btnBackMenu").onclick = () => showOnly("uiMenu");
+document.getElementById("togMusic").onclick = function() { state.sett.music = !state.sett.music; this.innerText = "MÜZİK: " + (state.sett.music ? "AÇIK" : "KAPALI"); save(); };
+document.getElementById("togSfx").onclick = function() { state.sett.sfx = !state.sett.sfx; this.innerText = "SES: " + (state.sett.sfx ? "AÇIK" : "KAPALI"); save(); };
+document.getElementById("btnReset").onclick = () => { if(confirm("Veriler silinsin mi?")) { localStorage.removeItem("kalp_yolu_v61"); location.reload(); } };
 
-document.getElementById("togMusic").onclick = () => { state.sett.music = !state.sett.music; save(); updateUI(); };
-document.getElementById("togSfx").onclick = () => { state.sett.sfx = !state.sett.sfx; save(); updateUI(); };
-document.getElementById("btnReset").onclick = () => { if(confirm("Tüm veriler sıfırlansın mı?")) { localStorage.removeItem("kalp_yolu_v6_final"); location.reload(); } };
+// Menü verileri
+document.getElementById("menuStats").innerHTML = `Rekor: ${state.high}m | Toplam Para: ${state.coins}`;
 
-updateUI();
+// İlk kareyi çizmek için başlat (Oyun döngüsü resetRun ile tetiklenir)
+requestAnimationFrame(draw);
 </script>
 </body>
 </html>
