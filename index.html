@@ -1,10 +1,9 @@
-```html
 <!doctype html>
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Kalp Yolu v8 — Hook Update (Full)</title>
+  <title>Kalp Yolu v8.1 — Hotfix + Daily Deal</title>
   <style>
     :root{
       --p:#00d4ff; --a:#ff4fa3; --bg:#050814;
@@ -158,7 +157,7 @@
   <div class="panel">
     <div class="brand">
       <h2>KALP YOLU</h2>
-      <div class="sub">v8 — Hook Update • Karakter: <b>Canan</b></div>
+      <div class="sub">v8.1 — Hotfix • Karakter: <b>Canan</b></div>
     </div>
 
     <div class="menuStats">
@@ -213,21 +212,21 @@
   <div class="panel">
     <div class="brand">
       <h2 style="margin-bottom:4px;">MARKET</h2>
-      <div class="sub">Aura’lar kozmetik. Oynanışı etkilemez.</div>
+      <div class="sub">Kozmetik. Oynanışı etkilemez. (v8.1: Günlük Teklif)</div>
     </div>
 
     <div class="stat" style="margin:10px 0 12px; text-align:center;">
       <div class="k">CÜZDAN</div>
       <div class="v" id="shopWallet">0 💖</div>
     </div>
-<div class="row" style="margin:8px 0 10px;">
-  <button class="btn sec" id="tabAura" style="flex:1;">AURA</button>
-  <button class="btn sec" id="tabTrail" style="flex:1;">TRAIL</button>
-  <button class="btn sec" id="tabTheme" style="flex:1;">THEME</button>
-</div>
+
+    <div class="row" style="margin:8px 0 10px;">
+      <button class="btn sec" id="tabAura" style="flex:1;">AURA</button>
+      <button class="btn sec" id="tabTrail" style="flex:1;">TRAIL</button>
+      <button class="btn sec" id="tabTheme" style="flex:1;">THEME</button>
+    </div>
 
     <div class="scroll" id="shopList"></div>
-
     <button class="btn sec" id="btnShopBack">GERİ</button>
   </div>
 </div>
@@ -246,7 +245,6 @@
     </div>
 
     <div class="scroll" id="tasksList"></div>
-
     <button class="btn sec" id="btnTasksBack">GERİ</button>
   </div>
 </div>
@@ -260,7 +258,6 @@
     </div>
 
     <div class="scroll" id="achList"></div>
-
     <button class="btn sec" id="btnAchBack">GERİ</button>
   </div>
 </div>
@@ -284,11 +281,10 @@
   <div class="panel patch">
     <div class="brand">
       <h2>YAMA NOTLARI</h2>
-      <div class="sub">Tüm sürümler korunur.</div>
+      <div class="sub">v1 → v8.1 (hepsi burada)</div>
     </div>
 
     <div class="scroll" id="patchBody"></div>
-
     <button class="btn sec" id="btnPatchBack">KAPAT</button>
   </div>
 </div>
@@ -311,7 +307,7 @@ const deepCopy=(o)=>JSON.parse(JSON.stringify(o));
 const dayKey=()=>{ const d=new Date(); return d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate(); };
 const nowMs=()=>performance.now();
 
-/* tiny deterministic RNG for daily tasks */
+/* tiny deterministic RNG for daily tasks/deals */
 function rngSeeded(seed){
   let t = seed >>> 0;
   return ()=> {
@@ -325,7 +321,7 @@ function rngSeeded(seed){
 
 /* ===================== ELEMENTS ===================== */
 const canvas=document.getElementById("c");
-const ctx=canvas.getContext("2d", { alpha:true });
+const ctx=canvas.getContext("2d", { alpha:true, desynchronized:true });
 
 const hud=document.getElementById("hud");
 const hudRunHearts=document.getElementById("hudRunHearts");
@@ -366,6 +362,9 @@ const btnHow=document.getElementById("btnHow");
 const shopWallet=document.getElementById("shopWallet");
 const shopList=document.getElementById("shopList");
 const btnShopBack=document.getElementById("btnShopBack");
+const tabAura=document.getElementById("tabAura");
+const tabTrail=document.getElementById("tabTrail");
+const tabTheme=document.getElementById("tabTheme");
 
 const tasksReward=document.getElementById("tasksReward");
 const tasksList=document.getElementById("tasksList");
@@ -412,8 +411,7 @@ function resize(){
 window.addEventListener("resize", resize, {passive:true});
 resize();
 
-/* ===================== DATA / SAVE ===================== */
-const LS_KEY="kalp_yolu_v8_full";
+/* ===================== SHOP DATA ===================== */
 const SHOP = {
   aura: {
     soft:    { n:"Soft Glow",     p:0,   tag:"FREE" },
@@ -437,9 +435,14 @@ const SHOP = {
     forest:  { n:"Forest Calm",   p:260, tag:"🌿" },
   }
 };
+const AURAS = SHOP.aura;
+
+/* ===================== DATA / SAVE ===================== */
+const LS_KEY="kalp_yolu_v81";
 const defaults = {
   wallet:0,
   high:0,
+
   aura:"soft",
   ownedAuras:["soft"],
 
@@ -451,9 +454,11 @@ const defaults = {
 
   daily:{ lastClaimKey:0, streak:0 },
   dailyTasks:{ key:0, tasks:[], claimed:false },
+
   sett:{ music:true, sfx:true },
   stats:{ totalHearts:0, totalNear:0, bestCombo:0, bestMult:1, bestMeters:0, zenSeconds:0, daysClaimedStreak:0 },
   ach:{},
+
   shopDaily:{ key:0, kind:"aura", id:"soft", off:0.25 } // v8.1 daily deal
 };
 
@@ -461,20 +466,25 @@ let state=(()=>{
   try{
     const raw=localStorage.getItem(LS_KEY);
     const s=raw ? Object.assign(deepCopy(defaults), JSON.parse(raw)) : deepCopy(defaults);
+
+    // normalize
+    if(!s.ownedAuras) s.ownedAuras=["soft"];
     if(!s.ownedTrails) s.ownedTrails=["none"];
     if(!s.ownedThemes) s.ownedThemes=["classic"];
-    if(!s.trail) s.trail="none";
-    if(!s.theme) s.theme="classic";
-    if(!s.ownedTrails.includes("none")) s.ownedTrails.push("none");
-    if(!s.ownedThemes.includes("classic")) s.ownedThemes.push("classic");
-    if(!s.shopDaily) s.shopDaily = { key:0, kind:"aura", id:"soft", off:0.25 };
-    if(!AURAS[s.aura]) s.aura="soft";
-    if(!Array.isArray(s.ownedAuras)) s.ownedAuras=["soft"];
-    if(!s.ownedAuras.includes("soft")) s.ownedAuras.push("soft");
     if(!s.sett) s.sett=deepCopy(defaults.sett);
     if(!s.stats) s.stats=deepCopy(defaults.stats);
     if(!s.ach) s.ach={};
     if(!s.dailyTasks) s.dailyTasks=deepCopy(defaults.dailyTasks);
+    if(!s.shopDaily) s.shopDaily=deepCopy(defaults.shopDaily);
+
+    if(!SHOP.aura[s.aura]) s.aura="soft";
+    if(!SHOP.trail[s.trail]) s.trail="none";
+    if(!SHOP.theme[s.theme]) s.theme="classic";
+
+    if(!s.ownedAuras.includes("soft")) s.ownedAuras.push("soft");
+    if(!s.ownedTrails.includes("none")) s.ownedTrails.push("none");
+    if(!s.ownedThemes.includes("classic")) s.ownedThemes.push("classic");
+
     return s;
   }catch{
     return deepCopy(defaults);
@@ -484,6 +494,14 @@ const save=()=>localStorage.setItem(LS_KEY, JSON.stringify(state));
 
 /* ===================== PATCH NOTES ===================== */
 const PATCH = [
+  { v:"8.1", title:"Hotfix + Daily Deal",
+    items:[
+      "Market: AURA/TRAIL/THEME tab sistemi düzeltildi.",
+      "Günlük Teklif eklendi (her gün 1 ürün %25 indirim).",
+      "‘Koşuya Başla’ açılmama bug’ı düzeltildi (JS hata temizliği).",
+      "Yama notları: v1→v8.1 hepsi görünür hale getirildi."
+    ]
+  },
   { v:"8.0", title:"Hook Update",
     items:[
       "Kombo + çarpan sistemi eklendi (x2/x3/x4).",
@@ -507,6 +525,48 @@ const PATCH = [
       "Flow sistemi ve kalıcı cüzdan eklendi.",
       "Zen mod eklendi (çarpınca oyun bitmez).",
       "Mobil tarayıcı uyumluluğu güçlendirildi."
+    ]
+  },
+  { v:"6.0", title:"Stability Pass",
+    items:[
+      "Mobil kontrol gecikmesi azaltıldı (swipe eşikleri ayarlandı).",
+      "Engel şerit seçimi daha adil hale getirildi.",
+      "UI geçişleri toparlandı."
+    ]
+  },
+  { v:"5.0", title:"Visual Refresh",
+    items:[
+      "Arka plan kontrastı artırıldı.",
+      "Kalp/engel okunabilirliği iyileştirildi.",
+      "HUD daha net hale getirildi."
+    ]
+  },
+  { v:"4.0", title:"Sound Pass",
+    items:[
+      "Müzik/ses aç-kapa ayarları eklendi.",
+      "Kalp toplama SFX eklendi.",
+      "Event/kombo SFX iyileştirildi."
+    ]
+  },
+  { v:"3.0", title:"Menu Update",
+    items:[
+      "Menü ekranı ve temel UI akışı eklendi.",
+      "Rekor kaydı eklendi.",
+      "Sıfırlama butonu eklendi."
+    ]
+  },
+  { v:"2.0", title:"Core Runner",
+    items:[
+      "3 şerit runner çekirdeği tamamlandı.",
+      "Kalp toplama + skor sistemi eklendi.",
+      "Basit engel sistemi eklendi."
+    ]
+  },
+  { v:"1.0", title:"Prototype",
+    items:[
+      "İlk oynanabilir prototip.",
+      "Canvas temel çizimleri.",
+      "Basit hareket."
     ]
   }
 ];
@@ -608,84 +668,56 @@ function dailyReady(){
 function refreshMenu(){
   menuWallet.textContent=`${state.wallet||0} 💖`;
   menuHigh.textContent=`${state.high||0}m`;
-  menuAura.textContent=AURAS[state.aura].n;
+  menuAura.textContent=SHOP.aura[state.aura].n;
   menuDaily.textContent = dailyReady() ? "Hazır" : "Alındı";
   menuDaily.style.color = dailyReady() ? "var(--ok)" : "rgba(255,255,255,.70)";
   togMusic.textContent = `MÜZİK: ${state.sett.music ? "AÇIK" : "KAPALI"}`;
   togSfx.textContent   = `SES EFEKTLERİ: ${state.sett.sfx ? "AÇIK" : "KAPALI"}`;
 }
 
-/* ===================== SHOP ===================== */
-function renderShop(){
-  shopWallet.textContent=`${state.wallet||0} 💖`;
-  shopList.innerHTML="";
-  for(const id in AURAS){
-    const a=AURAS[id];
-    const owned=state.ownedAuras.includes(id);
-    const selected=state.aura===id;
+/* ===================== SHOP v8.1 (FIXED) ===================== */
+let shopTab="aura";
 
-    const row=document.createElement("div");
-    row.className="card";
+function ensureShopDailyDeal(){
+  const k = dayKey();
+  if(state.shopDaily?.key === k) return;
 
-    const left=document.createElement("div");
-    left.innerHTML=`
-      <div style="font-weight:1000">${a.n} <span class="tag">${a.tag}</span></div>
-      <div class="muted">${owned ? (selected ? "Seçili ✅" : "Sahipsin") : `Fiyat: <b style="color:var(--a)">${a.p} 💖</b>`}</div>
-    `;
+  const rand = rngSeeded(k * 9091);
+  const kinds = ["aura","trail","theme"];
+  const kind = kinds[Math.floor(rand()*kinds.length)];
 
-    const btn=document.createElement("button");
-    btn.className="btn miniBtn";
-    btn.textContent = owned ? (selected ? "SEÇİLİ" : "SEÇ") : "AL";
-    btn.style.background = owned ? "rgba(255,255,255,.08)" : "linear-gradient(135deg, rgba(255,79,163,.95), rgba(255,79,163,.70))";
-    btn.style.color="#fff";
+  const ids = Object.keys(SHOP[kind]).filter(x => (SHOP[kind][x].p|0) > 0);
+  const id = ids[Math.floor(rand()*ids.length)];
 
-    btn.onclick=()=>{
-      unlockAudio();
-      if(owned){
-        state.aura=id;
-        save();
-        toast(`Aura seçildi: ${a.n}`, 900);
-      }else{
-        if((state.wallet||0) < a.p){ toast("Kalp yetmedi 💀", 900); return; }
-        state.wallet -= a.p;
-        state.ownedAuras.push(id);
-        state.aura=id;
-        save();
-        toast(`Alındı: ${a.n} ✨`, 1100);
-      }
-      let shopTab = "aura";
-
+  state.shopDaily = { key:k, kind, id, off:0.25 };
+  save();
+}
+function isDeal(kind,id){
+  ensureShopDailyDeal();
+  const d = state.shopDaily;
+  return !!(d && d.kind===kind && d.id===id);
+}
 function priceWithDeal(kind,id,base){
   ensureShopDailyDeal();
   const d = state.shopDaily;
   if(d && d.kind===kind && d.id===id) return Math.max(0, Math.floor(base*(1-d.off)));
   return base;
 }
-function isDeal(kind,id){
-  ensureShopDailyDeal();
-  const d = state.shopDaily;
-  return d && d.kind===kind && d.id===id;
-}
-
 function renderShop(){
   ensureShopDailyDeal();
   shopWallet.textContent = `${state.wallet||0} 💖`;
 
-  // tab button active look
-  const ta=document.getElementById("tabAura");
-  const tt=document.getElementById("tabTrail");
-  const th=document.getElementById("tabTheme");
-  [ta,tt,th].forEach(b=>b.style.opacity="0.75");
-  if(shopTab==="aura") ta.style.opacity="1";
-  if(shopTab==="trail") tt.style.opacity="1";
-  if(shopTab==="theme") th.style.opacity="1";
+  [tabAura,tabTrail,tabTheme].forEach(b=>b.style.opacity="0.75");
+  if(shopTab==="aura") tabAura.style.opacity="1";
+  if(shopTab==="trail") tabTrail.style.opacity="1";
+  if(shopTab==="theme") tabTheme.style.opacity="1";
 
   shopList.innerHTML = "";
 
   const ownedKey = shopTab==="aura" ? "ownedAuras" : shopTab==="trail" ? "ownedTrails" : "ownedThemes";
   const selectedKey = shopTab==="aura" ? "aura" : shopTab==="trail" ? "trail" : "theme";
-
   const items = SHOP[shopTab];
+
   Object.keys(items).forEach(id=>{
     const it = items[id];
     const owned = (state[ownedKey]||[]).includes(id);
@@ -694,7 +726,12 @@ function renderShop(){
     const base = it.p|0;
     const finalP = priceWithDeal(shopTab,id,base);
     const deal = isDeal(shopTab,id);
-    const priceText = owned ? (selected ? "Seçili ✅" : "Sahipsin") : (deal ? `<span style="color:var(--warn)">Günlük Teklif</span> • <b style="color:var(--a)">${finalP} 💖</b> <s style="opacity:.6">${base}</s>` : `<b style="color:var(--a)">${finalP} 💖</b>`);
+
+    const priceText = owned
+      ? (selected ? "Seçili ✅" : "Sahipsin")
+      : (deal
+          ? `<span style="color:var(--warn)">Günlük Teklif</span> • <b style="color:var(--a)">${finalP} 💖</b> <s style="opacity:.6">${base}</s>`
+          : `<b style="color:var(--a)">${finalP} 💖</b>`);
 
     const row=document.createElement("div");
     row.className="card";
@@ -710,6 +747,7 @@ function renderShop(){
     btn.textContent = owned ? (selected ? "SEÇİLİ" : "SEÇ") : "AL";
     btn.style.background = owned ? "rgba(255,255,255,.08)" : "linear-gradient(135deg, rgba(255,79,163,.95), rgba(255,79,163,.70))";
     btn.style.color="#fff";
+    btn.disabled = owned && selected;
 
     btn.onclick=()=>{
       unlockAudio();
@@ -735,30 +773,11 @@ function renderShop(){
   });
 }
 
-      refreshMenu();
-    };
-     function ensureShopDailyDeal(){
-     const k = dayKey();
-     if(state.shopDaily?.key === k) return;
+tabAura.onclick=()=>{ shopTab="aura"; renderShop(); };
+tabTrail.onclick=()=>{ shopTab="trail"; renderShop(); };
+tabTheme.onclick=()=>{ shopTab="theme"; renderShop(); };
 
-  const rand = rngSeeded(k * 9091);
-  const kinds = ["aura","trail","theme"];
-  const kind = kinds[Math.floor(rand()*kinds.length)];
-
-  const ids = Object.keys(SHOP[kind]).filter(x => SHOP[kind][x].p > 0);
-  const id = ids[Math.floor(rand()*ids.length)];
-
-  state.shopDaily = { key:k, kind, id, off:0.25 };
-  save();
-}
-
-    row.appendChild(left);
-    row.appendChild(btn);
-    shopList.appendChild(row);
-  }
-}
-
-/* ===================== DAILY TASKS v8 ===================== */
+/* ===================== DAILY TASKS ===================== */
 const TASK_POOL = [
   { id:"hearts_30", title:"30 kalp topla", goal:30, reward:30, type:"hearts" },
   { id:"hearts_60", title:"60 kalp topla", goal:60, reward:60, type:"hearts" },
@@ -808,7 +827,9 @@ function claimTasksReward(){
 function renderTasks(){
   ensureDailyTasks();
   const tasks = state.dailyTasks.tasks;
-  tasksReward.textContent = tasksClaimable() ? `Hazır: ${tasks.reduce((s,t)=>s+t.reward,0)} 💖` : `${tasksTotalReward()} 💖 (tamamlanan)`;
+  tasksReward.textContent = tasksClaimable()
+    ? `Hazır: ${tasks.reduce((s,t)=>s+t.reward,0)} 💖`
+    : `${tasksTotalReward()} 💖 (tamamlanan)`;
   tasksList.innerHTML="";
 
   tasks.forEach(t=>{
@@ -825,14 +846,15 @@ function renderTasks(){
       <div class="bar"><div style="width:${clamp(pct,0,100)}%"></div></div>
     `;
     const right=document.createElement("div");
-    right.innerHTML = t.done ? `<div class="tag" style="background:rgba(57,255,20,.12);border-color:rgba(57,255,20,.25);color:var(--ok)">TAMAM</div>` : `<div class="tag">DEVAM</div>`;
+    right.innerHTML = t.done
+      ? `<div class="tag" style="background:rgba(57,255,20,.12);border-color:rgba(57,255,20,.25);color:var(--ok)">TAMAM</div>`
+      : `<div class="tag">DEVAM</div>`;
 
     card.appendChild(left);
     card.appendChild(right);
     tasksList.appendChild(card);
   });
 
-  // claim button block
   const claim=document.createElement("div");
   claim.style.marginTop="10px";
   const b=document.createElement("button");
@@ -845,7 +867,7 @@ function renderTasks(){
   tasksList.appendChild(claim);
 }
 
-/* ===================== ACHIEVEMENTS v8 ===================== */
+/* ===================== ACHIEVEMENTS ===================== */
 const ACH = [
   { id:"first_heart",  title:"İlk Kalp", desc:"İlk kez kalp topla.", check: s=>s.stats.totalHearts>=1 },
   { id:"hearts_200",   title:"Kalp Biriktirici", desc:"Toplam 200 kalp topla.", check: s=>s.stats.totalHearts>=200 },
@@ -890,8 +912,9 @@ function renderAch(){
     `;
 
     const right=document.createElement("div");
-    right.innerHTML = ok ? `<div class="tag" style="background:rgba(57,255,20,.12);border-color:rgba(57,255,20,.25);color:var(--ok)">AÇIK</div>`
-                         : `<div class="tag">KİLİTLİ</div>`;
+    right.innerHTML = ok
+      ? `<div class="tag" style="background:rgba(57,255,20,.12);border-color:rgba(57,255,20,.25);color:var(--ok)">AÇIK</div>`
+      : `<div class="tag">KİLİTLİ</div>`;
 
     if(!ok) card.classList.add("locked");
     card.appendChild(left);
@@ -899,7 +922,6 @@ function renderAch(){
     achList.appendChild(card);
   });
 
-  // tiny stats block
   const st=document.createElement("div");
   st.className="stat";
   st.style.marginTop="10px";
@@ -957,7 +979,7 @@ function resetCombo(reason){
   run.lastHeartAt=0;
 }
 
-/* ====== Events v8 ====== */
+/* ====== Events ====== */
 const EVENT_TYPES = ["RAIN","LANE","FLOW"];
 function eventName(e){
   if(!e) return "";
@@ -986,14 +1008,12 @@ function startEvent(type){
   }
 
   run.lastEventType = type;
-  // schedule next
   run.nextEvent = 25 + Math.random()*18;
 }
 function tickEvent(dt){
   if(!run) return;
   if(run.event){
     run.event.left -= dt;
-    // show small banner updating (light)
     eventBanner.textContent = eventName(run.event);
     eventBanner.classList.add("show");
     if(run.event.left <= 0){
@@ -1005,7 +1025,6 @@ function tickEvent(dt){
     eventBanner.classList.remove("show");
     run.nextEvent -= dt;
     if(run.nextEvent<=0){
-      // pick type not same twice (try 2 times)
       let t = EVENT_TYPES[(Math.random()*EVENT_TYPES.length)|0];
       if(t===run.lastEventType) t = EVENT_TYPES[(Math.random()*EVENT_TYPES.length)|0];
       startEvent(t);
@@ -1020,11 +1039,9 @@ function spawnObstacle(){
   run.obstacle={ lane, x:laneX(lane), y:-80, w:92, h:34, passed:false };
 }
 function spawnHeart(){
-  // hearts: gentle zigzag
   let lane=(Math.random()*3)|0;
   if(run.obstacle && run.obstacle.lane===lane && run.obstacle.y<240) lane=(lane+1)%3;
 
-  // during Heart Rain, bias to spawn faster + sometimes double
   const rain = run.event?.type==="RAIN";
   run.heart={
     lane,
@@ -1034,7 +1051,7 @@ function spawnHeart(){
     r:18,
     phase:Math.random()*Math.PI*2,
     amp: 8 + Math.random()*8,
-    big: rain && Math.random()<0.18 // sometimes “big heart” bonus
+    big: rain && Math.random()<0.18
   };
 }
 
@@ -1057,15 +1074,12 @@ function resetRun(zen=false){
     nextHeart:0.30,
     lastObsLane:-1,
 
-    // day/night
     bgT: Math.random(),
 
-    // combo
     combo:0,
     mult:1,
     lastHeartAt:0,
 
-    // event system
     event:null,
     nextEvent: 18 + Math.random()*12,
     lastEventType:"",
@@ -1076,7 +1090,7 @@ function resetRun(zen=false){
   player.y=H*0.90;
 
   showOnly("game");
-  hudAuraName.textContent=AURAS[state.aura].n;
+  hudAuraName.textContent=SHOP.aura[state.aura].n;
 
   toast(zen ? "Zen Mod 🌙" : "Başladık 💨", 900);
   lastT=performance.now();
@@ -1117,18 +1131,32 @@ function auraColorByFlow(flow){
   const hue=190 + flow*70;
   return `hsl(${hue},90%,60%)`;
 }
+function themeStops(){
+  const t=state.theme||"classic";
+  if(t==="dawn") return ["rgba(28,18,56,1)","rgba(255,140,120,0.10)"];
+  if(t==="neon") return ["rgba(10,10,26,1)","rgba(180,70,255,0.14)"];
+  if(t==="forest") return ["rgba(8,22,18,1)","rgba(60,255,140,0.10)"];
+  return ["rgba(8,14,36,1)","rgba(0,0,0,0)"];
+}
 function drawBackground(dt){
   run.bgT = (run.bgT + dt/90) % 1;
   const k = 0.5 - 0.5*Math.cos(run.bgT*Math.PI*2);
   const night = 1-k;
 
-  const top = `rgba(${Math.floor(8+18*k)},${Math.floor(14+26*k)},${Math.floor(36+28*k)},1)`;
+  const [tintTop, tintGlow] = themeStops();
+
+  const topBase = `rgba(${Math.floor(8+18*k)},${Math.floor(14+26*k)},${Math.floor(36+28*k)},1)`;
   const bot = `rgba(5,8,20,1)`;
   const g=ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0, top);
+  g.addColorStop(0, topBase);
   g.addColorStop(1, bot);
   ctx.fillStyle=g;
   ctx.fillRect(0,0,W,H);
+
+  ctx.globalAlpha=0.14;
+  ctx.fillStyle=tintTop;
+  ctx.fillRect(0,0,W,H);
+  ctx.globalAlpha=1;
 
   // stars stronger at night
   ctx.globalAlpha = 0.10 + night*0.30;
@@ -1163,6 +1191,12 @@ function drawBackground(dt){
     ctx.fillRect(0,0,W,H);
     ctx.globalAlpha=1;
   }
+
+  // theme glow overlay
+  ctx.globalAlpha=0.10;
+  ctx.fillStyle=tintGlow;
+  ctx.fillRect(0,0,W,H);
+  ctx.globalAlpha=1;
 }
 function drawCanan(){
   player.x += (laneX(player.lane)-player.x)*0.28;
@@ -1171,6 +1205,7 @@ function drawCanan(){
   const f=run.flow;
   const glowCol=auraColorByFlow(f);
 
+  // aura
   if(state.aura==="soft"){
     ctx.globalAlpha=0.12 + f*0.22;
     ctx.strokeStyle=glowCol;
@@ -1191,9 +1226,27 @@ function drawCanan(){
     ctx.lineWidth=5;
     ctx.beginPath(); ctx.arc(x, y-48, 62, 0, Math.PI*2); ctx.stroke();
     ctx.globalAlpha=1;
+  } else if(state.aura==="ember"){
+    ctx.globalAlpha=0.14 + f*0.18;
+    ctx.strokeStyle="rgba(255,120,60,1)";
+    ctx.lineWidth=5;
+    ctx.beginPath(); ctx.arc(x, y-48, 60, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha=1;
+  } else if(state.aura==="prism"){
+    ctx.globalAlpha=0.14 + f*0.18;
+    ctx.strokeStyle="rgba(180,220,255,1)";
+    ctx.lineWidth=5;
+    ctx.beginPath(); ctx.arc(x, y-48, 62, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha=1;
+  } else if(state.aura==="noir"){
+    ctx.globalAlpha=0.16;
+    ctx.strokeStyle="rgba(255,255,255,0.65)";
+    ctx.lineWidth=4;
+    ctx.beginPath(); ctx.arc(x, y-48, 56, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha=1;
   }
 
-  // combo glow pop
+  // combo glow
   if(run.combo>0){
     const pop = Math.min(1, run.combo/30);
     ctx.globalAlpha = 0.05 + pop*0.08;
@@ -1202,6 +1255,7 @@ function drawCanan(){
     ctx.globalAlpha=1;
   }
 
+  // body
   ctx.fillStyle="rgba(0,212,255,.95)";
   ctx.beginPath(); ctx.roundRect(x-28,y-78,56,78,18); ctx.fill();
 
@@ -1223,45 +1277,22 @@ function drawCanan(){
 }
 function drawObstacle(o){
   const pulse = 0.55 + 0.45 * Math.sin(performance.now() / 240);
-
-  // ana gövde (kırmızı – tehlike)
   ctx.fillStyle = `rgba(255,60,60,${0.60 + pulse*0.20})`;
   ctx.beginPath();
-  ctx.roundRect(
-    o.x - o.w/2,
-    o.y - o.h/2,
-    o.w,
-    o.h,
-    14
-  );
+  ctx.roundRect(o.x - o.w/2, o.y - o.h/2, o.w, o.h, 14);
   ctx.fill();
 
-  // iç panel (metal / koyu)
   ctx.fillStyle = "rgba(0,0,0,.22)";
   ctx.beginPath();
-  ctx.roundRect(
-    o.x - o.w/2 + 6,
-    o.y - o.h/2 + 6,
-    o.w - 12,
-    o.h - 12,
-    10
-  );
+  ctx.roundRect(o.x - o.w/2 + 6, o.y - o.h/2 + 6, o.w - 12, o.h - 12, 10);
   ctx.fill();
 
-  // kenar çizgisi (daha net okunurluk)
   ctx.strokeStyle = "rgba(255,120,120,.55)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.roundRect(
-    o.x - o.w/2,
-    o.y - o.h/2,
-    o.w,
-    o.h,
-    14
-  );
+  ctx.roundRect(o.x - o.w/2, o.y - o.h/2, o.w, o.h, 14);
   ctx.stroke();
 
-  // uyarı işareti (mini ama etkili)
   ctx.fillStyle = "rgba(0,0,0,.55)";
   ctx.font = "900 16px system-ui";
   ctx.textAlign = "center";
@@ -1313,7 +1344,7 @@ function updateHud(){
   hudMult.textContent=run.mult;
   hudFlow.textContent=`${Math.floor(run.flow*100)}%`;
   hudMood.textContent = run.flow>0.66 ? "😌" : (run.flow>0.35 ? "🙂" : "😰");
-  hudAuraName.textContent=AURAS[state.aura].n;
+  hudAuraName.textContent=SHOP.aura[state.aura].n;
 }
 
 /* ===================== TASK PROGRESS HOOKS ===================== */
@@ -1342,6 +1373,47 @@ function setTaskMax(type, value){
   if(changed) save();
 }
 
+/* ===================== TRAIL DRAW ===================== */
+function drawTrail(){
+  const t = state.trail||"none";
+  if(t==="none") return;
+
+  const x=player.x, y=player.y-10;
+  if(t==="spark"){
+    ctx.globalAlpha=0.35;
+    ctx.fillStyle="rgba(255,255,255,0.85)";
+    for(let i=0;i<7;i++){
+      ctx.beginPath();
+      ctx.arc(x+(Math.random()-0.5)*18, y+20+(Math.random()*30), 2+Math.random()*2, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  } else if(t==="mist"){
+    ctx.globalAlpha=0.12;
+    ctx.fillStyle="rgba(255,255,255,0.85)";
+    ctx.beginPath();
+    ctx.ellipse(x, y+42, 34, 14, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha=1;
+  } else if(t==="pixel"){
+    ctx.globalAlpha=0.35;
+    ctx.fillStyle="rgba(180,220,255,0.9)";
+    for(let i=0;i<10;i++){
+      ctx.fillRect(x+(Math.random()-0.5)*26, y+18+(Math.random()*34), 3, 3);
+    }
+    ctx.globalAlpha=1;
+  } else if(t==="heart"){
+    ctx.globalAlpha=0.18;
+    ctx.fillStyle="rgba(255,79,163,0.95)";
+    for(let i=0;i<4;i++){
+      ctx.beginPath();
+      ctx.arc(x+(Math.random()-0.5)*22, y+22+(Math.random()*30), 5, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+}
+
 /* ===================== MAIN LOOP ===================== */
 function loop(now){
   if(!run || !run.active) return;
@@ -1354,34 +1426,29 @@ function loop(now){
     drawBackground(0);
     if(run.obstacle) drawObstacle(run.obstacle);
     if(run.heart) drawHeart(run.heart);
+    drawTrail();
     drawCanan();
     drawPops(0.016);
     raf=requestAnimationFrame(loop);
     return;
   }
 
-  // score meters feel
   run.score += (run.speed*dt)/10;
 
-  // zen time stat
   if(run.zen) state.stats.zenSeconds += dt;
 
-  // combo timeout (if no heart for 3.2s)
   if(run.combo>0 && run.lastHeartAt>0 && (nowMs() - run.lastHeartAt) > 3200){
     resetCombo("Combo bitti.");
   }
 
-  // event tick
   tickEvent(dt);
 
-  // Flow: baseline decay; in Flow Rush decay is smaller + gains higher
   const flowRush = run.event?.type==="FLOW";
   const decayTarget = 0.18;
   const decaySpeed = flowRush ? 0.10 : 0.25;
   run.flow = lerp(run.flow, decayTarget, dt*decaySpeed);
   run.flow = clamp(run.flow, 0, 1);
 
-  // Music reacts to Flow
   if(music && audio){
     const cutoff = 650 + run.flow*1200;
     music.filter.frequency.setTargetAtTime(cutoff, audio.currentTime, 0.12);
@@ -1391,7 +1458,6 @@ function loop(now){
     }
   }
 
-  // spawn timers
   const rain = run.event?.type==="RAIN";
   run.nextObs -= dt;
   run.nextHeart -= dt;
@@ -1405,10 +1471,8 @@ function loop(now){
     run.nextHeart = (rain ? (0.12 + Math.random()*0.12) : (0.24 + Math.random()*0.22));
   }
 
-  // speed progression
   run.speed = clamp(run.speed + 14*dt, 330, 580);
 
-  // move
   if(run.obstacle){
     run.obstacle.y += run.speed*dt;
     if(run.obstacle.y > H+120) run.obstacle=null;
@@ -1418,20 +1482,16 @@ function loop(now){
     const t = performance.now()/300;
     run.heart.x = run.heart.baseX + Math.sin(t + run.heart.phase) * run.heart.amp;
     if(run.heart.y > H+60){
-      // missed heart -> combo reset
       resetCombo("Kalp kaçtı.");
       run.heart=null;
     }
   }
 
-  // player rect
   const pw=52, ph=78;
   const pr = { x:player.x-pw/2, y:player.y-ph, w:pw, h:ph };
 
-  // shake decay
   shake = Math.max(0, shake - dt*22);
 
-  // camera shake
   ctx.save();
   if(shake>0){
     const sx=(Math.random()-0.5)*shake;
@@ -1439,15 +1499,12 @@ function loop(now){
     ctx.translate(sx, sy);
   }
 
-  // draw bg
   drawBackground(dt);
 
-  // obstacle
   if(run.obstacle){
     const o=run.obstacle;
     const or = { x:o.x-o.w/2, y:o.y-o.h/2, w:o.w, h:o.h };
 
-    // passed player line => dodge
     if(!o.passed && o.y > player.y){
       o.passed=true;
 
@@ -1455,15 +1512,12 @@ function loop(now){
       run.flow = clamp(run.flow + gain, 0, 1);
       toast("Kaçış! 🌿", 650);
 
-      // near-miss: same lane + close
       const near = (o.lane === player.lane) && Math.abs(o.y - player.y) < 24;
       if(near){
-        const bonus=2;
-        run.flow = clamp(run.flow + (flowRush ? 0.14 : 0.10), 0, 1);
-
-        // near-miss gives hearts (affected by multiplier too)
-        const base = bonus;
+        const base = 2;
         const got = base * run.mult;
+
+        run.flow = clamp(run.flow + (flowRush ? 0.14 : 0.10), 0, 1);
 
         run.runHearts += got;
         state.wallet = (state.wallet||0) + got;
@@ -1488,29 +1542,22 @@ function loop(now){
     }
   }
 
-  // heart pickup
   if(run.heart){
     const h=run.heart;
     drawHeart(h);
 
     if(circleRectHit(h.x,h.y,(h.big? h.r*1.25 : h.r), pr.x,pr.y,pr.w,pr.h)){
-      // combo increment
       run.combo += 1;
       run.lastHeartAt = nowMs();
       const prevMult = run.mult;
       run.mult = multFromCombo(run.combo);
 
-      // base heart amount
       let amount = 1;
-      if(h.big) amount += 1; // big heart bonus
-
-      // bonus lane event
+      if(h.big) amount += 1;
       if(run.event?.type==="LANE" && h.lane === run.event.lane) amount += 1;
 
-      // apply multiplier
       const gained = amount * run.mult;
 
-      // flow gain (flow rush increases)
       const flowGain = (run.event?.type==="FLOW") ? 0.08 : 0.06;
       run.flow = clamp(run.flow + flowGain, 0, 1);
 
@@ -1522,7 +1569,6 @@ function loop(now){
       state.stats.bestMult = Math.max(state.stats.bestMult||0, run.mult);
       save();
 
-      // tasks progress
       addTaskProgress("hearts", gained);
       setTaskMax("combo", run.combo);
 
@@ -1540,22 +1586,18 @@ function loop(now){
     }
   }
 
-  // player & pops
+  drawTrail();
   drawCanan();
   drawPops(dt);
 
   ctx.restore();
 
-  // event banner live tick (only if event)
   if(run.event){
     eventBanner.textContent = eventName(run.event);
     eventBanner.classList.add("show");
   }
 
-  // tasks meters progress (use best in-run)
   setTaskMax("meters", Math.floor(run.score));
-
-  // draw hud
   updateHud();
 
   raf=requestAnimationFrame(loop);
@@ -1599,7 +1641,6 @@ function claimDaily(){
 
   if(last === today){ toast("Günlük zaten alındı 😄", 1100); return; }
 
-  // streak logic: if yesterday then streak++, else reset to 1
   const y = new Date(); y.setDate(y.getDate()-1);
   const yKey = y.getFullYear()*10000 + (y.getMonth()+1)*100 + y.getDate();
 
@@ -1732,19 +1773,18 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 
 /* ===================== INIT ===================== */
 (function init(){
-  save();
+  ensureShopDailyDeal();
   ensureDailyTasks();
+  save();
   refreshMenu();
   renderPatch();
   renderAch();
   showOnly("menu");
 
-  // idle draw
   player.x=laneX(1);
   player.y=H*0.90;
 
-  // fake run object for menu preview
-  run={ flow:0.28, bgT:Math.random(), combo:0, mult:1, event:null };
+  run={ flow:0.28, bgT:Math.random(), combo:0, mult:1, event:null, active:false };
   drawBackground(0);
   drawCanan();
 })();
@@ -1752,11 +1792,3 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
 
 </body>
 </html>
-```
-
-
-
-
-
-
-
