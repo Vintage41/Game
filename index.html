@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Kalp Yolu v12.1 — Stabilite + Performans + Canan+</title>
+  <title>Kalp Yolu v12.2 — Stabil + Tam Türkçe</title>
   <style>
     :root{
       --p:#00d4ff; --a:#ff4fa3; --bg:#050814;
@@ -156,12 +156,12 @@
 <div id="hud" class="hidden">
   <div class="pill" style="color:var(--a)">💖 Run <span id="hudRunHearts">0</span></div>
   <div class="pill" style="color:#ffd1e6">💖 Cüzdan <span id="hudWallet">0</span></div>
-  <div class="pill">🔥 Combo <span id="hudCombo">0</span> • x<span id="hudMult">1</span></div>
+  <div class="pill">🔥 Seri <span id="hudCombo">0</span> • x<span id="hudMult">1</span></div>
   <div class="pill">🎯 Görev <span id="hudObj">0/0</span></div>
 
   <div id="hudRight">
     <div class="pill" id="hudPower">⚡ <span id="hudPowerTxt">Yok</span></div>
-    <div class="pill" id="hudAura">✨ Aura: <span id="hudAuraName">Soft Glow</span></div>
+    <div class="pill" id="hudAura">✨ Hale: <span id="hudAuraName">Yumuşak Parıltı</span></div>
       </div>
 </div>
 
@@ -174,7 +174,7 @@
   <div class="panel">
     <div class="brand">
       <h2>KALP YOLU</h2>
-      <div class="sub">v12.1 — Stabilite • Performans • Canan+</div>
+      <div class="sub">v12.2 — Stabilite • Tam Türkçe • Canan+</div>
     </div>
 
     <div class="menuStats">
@@ -190,8 +190,8 @@
 
     <div class="menuStats">
       <div class="stat">
-        <div class="k">SEÇİLİ AURA</div>
-        <div class="v" id="menuAura">Soft Glow</div>
+        <div class="k">SEÇİLİ HALE</div>
+        <div class="v" id="menuAura">Yumuşak Parıltı</div>
       </div>
       <div class="stat">
         <div class="k">GÜNLÜK ÖDÜL</div>
@@ -202,7 +202,7 @@
     <button class="btn" id="btnStart">KOŞUYA BAŞLA</button>
 
     <div class="row">
-      <button class="btn sec" id="btnShop" style="flex:1;">MARKET</button>
+      <button class="btn sec" id="btnShop" style="flex:1;">MAĞAZA</button>
       <button class="btn sec" id="btnDaily" style="flex:1;">GÜNLÜK AL</button>
     </div>
 
@@ -227,8 +227,8 @@
 <div id="uiShop" class="ui hidden">
   <div class="panel">
     <div class="brand">
-      <h2 style="margin-bottom:4px;">MARKET</h2>
-      <div class="sub">Kozmetik. Oynanışı etkilemez. (v11: grafik parlamaları upgrade)</div>
+      <h2 style="margin-bottom:4px;">MAĞAZA</h2>
+      <div class="sub">Kozmetik. Oynanışı etkilemez. (v12.2: grafik parlamaları upgrade)</div>
     </div>
 
     <div class="stat" style="margin:10px 0 12px; text-align:center;">
@@ -237,8 +237,8 @@
     </div>
 
     <div class="row" style="margin:8px 0 10px;">
-      <button class="btn sec" id="tabAura" style="flex:1;">AURA</button>
-      <button class="btn sec" id="tabTrail" style="flex:1;">TRAIL</button>
+      <button class="btn sec" id="tabAura" style="flex:1;">HALE</button>
+      <button class="btn sec" id="tabTrail" style="flex:1;">İZ</button>
       <button class="btn sec" id="tabTheme" style="flex:1;">TEMA</button>
     </div>
 
@@ -297,7 +297,7 @@
   <div class="panel patch">
     <div class="brand">
       <h2>YAMA NOTLARI</h2>
-      <div class="sub">v1 → v11</div>
+      <div class="sub">v1 → v12.2</div>
     </div>
 
     <div class="scroll" id="patchBody"></div>
@@ -469,31 +469,31 @@ resize(true);
 /* ===================== SHOP ===================== */
 const SHOP = {
   aura: {
-    soft:      { n:"Soft Glow",        p:0,    tag:"FREE" },
-    pulse:     { n:"Pulse Ring",       p:180,  tag:"CLEAN" },
-    prism:     { n:"Prism Halo",       p:420,  tag:"SHINE" },
-    ember:     { n:"Ember Heat",       p:520,  tag:"HOT" },
-    nebula:    { n:"Nebula Drift",     p:680,  tag:"🌌" },
-    aurora:    { n:"Aurora Crown",     p:920,  tag:"A+" },
-    void:      { n:"Void Edge",        p:980,  tag:"DARK" },
-    starlight: { n:"Starlight Bloom",  p:1200, tag:"⭐" },
+    soft:      { n:"Yumuşak Parıltı",        p:0,    tag:"ÜCRETSİZ" },
+    pulse:     { n:"Nabız Halkası",          p:180,  tag:"TEMİZ" },
+    prism:     { n:"Prizma Halesi",          p:420,  tag:"IŞILTI" },
+    ember:     { n:"Kor Ateşi",              p:520,  tag:"SICAK" },
+    nebula:    { n:"Bulutsu Süzülüşü",       p:680,  tag:"🌌" },
+    aurora:    { n:"Kutup Tacı",             p:920,  tag:"A+" },
+    void:      { n:"Boşluk Kenarı",          p:980,  tag:"KARANLIK" },
+    starlight: { n:"Yıldız Işığı Çiçeği",    p:1200, tag:"⭐" },
   },
   trail: {
-    none:      { n:"No Trail",         p:0,    tag:"FREE" },
-    spark:     { n:"Spark Dots",       p:160,  tag:"✨" },
-    mist:      { n:"Mist Line",        p:240,  tag:"🌫" },
-    pixel:     { n:"Pixel Bits",       p:320,  tag:"8BIT" },
-    heart:     { n:"Tiny Hearts",      p:420,  tag:"💖" },
-    comet:     { n:"Comet Tail",       p:640,  tag:"☄️" },
-    laser:     { n:"Laser Slice",      p:780,  tag:"NEON" },
+    none:      { n:"İz Yok",                 p:0,    tag:"ÜCRETSİZ" },
+    spark:     { n:"Kıvılcım Noktaları",     p:160,  tag:"✨" },
+    mist:      { n:"Sis Çizgisi",            p:240,  tag:"🌫" },
+    pixel:     { n:"Piksel Parçaları",       p:320,  tag:"8BİT" },
+    heart:     { n:"Minik Kalpler",          p:420,  tag:"💖" },
+    comet:     { n:"Kuyruklu Yıldız İzi",    p:640,  tag:"☄️" },
+    laser:     { n:"Lazer Çizgisi",          p:780,  tag:"NEON" },
   },
   theme: {
-    classic:   { n:"Classic Night",    p:0,    tag:"FREE" },
-    dawn:      { n:"Dawn Glow",        p:260,  tag:"🌅" },
-    neon:      { n:"Neon City",        p:420,  tag:"🟣" },
-    forest:    { n:"Forest Calm",      p:360,  tag:"🌿" },
-    abyss:     { n:"Abyss Depth",      p:620,  tag:"🖤" },
-    candy:     { n:"Candy Pop",        p:680,  tag:"🍬" },
+    classic:   { n:"Klasik Gece",            p:0,    tag:"ÜCRETSİZ" },
+    dawn:      { n:"Şafak Parıltısı",        p:260,  tag:"🌅" },
+    neon:      { n:"Neon Şehir",             p:420,  tag:"🟣" },
+    forest:    { n:"Orman Dinginliği",       p:360,  tag:"🌿" },
+    abyss:     { n:"Uçurum Derinliği",       p:620,  tag:"🖤" },
+    candy:     { n:"Şeker Patlaması",        p:680,  tag:"🍬" },
   }
 };
 
@@ -560,37 +560,52 @@ const save=()=>localStorage.setItem(LS_KEY, JSON.stringify(state));
 
 /* ===================== PATCH NOTES ===================== */
 const PATCH = [
-  { v:"12.1", title:"Stabilite Sürümü (Performans + Mobil Fix)",
+  { v:"12.2", title:"Tam Türkçe + Yama Arşivi + Temizlik",
     items:[
-      "Tek RAF garantisi: yeniden başlat/menü geçişlerinde çift loop engellendi.",
-      "Adaptif çözünürlük (DPR): FPS düşünce otomatik düşer, toparlayınca yükselir.",
-      "Parçacık bütçesi + hafif object pooling: düşük cihazlarda stabil kare hızı.",
-      "DRIFT engeli adil hale getirildi (yakın mesafede oyuncunun şeridine atlamaz).",
-      "Spawn scheduler iyileştirildi: kalp/engel/power-up çakışmaları azaltıldı.",
-      "Ses efektleri rate-limit: üst üste SFX spam’i engellendi.",
-      "Canan görseli iyileştirildi (ışık/saç detayı + küçük aksesuar).",
-      "Duraklatma kaldırıldı (oyun kesintisiz akıyor)."
+      "Oyundaki tüm metinler Türkçeleştirildi (terimler sadeleştirildi: Seri / Kıl payı kaçış / Akış Modu).",
+      "Yama notları arşivi tamamlandı: v1–v9 başlıkları görünür hâle getirildi.",
+      "Temizlik: kullanılmayan lastPerfNow değişkeni kaldırıldı.",
+      "Etkinlik adları ve güçlendirme etiketleri Türkçeleştirildi (süre birimi: sn)."
     ]
   },
-  { v:"11.0", title:"Büyük Grafik + Amaç + Power-up",
+  { v:"12.1", title:"Stabilite Sürümü (Performans + Mobil Düzeltmeler)",
+    items:[
+      "Tek RAF garantisi: yeniden başlat/menü geçişlerinde çift döngü engellendi.",
+      "Adaptif çözünürlük (DPR): FPS düşünce otomatik düşer, toparlayınca yükselir.",
+      "Parçacık bütçesi + hafif object pooling: düşük cihazlarda daha stabil kare hızı.",
+      "DRIFT engeli adil hâle getirildi (yakın mesafede oyuncunun şeridine atlamaz).",
+      "Spawn scheduler iyileştirildi: kalp/engel/güçlendirme çakışmaları azaltıldı.",
+      "Ses efektleri rate-limit: üst üste tetiklenince ses/performans çökmesi engellendi."
+    ]
+  },
+  { v:"11.0", title:"Büyük Grafik + Amaç + Güçlendirme",
     items:[
       "Canan çizimi tamamen yenilendi (daha canlı + animasyonlu).",
-      "Koşuya amaç eklendi: 2 mini hedef (run objective) + bitince bonus.",
-      "Power-up drop eklendi: Mıknatıs / Kalkan / Frenzy.",
+      "Koşuya amaç eklendi: 2 mini hedef (koşu hedefi) + bitince bonus.",
+      "Güçlendirme düşüşleri: Mıknatıs / Kalkan / Coşku.",
       "Yeni engel tipi: şerit değiştiren engel (daha karar verdirir).",
       "Vinyet + parıltı + parçacıklar ile büyük görsel güncelleme.",
-      "Bug fix: event zamanlayıcıları ve banner stabil hale getirildi."
+      "Hata düzeltmesi: etkinlik zamanlayıcıları ve banner stabil hâle getirildi."
     ]
   },
-  { v:"10.0", title:"Eğlence Döngüsü + Event Fix + Sweet FX",
+  { v:"10.0", title:"Eğlence Döngüsü + Etkinlik Düzeltmeleri + Tatlı Efektler",
     items:[
-      "HUD’dan Flow yazısı ve emoji kaldırıldı (daha temiz).",
-      "Kalp toplama animasyonu: sparkle + pop + mini bounce.",
-      "Combo parlaması sarıdan pembe/soft tona alındı.",
-      "Event sistemi sağlamlaştırıldı.",
+      "HUD daha temiz hâle getirildi.",
+      "Kalp toplama animasyonu: parıltı + pop + mini zıplama.",
+      "Seri parlaması yumuşatıldı (daha okunaklı).",
+      "Etkinlik sistemi sağlamlaştırıldı.",
       "Yama notu başlıkları Türkçeleştirildi."
     ]
-  }
+  },
+  { v:"9.0", title:"Arşiv", items:[ "Arşiv notu: Bu sürümün yama notu kayıtlı değil." ] },
+  { v:"8.0", title:"Arşiv", items:[ "Arşiv notu: Bu sürümün yama notu kayıtlı değil." ] },
+  { v:"7.0", title:"Arşiv", items:[ "Arşiv notu: Bu sürümün yama notu kayıtlı değil." ] },
+  { v:"6.0", title:"Arşiv", items:[ "Arşiv notu: Bu sürümün yama notu kayıtlı değil." ] },
+  { v:"5.0", title:"Arşiv", items:[ "Arşiv notu: Bu sürümün yama notu kayıtlı değil." ] },
+  { v:"4.0", title:"Arşiv", items:[ "Arşiv notu: Bu sürümün yama notu kayıtlı değil." ] },
+  { v:"3.0", title:"Arşiv", items:[ "Arşiv notu: Bu sürümün yama notu kayıtlı değil." ] },
+  { v:"2.0", title:"Arşiv", items:[ "Arşiv notu: Bu sürümün yama notu kayıtlı değil." ] },
+  { v:"1.0", title:"Arşiv", items:[ "Arşiv notu: Bu sürümün yama notu kayıtlı değil." ] }
 ];
 function renderPatch(){
   patchBody.innerHTML = PATCH.map(p=>{
@@ -829,8 +844,8 @@ const TASK_POOL = [
   { id:"near_10",   title:"10 near-miss yap", goal:10, reward:140, type:"near" },
   { id:"meters_600",title:"600m koş", goal:600, reward:70, type:"meters" },
   { id:"meters_1200",title:"1200m koş", goal:1200, reward:150, type:"meters" },
-  { id:"combo_14",  title:"14 combo gör", goal:14, reward:85, type:"combo" },
-  { id:"combo_28",  title:"28 combo gör", goal:28, reward:170, type:"combo" },
+  { id:"combo_14",  title:"14 seri yap", goal:14, reward:85, type:"combo" },
+  { id:"combo_28",  title:"28 seri yap", goal:28, reward:170, type:"combo" },
 ];
 function ensureDailyTasks(){
   const k=dayKey();
@@ -917,7 +932,7 @@ const ACH = [
   { id:"hearts_300",   title:"Kalp Biriktirici", desc:"Toplam 300 kalp topla.", check: s=>s.stats.totalHearts>=300 },
   { id:"near_1",       title:"Cesaret Anı", desc:"1 near-miss yap.", check: s=>s.stats.totalNear>=1 },
   { id:"near_30",      title:"Soğukkanlı", desc:"30 near-miss yap.", check: s=>s.stats.totalNear>=30 },
-  { id:"combo_x3",     title:"Kombo Ateşi", desc:"x3 çarpanı gör.", check: s=>s.stats.bestMult>=3 },
+  { id:"combo_x3",     title:"Seri Ateşi", desc:"x3 çarpanı gör.", check: s=>s.stats.bestMult>=3 },
   { id:"combo_40",     title:"Alev Alev", desc:"40 combo gör.", check: s=>s.stats.bestCombo>=40 },
   { id:"meters_1500",  title:"1.5K Koşucu", desc:"1500m skor yap.", check: s=>s.stats.bestMeters>=1500 },
   { id:"daily_3",      title:"Düzenli", desc:"Günlük ödülü 3 gün üst üste al.", check: s=>s.stats.daysClaimedStreak>=3 },
@@ -970,7 +985,7 @@ function renderAch(){
   st.style.marginTop="10px";
   st.innerHTML=`
     <div class="k">İSTATİSTİK</div>
-    <div class="small">Toplam Kalp: <b>${state.stats.totalHearts}</b> • Near-miss: <b>${state.stats.totalNear}</b></div>
+    <div class="small">Toplam Kalp: <b>${state.stats.totalHearts}</b> • Kıl payı kaçış: <b>${state.stats.totalNear}</b></div>
     <div class="small">En İyi Combo: <b>${state.stats.bestCombo}</b> • En İyi Çarpan: <b>x${state.stats.bestMult}</b></div>
     <div class="small">En İyi Skor: <b>${state.stats.bestMeters}m</b></div>
   `;
@@ -984,8 +999,6 @@ let run=null, raf=0, lastT=0;
 let fpsEMA = 60;
 let lowFpsTimer = 0;
 let highFpsTimer = 0;
-let lastPerfNow = 0;
-
 function perfStep(now, dt){
   // EMA on FPS (avoid divide by 0)
   const fps = dt>0 ? (1/dt) : 60;
@@ -1112,7 +1125,7 @@ const OBJ_POOL = [
   { id:"obj_meters_700", label:"700m’ye ulaş", type:"meters", goal:700, reward:70 },
   { id:"obj_meters_1100", label:"1100m’ye ulaş", type:"meters", goal:1100, reward:120 },
   { id:"obj_near_3", label:"3 near-miss yap", type:"near", goal:3, reward:90 },
-  { id:"obj_combo_14", label:"Combo 14’e çık", type:"combo", goal:14, reward:80 },
+  { id:"obj_combo_14", label:"Seri 14’e çık", type:"combo", goal:14, reward:80 },
 ];
 function rollObjectives(){
   const rand = rngSeeded((dayKey()*9973) ^ ((Math.random()*1e9)|0));
@@ -1177,9 +1190,9 @@ function renderObjectivesStrip(){
 const EVENT_TYPES = ["RAIN","LANE","FLOW"];
 function eventName(e){
   if(!e) return "";
-  if(e.type==="RAIN") return `💖 Heart Rain • ${Math.ceil(e.left)}s`;
-  if(e.type==="LANE") return `🛣️ Bonus Lane (${e.lane+1}) • ${Math.ceil(e.left)}s`;
-  if(e.type==="FLOW") return `🌿 Flow Rush • ${Math.ceil(e.left)}s`;
+  if(e.type==="RAIN") return `💖 Kalp Yağmuru • ${Math.ceil(e.left)} sn`;
+  if(e.type==="LANE") return `🛣️ Ek Şerit (${e.lane+1}) • ${Math.ceil(e.left)} sn`;
+  if(e.type==="FLOW") return `🌿 Akış Modu • ${Math.ceil(e.left)} sn`;
   return "";
 }
 function startEvent(type){
@@ -1187,14 +1200,14 @@ function startEvent(type){
 
   if(type==="RAIN"){
     run.event = { type:"RAIN", left:12 };
-    banner("💖 Heart Rain başladı!", 1200);
+    banner("💖 Kalp Yağmuru başladı!", 1200);
   } else if(type==="LANE"){
     const lane = chooseFreeLane(-1, 240);
     run.event = { type:"LANE", lane, left:12 };
-    banner(`🛣️ Bonus Lane: Şerit ${lane+1}!`, 1300);
+    banner(`🛣️ Ek Şerit: Şerit ${lane+1}!`, 1300);
   } else if(type==="FLOW"){
     run.event = { type:"FLOW", left:10 };
-    banner("🌿 Flow Rush başladı!", 1200);
+    banner("🌿 Akış Modu başladı!", 1200);
   } else {
     run.event = null;
   }
@@ -1216,7 +1229,7 @@ function tickEvent(dt){
     if(run.event.left <= 0){
       run.event=null;
       eventBanner.classList.remove("show");
-      banner("Event bitti.", 700);
+      banner("Etkinlik bitti.", 700);
     }
   } else {
     eventBanner.classList.remove("show");
@@ -1240,7 +1253,7 @@ const POWER_TYPES = ["MAGNET","SHIELD","FRENZY"];
 function powerName(type){
   if(type==="MAGNET") return "Mıknatıs";
   if(type==="SHIELD") return "Kalkan";
-  if(type==="FRENZY") return "Frenzy";
+  if(type==="FRENZY") return "Coşku";
   return "Yok";
 }
 function spawnPickup(){
@@ -1260,7 +1273,7 @@ function applyPower(type){
     sfx("shield");
   } else if(type==="FRENZY"){
     run.power.frenzy = 8.0;
-    toast("Frenzy!", 900);
+    toast("Coşku!", 900);
   }
   hudPowerTxt.textContent = powerName(type);
 }
@@ -1677,9 +1690,9 @@ function drawCanan(){
   ctx.restore();
 
   let pTxt = "Yok";
-  if(run.power.magnet>0) pTxt = `Mıknatıs ${Math.ceil(run.power.magnet)}s`;
+  if(run.power.magnet>0) pTxt = `Mıknatıs ${Math.ceil(run.power.magnet)} sn`;
   else if(run.shieldCharges>0) pTxt = `Kalkan`;
-  else if(run.power.frenzy>0) pTxt = `Frenzy ${Math.ceil(run.power.frenzy)}s`;
+  else if(run.power.frenzy>0) pTxt = `Coşku ${Math.ceil(run.power.frenzy)}s`;
   hudPowerTxt.textContent = pTxt;
 }
 
@@ -1964,7 +1977,7 @@ function gameOver(){
     `Skor: <b>${meters}m</b><br>`+
     `Toplanan: <b>${run.runHearts} 💖</b><br>`+
     `Hedefler: <b>${doneCount}/${(run.objectives||[]).length}</b><br>`+
-    `En iyi Combo: <b>${state.stats.bestCombo}</b> • En iyi x<b>${state.stats.bestMult}</b><br>`+
+    `En iyi Seri: <b>${state.stats.bestCombo}</b> • En iyi x<b>${state.stats.bestMult}</b><br>`+
     `Cüzdan: <b>${state.wallet} 💖</b>`;
 
   showOnly("over");
@@ -1997,7 +2010,7 @@ function loop(now){
   run.score += (run.speed*dt)/9 * diffMul * frenzyMul;
 
   if(run.combo>0 && run.lastHeartAt>0 && (nowMs() - run.lastHeartAt) > 3200){
-    resetCombo("Combo bitti.");
+    resetCombo("Seri bitti.");
   }
 
   tickEvent(dt);
@@ -2139,7 +2152,7 @@ function loop(now){
         addTaskProgress("near", 1);
         shake = Math.max(shake, 7);
         sfx("miss");
-        toast(`Near-miss +${got} 💖`, 900);
+        toast(`Kıl payı kaçış +${got} 💖`, 900);
         checkAchievements();
       }
     }
