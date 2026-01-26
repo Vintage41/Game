@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Kalp Yolu v11 — Büyük Grafik + Amaç + Power-up</title>
+  <title>Kalp Yolu v12.1 — Stabilite + Performans + Canan+</title>
   <style>
     :root{
       --p:#00d4ff; --a:#ff4fa3; --bg:#050814;
@@ -37,8 +37,7 @@
       font-size:13px; display:flex; gap:8px; align-items:center;
       pointer-events:none;
     }
-    #hudPause{ pointer-events:auto; cursor:pointer; }
-    #hudRight{ display:flex; gap:8px; align-items:center; }
+        #hudRight{ display:flex; gap:8px; align-items:center; }
 
     #eventBanner{
       position:absolute; left:50%; top:56px; transform:translateX(-50%);
@@ -163,8 +162,7 @@
   <div id="hudRight">
     <div class="pill" id="hudPower">⚡ <span id="hudPowerTxt">Yok</span></div>
     <div class="pill" id="hudAura">✨ Aura: <span id="hudAuraName">Soft Glow</span></div>
-    <div class="pill" id="hudPause">⏸</div>
-  </div>
+      </div>
 </div>
 
 <div id="eventBanner"></div>
@@ -176,7 +174,7 @@
   <div class="panel">
     <div class="brand">
       <h2>KALP YOLU</h2>
-      <div class="sub">v11 — Büyük Grafik • Amaçlı koşu • Canan</div>
+      <div class="sub">v12.1 — Stabilite • Performans • Canan+</div>
     </div>
 
     <div class="menuStats">
@@ -347,7 +345,6 @@ const hudWallet=document.getElementById("hudWallet");
 const hudCombo=document.getElementById("hudCombo");
 const hudMult=document.getElementById("hudMult");
 const hudObj=document.getElementById("hudObj");
-const hudPause=document.getElementById("hudPause");
 const hudAuraName=document.getElementById("hudAuraName");
 const hudPowerTxt=document.getElementById("hudPowerTxt");
 const toastEl=document.getElementById("toast");
@@ -421,20 +418,54 @@ function showObjectivesStrip(ms=2600){
   objStrip._t=setTimeout(()=>objStrip.classList.remove("show"), ms);
 }
 
-/* ===================== CANVAS RESIZE (MOBILE OPT) ===================== */
-let W=0,H=0,DPR=1;
-function resize(){
-  const r=canvas.getBoundingClientRect();
+/* ===================== CANVAS RESIZE (ADAPTIVE DPR) ===================== */
+let W=0,H=0,DPR=1, targetDPR=1, dprMin=1, dprMax=1.75;
+let perfTier="mid"; // low / mid / high
+
+function detectPerfTier(){
+  const dm = navigator.deviceMemory || 0; // may be undefined
+  const cores = navigator.hardwareConcurrency || 0;
+  // conservative defaults (mobile-first)
+  if(dm && dm <= 3) return "low";
+  if(cores && cores <= 4) return "low";
+  if(dm && dm >= 6) return "high";
+  if(cores && cores >= 8) return "high";
+  return "mid";
+}
+
+function setDprBounds(){
+  perfTier = detectPerfTier();
   const raw = window.devicePixelRatio||1;
-  DPR = Math.min(1.75, Math.max(1, raw));
+
+  if(perfTier==="low"){
+    dprMax = Math.min(1.35, raw);
+  } else if(perfTier==="mid"){
+    dprMax = Math.min(1.6, raw);
+  } else {
+    dprMax = Math.min(1.75, raw);
+  }
+  dprMin = 1;
+  targetDPR = clamp(targetDPR || dprMax, dprMin, dprMax);
+}
+
+function resize(force=false){
+  const r=canvas.getBoundingClientRect();
+  if(!r.width || !r.height) return;
+
+  setDprBounds();
+  const next = clamp(targetDPR, dprMin, dprMax);
+
+  if(!force && Math.abs(next - DPR) < 0.01 && Math.abs(W-r.width)<0.5 && Math.abs(H-r.height)<0.5) return;
+
+  DPR = next;
   canvas.width=Math.floor(r.width*DPR);
   canvas.height=Math.floor(r.height*DPR);
   W=r.width; H=r.height;
   ctx.setTransform(DPR,0,0,DPR,0,0);
 }
-window.addEventListener("resize", resize, {passive:true});
-resize();
 
+window.addEventListener("resize", ()=>resize(true), {passive:true});
+resize(true);
 /* ===================== SHOP ===================== */
 const SHOP = {
   aura: {
@@ -529,6 +560,18 @@ const save=()=>localStorage.setItem(LS_KEY, JSON.stringify(state));
 
 /* ===================== PATCH NOTES ===================== */
 const PATCH = [
+  { v:"12.1", title:"Stabilite Sürümü (Performans + Mobil Fix)",
+    items:[
+      "Tek RAF garantisi: yeniden başlat/menü geçişlerinde çift loop engellendi.",
+      "Adaptif çözünürlük (DPR): FPS düşünce otomatik düşer, toparlayınca yükselir.",
+      "Parçacık bütçesi + hafif object pooling: düşük cihazlarda stabil kare hızı.",
+      "DRIFT engeli adil hale getirildi (yakın mesafede oyuncunun şeridine atlamaz).",
+      "Spawn scheduler iyileştirildi: kalp/engel/power-up çakışmaları azaltıldı.",
+      "Ses efektleri rate-limit: üst üste SFX spam’i engellendi.",
+      "Canan görseli iyileştirildi (ışık/saç detayı + küçük aksesuar).",
+      "Duraklatma kaldırıldı (oyun kesintisiz akıyor)."
+    ]
+  },
   { v:"11.0", title:"Büyük Grafik + Amaç + Power-up",
     items:[
       "Canan çizimi tamamen yenilendi (daha canlı + animasyonlu).",
@@ -564,6 +607,8 @@ function renderPatch(){
 
 /* ===================== AUDIO ===================== */
 let audio=null, master=null, musicGain=null, music=null;
+const sfxLast = Object.create(null);
+const SFX_MIN_MS = { heart:55, sweet:55, combo:90, event:85, miss:90, pickup:95, shield:120, _default:45 };
 function ensureAudio(){
   if(audio) return;
   audio=new (window.AudioContext||window.webkitAudioContext)();
@@ -603,6 +648,10 @@ function stopMusic(){
 function sfx(type){
   if(!state.sett.sfx) return;
   ensureAudio();
+  const n = performance.now();
+  const min = SFX_MIN_MS[type] ?? SFX_MIN_MS._default;
+  if(sfxLast[type] && (n - sfxLast[type]) < min) return;
+  sfxLast[type] = n;
   try{
     const o=audio.createOscillator();
     const g=audio.createGain();
@@ -929,7 +978,42 @@ function renderAch(){
 }
 
 /* ===================== GAME CORE ===================== */
-let run=null, raf=0, lastT=0, paused=false;
+let run=null, raf=0, lastT=0;
+
+// Perf monitor (adaptive DPR + particle budget)
+let fpsEMA = 60;
+let lowFpsTimer = 0;
+let highFpsTimer = 0;
+let lastPerfNow = 0;
+
+function perfStep(now, dt){
+  // EMA on FPS (avoid divide by 0)
+  const fps = dt>0 ? (1/dt) : 60;
+  fpsEMA = fpsEMA*0.92 + fps*0.08;
+
+  // adapt DPR gently (mobile-first)
+  if(fpsEMA < 52){
+    lowFpsTimer += dt;
+    highFpsTimer = 0;
+    if(lowFpsTimer > 0.8){
+      targetDPR = Math.max(dprMin, targetDPR - 0.10);
+      resize(true);
+      lowFpsTimer = 0;
+    }
+  } else if(fpsEMA > 58){
+    highFpsTimer += dt;
+    lowFpsTimer = 0;
+    if(highFpsTimer > 1.4){
+      targetDPR = Math.min(dprMax, targetDPR + 0.08);
+      resize(true);
+      highFpsTimer = 0;
+    }
+  } else {
+    lowFpsTimer = Math.max(0, lowFpsTimer - dt);
+    highFpsTimer = Math.max(0, highFpsTimer - dt);
+  }
+}
+
 
 const player={ lane:1, x:0, y:0 };
 let shake=0;
@@ -938,6 +1022,26 @@ let shake=0;
 const pops=[];
 const sparkles=[];
 const glints=[];
+const popPool=[];
+const sparklePool=[];
+const glintPool=[];
+
+function budgets(){
+  // budgets tighten when DPR is high or device is low tier
+  const dprFactor = clamp((DPR-1)/(dprMax-1+1e-6), 0, 1);
+  let base;
+  if(perfTier==="low") base = { pops:40, sparkles:140, glints:95 };
+  else if(perfTier==="high") base = { pops:70, sparkles:280, glints:190 };
+  else base = { pops:55, sparkles:210, glints:140 };
+
+  // if DPR is high, reduce particles a bit
+  const k = 1 - dprFactor*0.28;
+  return {
+    pops: Math.floor(base.pops*k),
+    sparkles: Math.floor(base.sparkles*k),
+    glints: Math.floor(base.glints*k),
+  };
+}
 let sweetKick=0;
 let touchStartX=0, touchStartY=0;
 
@@ -962,6 +1066,28 @@ function pickLaneFair(lastLane){
     if(lane===lastLane && Math.random()<0.70) lane=(lane+1+((Math.random()*2)|0))%3;
   }
   return lane;
+}
+
+
+function laneBlocked(lane, yThresh){
+  // yThresh: screen-space threshold from top (smaller => closer to spawn area)
+  for(const o of (run?.obstacles||[])){
+    if(o && o.lane===lane && o.y < yThresh) return true;
+  }
+  if(run?.pickup && run.pickup.lane===lane && run.pickup.y < yThresh) return true;
+  if(run?.heart && run.heart.lane===lane && run.heart.y < yThresh) return true;
+  return false;
+}
+function chooseFreeLane(preferLane=-1, yThresh=260){
+  const lanes=[0,1,2];
+  // bias: preferLane first
+  if(preferLane>=0 && preferLane<=2){
+    lanes.sort((a,b)=> (a===preferLane?-1:0) - (b===preferLane?-1:0));
+  }
+  for(const l of lanes){
+    if(!laneBlocked(l, yThresh)) return l;
+  }
+  return (Math.random()*3)|0;
 }
 
 /* ====== Combo / Multiplier ====== */
@@ -1063,7 +1189,7 @@ function startEvent(type){
     run.event = { type:"RAIN", left:12 };
     banner("💖 Heart Rain başladı!", 1200);
   } else if(type==="LANE"){
-    const lane = pickLaneFair(-1);
+    const lane = chooseFreeLane(-1, 240);
     run.event = { type:"LANE", lane, left:12 };
     banner(`🛣️ Bonus Lane: Şerit ${lane+1}!`, 1300);
   } else if(type==="FLOW"){
@@ -1119,7 +1245,7 @@ function powerName(type){
 }
 function spawnPickup(){
   if(run.pickup) return;
-  const lane = pickLaneFair(-1);
+  const lane = chooseFreeLane(-1, 240);
   const type = POWER_TYPES[(Math.random()*POWER_TYPES.length)|0];
   run.pickup = { type, lane, x: laneX(lane), y: -40, r: 16 };
 }
@@ -1173,14 +1299,7 @@ function spawnObstacleSet(){
 
 /* ====== Hearts ====== */
 function spawnHeart(){
-  let lane=(Math.random()*3)|0;
-
-  for(const o of run.obstacles){
-    if(o && o.lane===lane && o.y<260) lane=(lane+1)%3;
-  }
-  if(run.pickup && run.pickup.lane===lane && run.pickup.y<240){
-    lane = (lane+1)%3;
-  }
+  const lane = chooseFreeLane(-1, 260);
 
   const rain = run.event?.type==="RAIN";
   run.heart={
@@ -1190,7 +1309,7 @@ function spawnHeart(){
     y:-30,
     r:18,
     phase:Math.random()*Math.PI*2,
-    amp: 8 + Math.random()*8,
+    amp: 7 + Math.random()*8,
     big: rain && Math.random()<0.18
   };
 }
@@ -1293,20 +1412,51 @@ function drawBackground(dt){
   vignette();
 }
 
-/* ===================== FX HELPERS ===================== */
-function addPop(x,y){ pops.push({x,y, t:0, r:12}); }
+/* ===================== FX HELPERS (POOLED) ===================== */
+function popObj(pool, proto){
+  return pool.length ? pool.pop() : proto;
+}
+function recycle(pool, obj){
+  // keep pools bounded
+  if(pool.length < 220) pool.push(obj);
+}
+
+function addPop(x,y){
+  const b = budgets();
+  if(pops.length >= b.pops) return;
+  const p = popObj(popPool, {x:0,y:0,t:0,r:0});
+  p.x=x; p.y=y; p.t=0; p.r=12;
+  pops.push(p);
+}
 function addSparkleBurst(x,y, n=14){
+  const b = budgets();
   for(let i=0;i<n;i++){
+    if(sparkles.length >= b.sparkles) break;
     const ang = Math.random()*Math.PI*2;
     const sp = 70 + Math.random()*160;
-    sparkles.push({ x,y, vx: Math.cos(ang)*sp, vy: Math.sin(ang)*sp - 60, t:0, life: 0.45 + Math.random()*0.25, s: 2 + Math.random()*2.5, hue: 310 + Math.random()*40 });
+    const s = popObj(sparklePool, {x:0,y:0,vx:0,vy:0,t:0,life:0,s:0,hue:0});
+    s.x=x; s.y=y;
+    s.vx=Math.cos(ang)*sp; s.vy=Math.sin(ang)*sp - 60;
+    s.t=0;
+    s.life=0.45 + Math.random()*0.25;
+    s.s=2 + Math.random()*2.5;
+    s.hue=310 + Math.random()*40;
+    sparkles.push(s);
   }
 }
 function addGlintBurst(x,y, n=12){
+  const b = budgets();
   for(let i=0;i<n;i++){
+    if(glints.length >= b.glints) break;
     const ang = Math.random()*Math.PI*2;
     const sp = 120 + Math.random()*260;
-    glints.push({ x,y, vx: Math.cos(ang)*sp, vy: Math.sin(ang)*sp - 80, t:0, life: 0.35 + Math.random()*0.20, r: 1 + Math.random()*2.2 });
+    const g = popObj(glintPool, {x:0,y:0,vx:0,vy:0,t:0,life:0,r:0});
+    g.x=x; g.y=y;
+    g.vx=Math.cos(ang)*sp; g.vy=Math.sin(ang)*sp - 80;
+    g.t=0;
+    g.life=0.35 + Math.random()*0.20;
+    g.r=1 + Math.random()*2.2;
+    glints.push(g);
   }
 }
 function drawFX(dt){
@@ -1315,7 +1465,7 @@ function drawFX(dt){
     p.t += dt;
     p.r += dt*90;
     const a = 1 - p.t*2.2;
-    if(a<=0){ pops.splice(i,1); continue; }
+    if(a<=0){ recycle(popPool, p); pops.splice(i,1); continue; }
     ctx.globalAlpha=a;
     ctx.strokeStyle="rgba(255,255,255,.75)";
     ctx.lineWidth=3;
@@ -1332,7 +1482,7 @@ function drawFX(dt){
     s.y += s.vy*dt;
     s.vy += 520*dt;
     const a = 1 - (s.t / s.life);
-    if(a<=0){ sparkles.splice(i,1); continue; }
+    if(a<=0){ recycle(sparklePool, s); sparkles.splice(i,1); continue; }
 
     ctx.globalAlpha = a*0.90;
     ctx.fillStyle = `hsla(${s.hue},95%,65%,1)`;
@@ -1350,7 +1500,7 @@ function drawFX(dt){
     g.y += g.vy*dt;
     g.vy += 620*dt;
     const a = 1 - (g.t / g.life);
-    if(a<=0){ glints.splice(i,1); continue; }
+    if(a<=0){ recycle(glintPool, g); glints.splice(i,1); continue; }
 
     ctx.globalAlpha = a*0.85;
     ctx.fillStyle = "rgba(255,255,255,1)";
@@ -1360,9 +1510,12 @@ function drawFX(dt){
     ctx.globalAlpha=1;
   }
 
-  if(sparkles.length>260) sparkles.splice(0, sparkles.length-260);
-  if(glints.length>180) glints.splice(0, glints.length-180);
-  if(pops.length>60) pops.splice(0, pops.length-60);
+  {
+    const b = budgets();
+    while(sparkles.length > b.sparkles){ recycle(sparklePool, sparkles.shift()); }
+    while(glints.length > b.glints){ recycle(glintPool, glints.shift()); }
+    while(pops.length > b.pops){ recycle(popPool, pops.shift()); }
+  }
 }
 
 /* ===================== DRAW: Canan (v11 redesign) ===================== */
@@ -1420,7 +1573,11 @@ function drawCanan(){
   ctx.translate(-x, -(y-60));
 
   const bodyTop = y-110, bodyW=68, bodyH=86;
-  ctx.fillStyle="rgba(0,212,255,0.95)";
+  // body with subtle gradient
+  const bodyGrad = ctx.createLinearGradient(x, bodyTop, x, bodyTop+bodyH);
+  bodyGrad.addColorStop(0, "rgba(0,212,255,0.98)");
+  bodyGrad.addColorStop(1, "rgba(0,212,255,0.78)");
+  ctx.fillStyle = bodyGrad;
   ctx.shadowColor="rgba(0,212,255,0.25)";
   ctx.shadowBlur=18;
   ctx.beginPath();
@@ -1470,6 +1627,18 @@ function drawCanan(){
   ctx.beginPath();
   ctx.arc(headX-12, headY+10, 5, 0, Math.PI*2);
   ctx.arc(headX+12, headY+10, 5, 0, Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha=1;
+
+  // tiny heart hair-clip
+  ctx.globalAlpha=0.95;
+  ctx.fillStyle="rgba(255,79,163,0.95)";
+  const hx=headX-16, hy=headY-16, hr=6;
+  ctx.beginPath();
+  ctx.moveTo(hx, hy+hr*0.55);
+  ctx.bezierCurveTo(hx-hr, hy, hx-hr*0.95, hy-hr*0.55, hx, hy-hr*0.10);
+  ctx.bezierCurveTo(hx+hr*0.95, hy-hr*0.55, hx+hr, hy, hx, hy+hr*0.55);
+  ctx.closePath();
   ctx.fill();
   ctx.globalAlpha=1;
 
@@ -1716,7 +1885,6 @@ function setTaskMax(type, value){
 
 /* ===================== RUN RESET ===================== */
 function resetRun(){
-  paused=false;
   shake=0;
   pops.length=0;
   sparkles.length=0;
@@ -1775,12 +1943,14 @@ function resetRun(){
 
   toast("Başladık 💨", 900);
   lastT=performance.now();
+  if(raf) cancelAnimationFrame(raf);
   raf=requestAnimationFrame(loop);
 }
 
 /* ===================== GAME OVER ===================== */
 function gameOver(){
   run.active=false;
+  if(raf) cancelAnimationFrame(raf);
   stopMusic();
 
   const meters=Math.floor(run.score);
@@ -1809,18 +1979,8 @@ function loop(now){
   let dt=(now-lastT)/1000;
   lastT=now;
   dt=Math.min(0.033, Math.max(0, dt));
+  perfStep(now, dt);
 
-  if(paused){
-    drawBackground(0);
-    for(const o of run.obstacles) if(o) drawObstacle(o);
-    if(run.pickup) drawPickup(run.pickup);
-    if(run.heart) drawHeart(run.heart);
-    drawTrail();
-    drawCanan();
-    drawFX(0.016);
-    raf=requestAnimationFrame(loop);
-    return;
-  }
 
   if(run.power.magnet>0) run.power.magnet = Math.max(0, run.power.magnet - dt);
   if(run.power.frenzy>0) run.power.frenzy = Math.max(0, run.power.frenzy - dt);
@@ -1882,9 +2042,29 @@ function loop(now){
     const o=run.obstacles[i];
     o.y += run.speed*dt;
 
-    if(o.type==="DRIFT" && !o.switched && o.y > H*0.34){
+        if(o.type==="DRIFT" && !o.switched && o.y > H*0.34){
       o.switched=true;
-      const nextLane = clamp(o.lane + o.driftDir, 0, 2);
+
+      let nextLane = clamp(o.lane + o.driftDir, 0, 2);
+
+      // Fairness: yakın mesafede oyuncunun şeridine atlama
+      if(Math.abs(o.y - player.y) < 220 && nextLane===player.lane){
+        const alt = clamp(o.lane - o.driftDir, 0, 2);
+        if(alt!==o.lane && alt!==player.lane) nextLane = alt;
+        else nextLane = o.lane;
+      }
+
+      // Avoid stacking with another obstacle very close
+      if(nextLane!==o.lane){
+        for(const other of run.obstacles){
+          if(other===o) continue;
+          if(Math.abs(other.y - o.y) < 120 && other.lane===nextLane){
+            nextLane = o.lane;
+            break;
+          }
+        }
+      }
+
       if(nextLane!==o.lane){
         o.lane = nextLane;
         o.x = laneX(o.lane);
@@ -2061,15 +2241,11 @@ function loop(now){
 
   updateHud();
 
+  if(raf) cancelAnimationFrame(raf);
   raf=requestAnimationFrame(loop);
 }
 
 /* ===================== CONTROLS ===================== */
-function togglePause(){
-  if(!run?.active) return;
-  paused=!paused;
-  toast(paused ? "Duraklatıldı ⏸" : "Devam ▶️", 900);
-}
 function control(dir){
   if(!run?.active) return;
   if(dir==="L" && player.lane>0) player.lane--;
@@ -2078,7 +2254,6 @@ function control(dir){
 window.addEventListener("keydown",(e)=>{
   if(e.key==="ArrowLeft") control("L");
   if(e.key==="ArrowRight") control("R");
-  if(e.key==="Escape") togglePause();
   if(e.key==="Tab"){ e.preventDefault(); if(run?.active){ renderObjectivesStrip(); showObjectivesStrip(2600); } }
 });
 
@@ -2091,8 +2266,6 @@ canvas.addEventListener("pointerup",(e)=>{
   const dx=e.clientX-touchStartX, dy=e.clientY-touchStartY;
   if(Math.abs(dx)>Math.abs(dy)){
     if(Math.abs(dx)>18) control(dx>0?"R":"L");
-  }else{
-    if(Math.abs(dy)>22) togglePause();
   }
 },{passive:true});
 
@@ -2126,7 +2299,6 @@ function claimDaily(){
 }
 
 /* ===================== BUTTONS ===================== */
-hudPause.addEventListener("click", ()=>togglePause());
 
 btnStart.addEventListener("click", async ()=>{
   await unlockAudio(); startMusic();
@@ -2201,7 +2373,7 @@ btnReset.addEventListener("click", ()=>{
 });
 
 btnHow.addEventListener("click", ()=>{
-  toast("Sağ/sol: şerit değiş • Dikey swipe: duraklat • Tab: hedefleri göster", 1900);
+  toast("Sağ/sol: şerit değiş • Tab: hedefleri göster", 1900);
 });
 
 btnRetry.addEventListener("click", async ()=>{
@@ -2209,7 +2381,8 @@ btnRetry.addEventListener("click", async ()=>{
   resetRun();
 });
 btnMenu.addEventListener("click", ()=>{
-  run=null; paused=false; shake=0;
+  if(raf) cancelAnimationFrame(raf);
+  run=null; shake=0;
   stopMusic();
   showOnly("menu");
   refreshMenu();
