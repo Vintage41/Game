@@ -1,79 +1,103 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Pax Historia Remake</title>
-    <style>
-        body { margin: 0; background: #1a1a1a; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: 'Courier New', Courier, monospace; }
-        canvas { border: 2px solid #d4af37; background: #000; box-shadow: 0 0 20px #d4af37; }
-        .ui { margin-top: 10px; text-align: center; }
-    </style>
-</head>
-<body>
-    <h2>🎭 PAX HISTORIA 🎭</h2>
-    <canvas id="gameCanvas" width="600" height="400"></canvas>
-    <div class="ui">
-        <p>Huzuru Koru, Kaostan Kaç!</p>
-        <p id="score">Skor: 0</p>
+<h1>PAX HISTORIA</h1>
+
+<div id="game-container">
+    <canvas id="mapCanvas" width="500" height="400"></canvas>
+
+    <div id="sidebar">
+        <div class="stat-box">
+            <strong>OYUNCU (Mavi)</strong><br>
+            Altın: span id="p-gold">100</span> | Ordu: <span id="p-army">20</span>
+        </div>
+        <div class="stat-box" style="border-left-color: #cc0000;">
+            <strong>YAPAY ZEKA (Kırmızı)</strong><br>
+            Altın: <span id="ai-gold">100</span> | Ordu: <span id="ai-army">20</span>
+        </div>
+        <button onclick="nextTurn()">Turu Bitir (Yılı İlerlet)</button>
+        <div class="log" id="gameLog">Oyun başladı. Stratejini belirle!</div>
     </div>
+</div>
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreElement = document.getElementById('score');
+<script>
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+    const logBox = document.getElementById('gameLog');
 
-        let score = 0;
-        let player = { x: 300, y: 200, size: 20, color: '#d4af37' }; // Oyuncu (Histrio)
-        let chaos = []; // Engeller
+    // Oyun Verileri
+    let turn = 1453;
+    let player = { gold: 100, army: 20, provinces: [0, 1] };
+    let ai = { gold: 100, army: 20, provinces: [2, 3] };
 
-        // Hareket kontrolü
-        document.addEventListener('mousemove', (e) => {
-            let rect = canvas.getBoundingClientRect();
-            player.x = e.clientX - rect.left;
-            player.y = e.clientY - rect.top;
-        });
+    const provinces = [
+        { id: 0, name: "İstanbul", x: 50, y: 50, owner: "player" },
+        { id: 1, name: "Ankara", x: 180, y: 80, owner: "player" },
+        { id: 2, name: "Roma", x: 50, y: 250, owner: "ai" },
+        { id: 3, name: "Viyana", x: 180, y: 220, owner: "ai" }
+    ];
 
-        function spawnChaos() {
-            chaos.push({
-                x: Math.random() * canvas.width,
-                y: -20,
-                speed: 2 + Math.random() * 3
-            });
-        }
-
-        function update() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Oyuncuyu çiz
-            ctx.fillStyle = player.color;
-            ctx.beginPath();
-            ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Kaosu yönet
-            for(let i = 0; i < chaos.length; i++) {
-                chaos[i].y += chaos[i].speed;
-                ctx.fillStyle = '#ff4d4d';
-                ctx.fillRect(chaos[i].x, chaos[i].y, 15, 15);
-
-                // Çarpışma kontrolü
-                let dx = player.x - chaos[i].x;
-                let dy = player.y - chaos[i].y;
-                let distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance < player.size) {
-                    alert("Sahne Kapandı! Skorun: " + score);
-                    score = 0;
-                    chaos = [];
-                }
-            }
+    function drawMap() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        provinces.forEach(p => {
+            ctx.fillStyle = p.owner === "player" ? "#3498db" : "#cc0000";
+            ctx.fillRect(p.x, p.y, 100, 80);
+            ctx.strokeStyle = "#d4af37";
+            ctx.strokeRect(p.x, p.y, 100, 80);
             
-            score++;
-            scoreElement.innerText = "Skor: " + score;
-            requestAnimationFrame(update);
+            ctx.fillStyle = "white";
+            ctx.font = "bold 14px Arial";
+            ctx.fillText(p.name, p.x + 10, p.y + 30);
+            ctx.font = "12px Arial";
+            ctx.fillText(p.owner.toUpperCase(), p.x + 10, p.y + 55);
+        });
+    }
+
+    function addLog(msg) {
+        logBox.innerHTML += `<div>[${turn}] ${msg}</div>`;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function updateStats() {
+        document.getElementById('p-gold').innerText = player.gold;
+        document.getElementById('p-army').innerText = player.army;
+        document.getElementById('ai-gold').innerText = ai.gold;
+        document.getElementById('ai-army').innerText = ai.army;
+    }
+
+    // Yapay Zeka Mantığı
+    function runAI() {
+        addLog("Yapay zeka hamlesini yapıyor...");
+        
+        // 1. Ekonomi: Altın azsa biriktir, çoksa ordu bas
+        if (ai.gold > 50) {
+            let recruit = Math.floor(ai.gold / 10);
+            ai.army += recruit;
+            ai.gold -= recruit * 10;
+            addLog("AI yeni asker topladı.");
         }
 
-        setInterval(spawnChaos, 500);
-        update();
-    </script>
-</body>
-</html>
+        // 2. Savaş: AI ordusu oyuncudan %30 fazlaysa saldırır
+        if (ai.army > player.army * 1.3) {
+            addLog("KRİTİK: AI sana saldırdı!");
+            if (ai.army > player.army) {
+                player.army -= 10;
+                addLog("Savaşı kaybettin, ordun azaldı!");
+            }
+        } else {
+            addLog("AI şu an savunmada bekliyor.");
+        }
+    }
+
+    function nextTurn() {
+        turn++;
+        // Gelir sistemi
+        player.gold += player.provinces.length * 20;
+        ai.gold += ai.provinces.length * 20;
+
+        runAI();
+        updateStats();
+        drawMap();
+        addLog("Yeni yıl başladı.");
+    }
+
+    drawMap();
+    updateStats();
+</script>
