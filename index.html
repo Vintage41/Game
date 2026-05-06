@@ -1,103 +1,167 @@
-<h1>PAX HISTORIA</h1>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Pax Historia: Fetih</title>
+    <style>
+        body { background: #0f0f0f; color: #d4af37; font-family: 'Georgia', serif; display: flex; flex-direction: column; align-items: center; margin: 0; }
+        h1 { margin: 10px; text-transform: uppercase; letter-spacing: 3px; }
+        #ui-top { display: flex; gap: 30px; background: #1a1a1a; padding: 15px; border-radius: 0 0 15px 15px; border: 1px solid #d4af37; margin-bottom: 10px; }
+        #game-layout { display: flex; gap: 15px; }
+        canvas { background: #000; border: 3px solid #333; border-radius: 10px; cursor: crosshair; }
+        #controls { width: 250px; background: #1a1a1a; padding: 15px; border-radius: 10px; border: 1px solid #444; }
+        .log { height: 120px; background: #000; padding: 5px; font-size: 11px; overflow-y: auto; color: #aaa; margin-top: 10px; border: 1px solid #333; }
+        button { width: 100%; padding: 10px; margin-top: 5px; background: #d4af37; border: none; font-weight: bold; cursor: pointer; border-radius: 4px; }
+        button:hover { background: #fff; color: #000; }
+        .selected-info { color: #fff; font-size: 14px; margin-bottom: 10px; padding: 5px; background: #333; border-radius: 4px; }
+    </style>
+</head>
+<body>
 
-<div id="game-container">
-    <canvas id="mapCanvas" width="500" height="400"></canvas>
-
-    <div id="sidebar">
-        <div class="stat-box">
-            <strong>OYUNCU (Mavi)</strong><br>
-            Altın: span id="p-gold">100</span> | Ordu: <span id="p-army">20</span>
-        </div>
-        <div class="stat-box" style="border-left-color: #cc0000;">
-            <strong>YAPAY ZEKA (Kırmızı)</strong><br>
-            Altın: <span id="ai-gold">100</span> | Ordu: <span id="ai-army">20</span>
-        </div>
-        <button onclick="nextTurn()">Turu Bitir (Yılı İlerlet)</button>
-        <div class="log" id="gameLog">Oyun başladı. Stratejini belirle!</div>
+    <div id="ui-top">
+        <div>💰 Altın: <span id="gold">100</span></div>
+        <div>⚔️ Toplam Ordu: <span id="total-army">0</span></div>
+        <div>📅 Yıl: <span id="year">1453</span></div>
     </div>
-</div>
+
+    <div id="game-layout">
+        <canvas id="gameCanvas" width="600" height="400"></canvas>
+        
+        <div id="controls">
+            <div id="selected-province" class="selected-info">Bölge Seçiniz</div>
+            <button onclick="recruitArmy()">Asker Al (-20 Altın)</button>
+            <button onclick="endTurn()" style="background: #27ae60; color: white; margin-top: 20px;">TURU BİTİR</button>
+            <div class="log" id="gameLog">Hoş geldin komutan! Bir bölgene tıkla ve asker bas.</div>
+        </div>
+    </div>
 
 <script>
-    const canvas = document.getElementById('mapCanvas');
+    const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const logBox = document.getElementById('gameLog');
+    const log = document.getElementById('gameLog');
 
-    // Oyun Verileri
-    let turn = 1453;
-    let player = { gold: 100, army: 20, provinces: [0, 1] };
-    let ai = { gold: 100, army: 20, provinces: [2, 3] };
+    let gold = 100;
+    let year = 1453;
+    let selectedId = null;
 
-    const provinces = [
-        { id: 0, name: "İstanbul", x: 50, y: 50, owner: "player" },
-        { id: 1, name: "Ankara", x: 180, y: 80, owner: "player" },
-        { id: 2, name: "Roma", x: 50, y: 250, owner: "ai" },
-        { id: 3, name: "Viyana", x: 180, y: 220, owner: "ai" }
+    let provinces = [
+        { id: 0, name: "Konstantiniyye", x: 100, y: 100, army: 20, owner: 'player' },
+        { id: 1, name: "Anadolu", x: 300, y: 120, army: 15, owner: 'player' },
+        { id: 2, name: "Venedik", x: 100, y: 280, army: 25, owner: 'ai' },
+        { id: 3, name: "Viyana", x: 350, y: 260, army: 30, owner: 'ai' },
+        { id: 4, name: "Atina", x: 220, y: 200, army: 10, owner: 'neutral' }
     ];
 
-    function drawMap() {
+    function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         provinces.forEach(p => {
-            ctx.fillStyle = p.owner === "player" ? "#3498db" : "#cc0000";
-            ctx.fillRect(p.x, p.y, 100, 80);
-            ctx.strokeStyle = "#d4af37";
-            ctx.strokeRect(p.x, p.y, 100, 80);
-            
+            // Renk Belirleme
+            if(p.owner === 'player') ctx.fillStyle = '#2980b9';
+            else if(p.owner === 'ai') ctx.fillStyle = '#c0392b';
+            else ctx.fillStyle = '#7f8c8d';
+
+            // Seçili olma efekti
+            if(selectedId === p.id) {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 4;
+            } else {
+                ctx.strokeStyle = '#d4af37';
+                ctx.lineWidth = 1;
+            }
+
+            ctx.beginPath();
+            ctx.roundRect(p.x, p.y, 120, 70, 10);
+            ctx.fill();
+            ctx.stroke();
+
             ctx.fillStyle = "white";
-            ctx.font = "bold 14px Arial";
-            ctx.fillText(p.name, p.x + 10, p.y + 30);
-            ctx.font = "12px Arial";
-            ctx.fillText(p.owner.toUpperCase(), p.x + 10, p.y + 55);
+            ctx.font = "bold 12px Arial";
+            ctx.fillText(p.name, p.x + 10, p.y + 25);
+            ctx.fillText("⚔️ " + p.army, p.x + 10, p.y + 55);
         });
+        updateUI();
+    }
+
+    canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        provinces.forEach(p => {
+            if(mx > p.x && mx < p.x + 120 && my > p.y && my < p.y + 70) {
+                if(selectedId !== null && provinces[selectedId].owner === 'player' && p.owner !== 'player') {
+                    attack(selectedId, p.id);
+                } else {
+                    selectedId = p.id;
+                    document.getElementById('selected-province').innerText = p.name + " (" + p.owner + ")";
+                }
+            }
+        });
+        draw();
+    });
+
+    function recruitArmy() {
+        if(selectedId === null || provinces[selectedId].owner !== 'player') {
+            addLog("Önce kendi bölgeni seç!"); return;
+        }
+        if(gold >= 20) {
+            gold -= 20;
+            provinces[selectedId].army += 10;
+            addLog(provinces[selectedId].name + " bölgesine asker alındı.");
+            draw();
+        } else { addLog("Yetersiz altın!"); }
+    }
+
+    function attack(fromId, toId) {
+        let from = provinces[fromId];
+        let to = provinces[toId];
+        
+        addLog(from.name + " -> " + to.name + " SALDIRI!");
+        
+        if(from.army > to.army) {
+            let remains = from.army - to.army;
+            to.army = Math.floor(remains * 0.7);
+            from.army = Math.floor(remains * 0.3);
+            to.owner = 'player';
+            addLog("Zafer! Bölge fethedildi.");
+        } else {
+            to.army -= Math.floor(from.army * 0.5);
+            from.army = 2;
+            addLog("Saldırı başarısız oldu!");
+        }
+        selectedId = null;
+    }
+
+    function endTurn() {
+        year++;
+        gold += provinces.filter(p => p.owner === 'player').length * 25;
+        
+        // AI Hamlesi
+        provinces.filter(p => p.owner === 'ai').forEach(aiP => {
+            aiP.army += 5; // AI her tur güçlenir
+            // AI rastgele oyuncuya saldırır
+            let target = provinces.find(p => p.owner === 'player');
+            if(aiP.army > target.army + 10) {
+                target.army -= 10;
+                addLog("AI " + target.name + " bölgesine akın yaptı!");
+            }
+        });
+
+        addLog(year + " yılına girildi. Gelirler toplandı.");
+        draw();
     }
 
     function addLog(msg) {
-        logBox.innerHTML += `<div>[${turn}] ${msg}</div>`;
-        logBox.scrollTop = logBox.scrollHeight;
+        log.innerHTML = `<div>> ${msg}</div>` + log.innerHTML;
     }
 
-    function updateStats() {
-        document.getElementById('p-gold').innerText = player.gold;
-        document.getElementById('p-army').innerText = player.army;
-        document.getElementById('ai-gold').innerText = ai.gold;
-        document.getElementById('ai-army').innerText = ai.army;
+    function updateUI() {
+        document.getElementById('gold').innerText = gold;
+        document.getElementById('year').innerText = year;
+        document.getElementById('total-army').innerText = provinces.filter(p => p.owner === 'player').reduce((a, b) => a + b.army, 0);
     }
 
-    // Yapay Zeka Mantığı
-    function runAI() {
-        addLog("Yapay zeka hamlesini yapıyor...");
-        
-        // 1. Ekonomi: Altın azsa biriktir, çoksa ordu bas
-        if (ai.gold > 50) {
-            let recruit = Math.floor(ai.gold / 10);
-            ai.army += recruit;
-            ai.gold -= recruit * 10;
-            addLog("AI yeni asker topladı.");
-        }
-
-        // 2. Savaş: AI ordusu oyuncudan %30 fazlaysa saldırır
-        if (ai.army > player.army * 1.3) {
-            addLog("KRİTİK: AI sana saldırdı!");
-            if (ai.army > player.army) {
-                player.army -= 10;
-                addLog("Savaşı kaybettin, ordun azaldı!");
-            }
-        } else {
-            addLog("AI şu an savunmada bekliyor.");
-        }
-    }
-
-    function nextTurn() {
-        turn++;
-        // Gelir sistemi
-        player.gold += player.provinces.length * 20;
-        ai.gold += ai.provinces.length * 20;
-
-        runAI();
-        updateStats();
-        drawMap();
-        addLog("Yeni yıl başladı.");
-    }
-
-    drawMap();
-    updateStats();
+    draw();
 </script>
+</body>
+</html>
