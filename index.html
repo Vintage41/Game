@@ -2,84 +2,140 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Pax Historia: Fetih</title>
+    <title>Pax Historia: Global Supremacy</title>
     <style>
-        body { background: #0f0f0f; color: #d4af37; font-family: 'Georgia', serif; display: flex; flex-direction: column; align-items: center; margin: 0; }
-        h1 { margin: 10px; text-transform: uppercase; letter-spacing: 3px; }
-        #ui-top { display: flex; gap: 30px; background: #1a1a1a; padding: 15px; border-radius: 0 0 15px 15px; border: 1px solid #d4af37; margin-bottom: 10px; }
-        #game-layout { display: flex; gap: 15px; }
-        canvas { background: #000; border: 3px solid #333; border-radius: 10px; cursor: crosshair; }
-        #controls { width: 250px; background: #1a1a1a; padding: 15px; border-radius: 10px; border: 1px solid #444; }
-        .log { height: 120px; background: #000; padding: 5px; font-size: 11px; overflow-y: auto; color: #aaa; margin-top: 10px; border: 1px solid #333; }
-        button { width: 100%; padding: 10px; margin-top: 5px; background: #d4af37; border: none; font-weight: bold; cursor: pointer; border-radius: 4px; }
-        button:hover { background: #fff; color: #000; }
-        .selected-info { color: #fff; font-size: 14px; margin-bottom: 10px; padding: 5px; background: #333; border-radius: 4px; }
+        :root { --gold: #d4af37; --bg: #050505; --panel: #121212; --player: #2ecc71; --ai: #e74c3c; }
+        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Üst Panel */
+        #top-bar { background: var(--panel); border-bottom: 2px solid var(--gold); display: flex; justify-content: space-around; padding: 10px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .stat { color: var(--gold); }
+
+        /* Oyun Alanı */
+        #main-stage { display: flex; flex: 1; position: relative; }
+        canvas { flex: 1; background: radial-gradient(circle, #1a1c2c 0%, #050505 100%); cursor: crosshair; }
+
+        /* Yan Panel */
+        #side-panel { width: 300px; background: var(--panel); border-left: 2px solid var(--gold); padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .province-card { background: #1a1a1a; padding: 15px; border-radius: 8px; border: 1px solid #333; }
+        
+        /* Butonlar */
+        button { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 10px; cursor: pointer; transition: 0.3s; border-radius: 4px; font-weight: bold; }
+        button:hover { background: var(--gold); color: #000; box-shadow: 0 0 15px var(--gold); }
+        button:disabled { border-color: #444; color: #444; cursor: not-allowed; }
+
+        /* Oyun Logları */
+        #game-logs { height: 150px; background: #000; border: 1px solid #222; padding: 10px; font-size: 11px; overflow-y: auto; color: #888; font-family: monospace; }
+        .log-entry { margin-bottom: 5px; border-left: 2px solid var(--gold); padding-left: 5px; }
     </style>
 </head>
 <body>
 
-    <div id="ui-top">
-        <div>💰 Altın: <span id="gold">100</span></div>
-        <div>⚔️ Toplam Ordu: <span id="total-army">0</span></div>
-        <div>📅 Yıl: <span id="year">1453</span></div>
+    <div id="top-bar">
+        <div>💰 HAZİNE: <span id="gold-val" class="stat">1000</span></div>
+        <div>📅 YIL: <span id="year-val" class="stat">1453</span></div>
+        <div>🌍 HAKİMİYET: <span id="dominance-val" class="stat">%20</span></div>
+        <button onclick="nextTurn()">TURU BİTİR</button>
     </div>
 
-    <div id="game-layout">
-        <canvas id="gameCanvas" width="600" height="400"></canvas>
-        
-        <div id="controls">
-            <div id="selected-province" class="selected-info">Bölge Seçiniz</div>
-            <button onclick="recruitArmy()">Asker Al (-20 Altın)</button>
-            <button onclick="endTurn()" style="background: #27ae60; color: white; margin-top: 20px;">TURU BİTİR</button>
-            <div class="log" id="gameLog">Hoş geldin komutan! Bir bölgene tıkla ve asker bas.</div>
+    <div id="main-stage">
+        <canvas id="gameMap"></canvas>
+
+        <div id="side-panel">
+            <div id="selection-ui" class="province-card">
+                <h3 id="p-name">Bölge Seçilmedi</h3>
+                <p>Ordu: <span id="p-army">0</span></p>
+                <p>Gelir: <span id="p-income">0</span></p>
+            </div>
+
+            <div class="province-card">
+                <h4>EMİRLER</h4>
+                <button style="width:100%" onclick="actionRecruit()" id="btn-recruit">Asker Al (200 Altın)</button>
+                <button style="width:100%; margin-top:5px" onclick="actionFortify()" id="btn-fortify">Savunma Kur (150 Altın)</button>
+            </div>
+
+            <div id="game-logs">
+                <div class="log-entry">Emirlerinizi bekliyoruz, Efendim.</div>
+            </div>
         </div>
     </div>
 
 <script>
-    const canvas = document.getElementById('gameCanvas');
+    const canvas = document.getElementById('gameMap');
     const ctx = canvas.getContext('2d');
-    const log = document.getElementById('gameLog');
-
-    let gold = 100;
+    
+    let gold = 1000;
     let year = 1453;
     let selectedId = null;
 
+    // Dinamik Dünya Haritası Verisi
     let provinces = [
-        { id: 0, name: "Konstantiniyye", x: 100, y: 100, army: 20, owner: 'player' },
-        { id: 1, name: "Anadolu", x: 300, y: 120, army: 15, owner: 'player' },
-        { id: 2, name: "Venedik", x: 100, y: 280, army: 25, owner: 'ai' },
-        { id: 3, name: "Viyana", x: 350, y: 260, army: 30, owner: 'ai' },
-        { id: 4, name: "Atina", x: 220, y: 200, army: 10, owner: 'neutral' }
+        { id: 0, name: "Konstantiniyye", x: 450, y: 150, army: 50, income: 100, owner: 'player', color: '#2ecc71' },
+        { id: 1, name: "Anadolu", x: 520, y: 180, army: 30, income: 60, owner: 'player', color: '#2ecc71' },
+        { id: 2, name: "Balkanlar", x: 380, y: 130, army: 40, income: 50, owner: 'ai', color: '#e74c3c' },
+        { id: 3, name: "Viyana", x: 320, y: 100, army: 80, income: 120, owner: 'ai', color: '#e74c3c' },
+        { id: 4, name: "Kırım", x: 500, y: 80, army: 20, income: 40, owner: 'neutral', color: '#7f8c8d' },
+        { id: 5, name: "Mısır", x: 480, y: 280, army: 45, income: 90, owner: 'neutral', color: '#7f8c8d' }
     ];
+
+    function init() {
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+    }
+
+    function resize() {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+    }
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Bağlantı Çizgileri (Sınır Komşuluğu)
+        ctx.strokeStyle = '#222';
+        ctx.setLineDash([5, 5]);
         provinces.forEach(p => {
-            // Renk Belirleme
-            if(p.owner === 'player') ctx.fillStyle = '#2980b9';
-            else if(p.owner === 'ai') ctx.fillStyle = '#c0392b';
-            else ctx.fillStyle = '#7f8c8d';
+            provinces.forEach(p2 => {
+                if(p.id !== p2.id) {
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+            });
+        });
+        ctx.setLineDash([]);
 
-            // Seçili olma efekti
-            if(selectedId === p.id) {
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 4;
+        // Eyaletleri Çiz
+        provinces.forEach(p => {
+            const isSelected = selectedId === p.id;
+            
+            // Parlama efekti
+            if(isSelected) {
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = varColor('--gold');
             } else {
-                ctx.strokeStyle = '#d4af37';
-                ctx.lineWidth = 1;
+                ctx.shadowBlur = 0;
             }
 
+            ctx.fillStyle = p.owner === 'player' ? '#2ecc71' : (p.owner === 'ai' ? '#e74c3c' : '#7f8c8d');
             ctx.beginPath();
-            ctx.roundRect(p.x, p.y, 120, 70, 10);
+            ctx.arc(p.x, p.y, 25, 0, Math.PI * 2);
             ctx.fill();
+            
+            // Kenarlık
+            ctx.strokeStyle = isSelected ? '#fff' : '#000';
+            ctx.lineWidth = isSelected ? 3 : 1;
             ctx.stroke();
 
-            ctx.fillStyle = "white";
-            ctx.font = "bold 12px Arial";
-            ctx.fillText(p.name, p.x + 10, p.y + 25);
-            ctx.fillText("⚔️ " + p.army, p.x + 10, p.y + 55);
+            // Etiketler
+            ctx.fillStyle = "#fff";
+            ctx.font = "12px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(p.name, p.x, p.y - 35);
+            ctx.fillText("⚔️ " + p.army, p.x, p.y + 5);
         });
-        updateUI();
     }
 
     canvas.addEventListener('click', (e) => {
@@ -87,81 +143,99 @@
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
+        let clickedOnTarget = false;
+
         provinces.forEach(p => {
-            if(mx > p.x && mx < p.x + 120 && my > p.y && my < p.y + 70) {
+            const dist = Math.sqrt((mx - p.x)**2 + (my - p.y)**2);
+            if(dist < 30) {
+                // Eğer zaten bir yer seçiliyse ve tıkladığımız yer düşman ise SALDIR
                 if(selectedId !== null && provinces[selectedId].owner === 'player' && p.owner !== 'player') {
-                    attack(selectedId, p.id);
+                    handleAttack(provinces[selectedId], p);
                 } else {
                     selectedId = p.id;
-                    document.getElementById('selected-province').innerText = p.name + " (" + p.owner + ")";
+                    updateSelectionUI(p);
                 }
+                clickedOnTarget = true;
             }
         });
+
+        if(!clickedOnTarget) selectedId = null;
         draw();
     });
 
-    function recruitArmy() {
-        if(selectedId === null || provinces[selectedId].owner !== 'player') {
-            addLog("Önce kendi bölgeni seç!"); return;
-        }
-        if(gold >= 20) {
-            gold -= 20;
-            provinces[selectedId].army += 10;
-            addLog(provinces[selectedId].name + " bölgesine asker alındı.");
-            draw();
-        } else { addLog("Yetersiz altın!"); }
-    }
-
-    function attack(fromId, toId) {
-        let from = provinces[fromId];
-        let to = provinces[toId];
+    function handleAttack(attacker, target) {
+        addLog(`${attacker.name} ordusu ${target.name} bölgesine yürüyor!`);
         
-        addLog(from.name + " -> " + to.name + " SALDIRI!");
-        
-        if(from.army > to.army) {
-            let remains = from.army - to.army;
-            to.army = Math.floor(remains * 0.7);
-            from.army = Math.floor(remains * 0.3);
-            to.owner = 'player';
-            addLog("Zafer! Bölge fethedildi.");
+        if(attacker.army > target.army) {
+            const casualties = target.army;
+            attacker.army -= Math.floor(casualties * 0.6);
+            target.owner = 'player';
+            target.army = Math.floor(attacker.army * 0.5);
+            attacker.army = Math.floor(attacker.army * 0.5);
+            addLog(`ZAFER! ${target.name} artık bizim!`);
         } else {
-            to.army -= Math.floor(from.army * 0.5);
-            from.army = 2;
-            addLog("Saldırı başarısız oldu!");
+            target.army -= Math.floor(attacker.army * 0.8);
+            attacker.army = 5;
+            addLog(`HEZİMET! ${target.name} kuşatması başarısız.`);
         }
-        selectedId = null;
     }
 
-    function endTurn() {
-        year++;
-        gold += provinces.filter(p => p.owner === 'player').length * 25;
-        
-        // AI Hamlesi
-        provinces.filter(p => p.owner === 'ai').forEach(aiP => {
-            aiP.army += 5; // AI her tur güçlenir
-            // AI rastgele oyuncuya saldırır
-            let target = provinces.find(p => p.owner === 'player');
-            if(aiP.army > target.army + 10) {
-                target.army -= 10;
-                addLog("AI " + target.name + " bölgesine akın yaptı!");
-            }
+    function actionRecruit() {
+        if(selectedId === null || provinces[selectedId].owner !== 'player') return;
+        if(gold >= 200) {
+            gold -= 200;
+            provinces[selectedId].army += 25;
+            addLog(`${provinces[selectedId].name} bölgesine taze kan katıldı.`);
+            updateUI();
+            draw();
+        }
+    }
+
+    function nextTurn() {
+        year += 1;
+        provinces.forEach(p => {
+            if(p.owner === 'player') gold += p.income;
+            if(p.owner === 'ai') p.army += 10; // AI her tur güçlenir
         });
 
-        addLog(year + " yılına girildi. Gelirler toplandı.");
+        // Rastgele bir AI saldırısı simülasyonu
+        if(Math.random() > 0.7) {
+            let playerP = provinces.find(p => p.owner === 'player');
+            playerP.army -= 15;
+            addLog(`UYARI: Sınırda çatışma! ${playerP.name} bölgesinde 15 birlik kaybettik.`);
+        }
+
+        addLog(`${year} yılına geçildi. Vergiler toplandı.`);
+        updateUI();
         draw();
     }
 
-    function addLog(msg) {
-        log.innerHTML = `<div>> ${msg}</div>` + log.innerHTML;
+    function updateSelectionUI(p) {
+        document.getElementById('p-name').innerText = p.name;
+        document.getElementById('p-army').innerText = p.army;
+        document.getElementById('p-income').innerText = p.income;
     }
 
     function updateUI() {
-        document.getElementById('gold').innerText = gold;
-        document.getElementById('year').innerText = year;
-        document.getElementById('total-army').innerText = provinces.filter(p => p.owner === 'player').reduce((a, b) => a + b.army, 0);
+        document.getElementById('gold-val').innerText = gold;
+        document.getElementById('year-val').innerText = year;
+        const dominance = (provinces.filter(p => p.owner === 'player').length / provinces.length) * 100;
+        document.getElementById('dominance-val').innerText = `%${Math.floor(dominance)}`;
     }
 
-    draw();
+    function addLog(msg) {
+        const logs = document.getElementById('game-logs');
+        logs.innerHTML = `<div class="log-entry">${msg}</div>` + logs.innerHTML;
+    }
+
+    function varColor(name) { return getComputedStyle(document.documentElement).getPropertyValue(name); }
+
+    function animate() {
+        draw();
+        requestAnimationFrame(animate);
+    }
+
+    init();
 </script>
 </body>
 </html>
